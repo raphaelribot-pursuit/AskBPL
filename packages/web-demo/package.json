@@ -10,8 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@splinetool/react-spline": "^4.1.0",
+    "@splinetool/runtime": "^1.12.92",
+    "@use-gesture/react": "^10.3.1",
+    "@xstate/react": "^6.1.0",
+    "motion": "^12.38.0",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "xstate": "^5.31.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
