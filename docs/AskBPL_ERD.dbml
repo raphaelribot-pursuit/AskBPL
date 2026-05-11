@@ -1,0 +1,108 @@
+// Ask BPL pilot — DBML export (mirror of SQLAlchemy models).
+Table testers {
+  tester_id uuid [pk]
+  email varchar [unique, not null]
+  access_code_hash varchar [not null]
+  tester_group tester_group_enum [not null]
+  department varchar
+  issued_at timestamptz [not null]
+  active boolean [not null]
+}
+
+Table sessions {
+  session_id uuid [pk]
+  tester_id uuid [ref: > testers.tester_id]
+  attribution_mode attribution_mode_enum [not null]
+  started_at timestamptz [not null]
+  expires_at timestamptz [not null]
+  user_agent varchar
+}
+
+Table policy_types {
+  policy_type varchar [pk]
+  display_name varchar [not null]
+  description text
+}
+
+Table owning_teams {
+  team_id uuid [pk]
+  name varchar [not null]
+  contact_hint varchar [not null]
+}
+
+Table routing_rules {
+  rule_id uuid [pk]
+  policy_type varchar [ref: > policy_types.policy_type, not null]
+  team_id uuid [ref: > owning_teams.team_id, not null]
+  priority int [not null, default: 0]
+  approved_at timestamptz
+}
+
+Table documents {
+  document_id uuid [pk]
+  title varchar [not null]
+  version varchar [not null]
+  policy_type varchar [ref: > policy_types.policy_type, not null]
+  source_format source_format_enum [not null]
+  ingested_at timestamptz
+  ingest_status ingest_status_enum [not null]
+  page_count int [not null, default: 0]
+  source_path varchar
+  superseded_by_document_id uuid
+}
+
+Ref: documents.superseded_by_document_id > documents.document_id [delete: Set Null]
+
+Table chunks {
+  chunk_id uuid [pk]
+  document_id uuid [ref: > documents.document_id, not null]
+  section_heading varchar
+  ordinal int [not null]
+  text text [not null]
+  token_count int [not null]
+  content_hash varchar
+}
+
+Table questions {
+  request_id uuid [pk]
+  session_id uuid [ref: > sessions.session_id, not null]
+  tester_id uuid [ref: > testers.tester_id]
+  question_text text
+  question_hash varchar [not null]
+  pii_rejected boolean [not null]
+  submitted_at timestamptz [not null]
+  latency_ms int
+}
+
+Table responses {
+  response_id uuid [pk]
+  request_id uuid [ref: > questions.request_id, not null]
+  response_type response_type_enum [not null]
+  answer_text text
+  refusal_explanation text
+  inferred_policy_type varchar
+  created_at timestamptz [not null]
+}
+
+Table citations {
+  citation_id uuid [pk]
+  response_id uuid [ref: > responses.response_id, not null]
+  chunk_id uuid [ref: > chunks.chunk_id, not null]
+  ordinal int [not null]
+}
+
+Table routing_decisions {
+  decision_id uuid [pk]
+  response_id uuid [ref: > responses.response_id, not null]
+  team_id uuid [ref: > owning_teams.team_id, not null]
+  ordinal int [not null]
+}
+
+Table feedback {
+  feedback_id uuid [pk]
+  request_id uuid [ref: > questions.request_id, not null]
+  rating feedback_rating_enum [not null]
+  comment text
+  anonymous boolean [not null]
+  submitted_at timestamptz [not null]
+}

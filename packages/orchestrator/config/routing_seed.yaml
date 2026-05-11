@@ -1,0 +1,51 @@
+policy_types:
+  - slug: gift_acceptance
+    display_name: Gift Acceptance Policy
+    description: Rules for accepting donor gifts.
+
+  - slug: fundraising_policy
+    display_name: Fundraising Policy
+    description: Institutional fundraising norms.
+
+  - slug: data_retention
+    display_name: Data Retention
+    description: How long organizational data is retained.
+
+  - slug: generic_policy
+    display_name: Sample Policy Bucket
+    description: Fallback sample policy corpus for ingest smoke tests.
+
+teams:
+  - name: Supervisor / General
+    contact_hint: Ask your supervisor or intranet Policies portal.
+    key: SUPERVISOR
+
+  - name: Legal
+    contact_hint: Contact Legal via Ask BPL internal intake.
+    key: LEGAL
+
+  - name: Development
+    contact_hint: Contact Development stewardship desk.
+    key: DEVELOPMENT
+
+  - name: Information Technology
+    contact_hint: Contact IT Help Desk.
+    key: IT
+
+routing_rules:
+  - policy_type_slug: fundraising_policy
+    team_key: DEVELOPMENT
+
+  - policy_type_slug: gift_acceptance
+    team_key: LEGAL
+
+  - policy_type_slug: data_retention
+    team_key: IT
+    priority: 1
+
+  - policy_type_slug: data_retention
+    team_key: LEGAL
+    priority: 2
+
+  - policy_type_slug: generic_policy
+    team_key: SUPERVISOR

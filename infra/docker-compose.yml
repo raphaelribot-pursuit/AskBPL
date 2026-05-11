@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: askbpl
+      POSTGRES_PASSWORD: askbpl_dev_password
+      POSTGRES_DB: askbpl
+    ports:
+      - "5432:5432"
+    volumes:
+      - askbpl_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U askbpl -d askbpl"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  askbpl_pgdata:

@@ -1,0 +1,248 @@
+from __future__ import annotations
+
+import enum
+import uuid
+from datetime import datetime
+from typing import Optional
+
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class TesterGroup(str, enum.Enum):
+    SME = "SME"
+    non_expert = "non_expert"
+
+
+class AttributionMode(str, enum.Enum):
+    attributed = "attributed"
+    anonymous = "anonymous"
+
+
+class SourceFormat(str, enum.Enum):
+    pdf = "pdf"
+    docx = "docx"
+    md = "md"
+
+
+class IngestStatus(str, enum.Enum):
+    indexed = "indexed"
+    pending = "pending"
+    failed = "failed"
+
+
+class ResponseType(str, enum.Enum):
+    answer = "answer"
+    refusal_oo_corpus = "refusal_oo_corpus"
+    refusal_citation_invalid = "refusal_citation_invalid"
+    error_pii = "error_pii"
+
+
+class FeedbackRating(str, enum.Enum):
+    helpful = "helpful"
+    not_helpful = "not_helpful"
+
+
+class Tester(Base):
+    __tablename__ = "testers"
+
+    tester_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    access_code_hash: Mapped[str] = mapped_column(String(255))
+    group: Mapped[TesterGroup] = mapped_column(Enum(TesterGroup, name="tester_group", native_enum=True))
+    department: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    sessions: Mapped[list["Session"]] = relationship(back_populates="tester")
+
+
+class Session(Base):
+    __tablename__ = "sessions"
+
+    session_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tester_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("testers.tester_id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    attribution_mode: Mapped[AttributionMode] = mapped_column(
+        Enum(AttributionMode, name="attribution_mode", native_enum=True)
+    )
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    user_agent: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    tester: Mapped[Optional[Tester]] = relationship(back_populates="sessions")
+    questions: Mapped[list["Question"]] = relationship(back_populates="session")
+
+
+class PolicyType(Base):
+    __tablename__ = "policy_types"
+
+    policy_type: Mapped[str] = mapped_column(String(80), primary_key=True)
+    display_name: Mapped[str] = mapped_column(String(255))
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    documents: Mapped[list["Document"]] = relationship(back_populates="policy_type_row")
+    routing_rules: Mapped[list["RoutingRule"]] = relationship(back_populates="policy_type_row")
+
+
+class OwningTeam(Base):
+    __tablename__ = "owning_teams"
+
+    team_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(100))
+    contact_hint: Mapped[str] = mapped_column(String(255))
+
+    routing_rules: Mapped[list["RoutingRule"]] = relationship(back_populates="team")
+    routing_decisions: Mapped[list["RoutingDecision"]] = relationship(back_populates="team")
+
+
+class RoutingRule(Base):
+    __tablename__ = "routing_rules"
+    __table_args__ = (
+        UniqueConstraint("policy_type", "team_id", name="uq_routing_rule_policy_team"),
+    )
+
+    rule_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    policy_type: Mapped[str] = mapped_column(
+        String(80), ForeignKey("policy_types.policy_type", ondelete="CASCADE"), index=True
+    )
+    team_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("owning_teams.team_id"))
+    priority: Mapped[int] = mapped_column(Integer, default=0)
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    policy_type_row: Mapped[PolicyType] = relationship(back_populates="routing_rules")
+    team: Mapped[OwningTeam] = relationship(back_populates="routing_rules")
+
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    document_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title: Mapped[str] = mapped_column(String(255))
+    version: Mapped[str] = mapped_column(String(50))
+    policy_type: Mapped[str] = mapped_column(String(80), ForeignKey("policy_types.policy_type"), index=True)
+    source_format: Mapped[SourceFormat] = mapped_column(Enum(SourceFormat, name="source_format", native_enum=True))
+    ingested_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    ingest_status: Mapped[IngestStatus] = mapped_column(
+        Enum(IngestStatus, name="ingest_status", native_enum=True), default=IngestStatus.pending
+    )
+    page_count: Mapped[int] = mapped_column(Integer, default=0)
+    source_path: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    superseded_by_document_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("documents.document_id", ondelete="SET NULL"), nullable=True
+    )
+
+    policy_type_row: Mapped[PolicyType] = relationship(back_populates="documents")
+    chunks: Mapped[list["Chunk"]] = relationship(back_populates="document", cascade="all, delete-orphan")
+
+
+class Chunk(Base):
+    __tablename__ = "chunks"
+
+    chunk_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("documents.document_id", ondelete="CASCADE"), index=True
+    )
+    section_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    ordinal: Mapped[int] = mapped_column(Integer, default=0)
+    text: Mapped[str] = mapped_column(Text)
+    token_count: Mapped[int] = mapped_column(Integer, default=0)
+    content_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+
+    document: Mapped[Document] = relationship(back_populates="chunks")
+    citations: Mapped[list["Citation"]] = relationship(back_populates="chunk")
+
+
+class Question(Base):
+    __tablename__ = "questions"
+
+    request_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("sessions.session_id"), index=True)
+    tester_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("testers.tester_id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    question_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    question_hash: Mapped[str] = mapped_column(String(64), index=True)
+    pii_rejected: Mapped[bool] = mapped_column(Boolean, default=False)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    session: Mapped["Session"] = relationship(back_populates="questions")
+    response: Mapped[Optional["Response"]] = relationship(back_populates="question", uselist=False)
+    feedback: Mapped[Optional["Feedback"]] = relationship(back_populates="question", uselist=False)
+
+
+class Response(Base):
+    __tablename__ = "responses"
+
+    response_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    request_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("questions.request_id", ondelete="CASCADE"), unique=True
+    )
+    response_type: Mapped[ResponseType] = mapped_column(
+        Enum(ResponseType, name="response_type", native_enum=True)
+    )
+    answer_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    refusal_explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    inferred_policy_type: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    question: Mapped[Question] = relationship(back_populates="response")
+    citations: Mapped[list["Citation"]] = relationship(back_populates="response", cascade="all, delete-orphan")
+    routing_decisions: Mapped[list["RoutingDecision"]] = relationship(
+        back_populates="response", cascade="all, delete-orphan"
+    )
+
+
+class Citation(Base):
+    __tablename__ = "citations"
+
+    citation_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    response_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("responses.response_id", ondelete="CASCADE"))
+    chunk_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("chunks.chunk_id"), index=True)
+    ordinal: Mapped[int] = mapped_column(Integer, default=0)
+
+    response: Mapped[Response] = relationship(back_populates="citations")
+    chunk: Mapped[Chunk] = relationship(back_populates="citations")
+
+
+class RoutingDecision(Base):
+    __tablename__ = "routing_decisions"
+
+    decision_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    response_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("responses.response_id", ondelete="CASCADE"))
+    team_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("owning_teams.team_id"))
+    ordinal: Mapped[int] = mapped_column(Integer, default=0)
+
+    response: Mapped[Response] = relationship(back_populates="routing_decisions")
+    team: Mapped[OwningTeam] = relationship(back_populates="routing_decisions")
+
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    feedback_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    request_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("questions.request_id", ondelete="CASCADE"), unique=True
+    )
+    rating: Mapped[FeedbackRating] = mapped_column(Enum(FeedbackRating, name="feedback_rating", native_enum=True))
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    anonymous: Mapped[bool] = mapped_column(Boolean, default=False)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+    question: Mapped["Question"] = relationship(back_populates="feedback")
