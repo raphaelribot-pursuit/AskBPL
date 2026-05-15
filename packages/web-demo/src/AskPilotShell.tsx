@@ -390,7 +390,9 @@ export function AskPilotShell({ apiBase, docsBase }: AskPilotShellProps) {
             </button>
           </div>
         </header>
-        <ShellBody apiBase={apiBase} docsBase={docsBase} />
+        <div className="modal-shell-body">
+          <ShellBody apiBase={apiBase} docsBase={docsBase} />
+        </div>
       </div>
       {import.meta.env.DEV ? <AvatarDebugPanel send={send} snapshot={snapshot} /> : null}
     </AvatarEventsProvider>
@@ -415,6 +417,7 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
 
   const [feedbackAnonymousGlobal, setFeedbackAnonymousGlobal] = useState(false)
   const [feedbackStatus, setFeedbackStatus] = useState<string>('')
+  const [signingIn, setSigningIn] = useState(false)
 
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const liveRegionMessage = useLastAssistantSummary(thread)
@@ -436,24 +439,41 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
 
   async function handleSignIn(e: FormEvent) {
     e.preventDefault()
+    if (signingIn) return
     setFeedbackStatus('')
-    const res = await fetch(`${apiBase}/auth/sign-in`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: email.trim(),
-        access_code: accessCode.trim(),
-        attribution_mode: attribution,
-        user_agent: navigator.userAgent?.slice(0, 240),
-      }),
-    })
-    const body = (await res.json().catch(() => ({}))) as Record<string, unknown>
-    if (!res.ok) {
-      const detailRaw = body.detail
-      setFeedbackStatus(`Sign-in failed: ${formatFastApiDetail(detailRaw) || res.status}`)
-      return
+    setSigningIn(true)
+    try {
+      const res = await fetch(`${apiBase}/auth/sign-in`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          access_code: accessCode.trim(),
+          attribution_mode: attribution,
+          user_agent: navigator.userAgent?.slice(0, 240),
+        }),
+      })
+      const body = (await res.json().catch(() => ({}))) as Record<string, unknown>
+      if (!res.ok) {
+        const detailRaw = body.detail
+        setFeedbackStatus(`Sign-in failed: ${formatFastApiDetail(detailRaw) || res.status}`)
+        return
+      }
+      const tokenStr = typeof body.token === 'string' ? body.token.trim() : ''
+      if (!tokenStr) {
+        setFeedbackStatus(
+          'Sign-in response had no token. Confirm the orchestrator is running and matches this demo client.',
+        )
+        return
+      }
+      setToken(tokenStr)
+    } catch {
+      setFeedbackStatus(
+        `Cannot reach the API at ${apiBase}. Start the orchestrator (e.g. port 8000) or set VITE_API_BASE_URL in .env.`,
+      )
+    } finally {
+      setSigningIn(false)
     }
-    setToken(String(body.token ?? ''))
   }
 
   async function sendQuestion(textRaw: string) {
@@ -686,8 +706,8 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
           </label>
         </fieldset>
 
-        <button className="primary" type="submit">
-          Continue
+        <button className="primary" type="submit" disabled={signingIn} aria-busy={signingIn}>
+          {signingIn ? 'Signing in…' : 'Continue'}
         </button>
         {feedbackStatus && <div className="status-line muted">{feedbackStatus}</div>}
       </form>
@@ -844,32 +864,36 @@ function AssistantTurn({
       )}
       {!turn.error && turn.responseType === 'answer' && (
         <>
-          <p className="answer-body">{turn.answer}</p>
+          <div className="answer-block">
+            <p className="answer-body">{turn.answer}</p>
+            {(turn.citations ?? []).length > 0 ? (
+              <ul className="citation-inset-stack" aria-label="Sources">
+                {(turn.citations ?? []).map((citation, index) => (
+                  <li key={`${citation.chunk_id}-${index}`} className="citation-inset-item">
+                    <button
+                      type="button"
+                      className="citation-card"
+                      onClick={() => onOpenCitation(citation)}
+                      aria-label={`Open source document: ${citation.document_title ?? 'Document'}`}
+                    >
+                      <span className="citation-card-title">
+                        {citation.document_title ?? 'Document'}
+                      </span>
+                      {citation.section_heading ? (
+                        <span className="citation-card-section">{citation.section_heading}</span>
+                      ) : null}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted citation-inset-missing">No citations were returned for this turn.</p>
+            )}
+          </div>
 
           {(turn.routing?.length ?? 0) > 0 ? (
             <RoutingDeck teams={turn.routing ?? []} isRefusal={false} />
           ) : null}
-
-          {(turn.citations ?? []).length > 0 ? (
-            <div className="citation-pane">
-              <p className="panel-title">Citations</p>
-              <div className="citation-chip-row">
-                {(turn.citations ?? []).map((citation, index) => (
-                  <button
-                    key={`${citation.chunk_id}-${index}`}
-                    type="button"
-                    className="citation-chip"
-                    onClick={() => onOpenCitation(citation)}
-                  >
-                    {citation.document_title ?? 'Document'}
-                    {citation.section_heading ? ` · ${citation.section_heading}` : ''}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="muted">No citations were returned for this turn.</p>
-          )}
         </>
       )}
       {turn.requestId && (
