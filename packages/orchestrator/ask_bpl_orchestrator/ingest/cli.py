@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import uuid
 from pathlib import Path
 
 from ask_bpl_orchestrator.ingest.service import ingest_file
@@ -36,6 +37,8 @@ async def _run(args: argparse.Namespace) -> None:
     title_default = args.title
     version = args.version
 
+    supersedes_id = uuid.UUID(args.supersedes) if args.supersedes else None
+
     for file_path in collected:
         rel_title = title_default or file_path.stem.replace("_", " ").title()
         await ingest_file(
@@ -44,6 +47,7 @@ async def _run(args: argparse.Namespace) -> None:
             policy_slug=args.policy,
             title=rel_title,
             version_label=version,
+            supersedes_document_id=supersedes_id,
         )
         print(f"ingested:{file_path}")  # noqa: T201 intentional CLI output
 
@@ -55,6 +59,12 @@ def main() -> None:
     parser.add_argument("--policy", default="generic_policy", help="Policy slug (must exist in DB)")
     parser.add_argument("--title", default=None, help="Override document title display string")
     parser.add_argument("--version", default="pilot-draft", help="Document version tag")
+    parser.add_argument(
+        "--supersedes",
+        default=None,
+        metavar="DOCUMENT_UUID",
+        help="Mark an existing document as superseded by this ingest (PRD §8.5); removes its vectors from Pinecone",
+    )
 
     args = parser.parse_args()
     asyncio.run(_run(args))

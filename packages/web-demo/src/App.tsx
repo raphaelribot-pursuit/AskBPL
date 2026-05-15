@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 import { AskPilotShell } from './AskPilotShell'
+import { UiErrorBoundary } from './UiErrorBoundary'
 
 /**
  * Top-level chrome for the Ask BPL pilot demo. The chat surface, FAB, and
@@ -128,7 +129,23 @@ export function App() {
         </section>
       )}
 
-      {view === 'demo' && <AskPilotShell apiBase={apiBase} docsBase={docsBase} />}
+      {view === 'demo' && (
+        <UiErrorBoundary
+          label="AskPilotShell"
+          fallback={
+            <section className="brutal-card error-fallback">
+              <h2>Demo shell crashed</h2>
+              <p className="muted">
+                Open DevTools → Console for the stack trace. The pilot build keeps 3D off unless{' '}
+                <code>VITE_ENABLE_SPLINE=true</code> is set; <code>VITE_LITE_DEMO=true</code> forces the
+                emoji avatar only.
+              </p>
+            </section>
+          }
+        >
+          <AskPilotShell apiBase={apiBase} docsBase={docsBase} />
+        </UiErrorBoundary>
+      )}
     </div>
   )
 }

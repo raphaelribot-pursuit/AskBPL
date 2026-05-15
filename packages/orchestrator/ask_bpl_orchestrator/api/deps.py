@@ -11,7 +11,6 @@ from sqlalchemy import select
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ask_bpl_orchestrator.api.session_dep import DbSessionDep
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.db.models import Tester
 from ask_bpl_orchestrator.services.jwt_tokens import decode_session_token

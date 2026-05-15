@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
+from ask_bpl_orchestrator.api.deps import JwtAuthClaims
 from ask_bpl_orchestrator.api.session_dep import DbSessionDep
 from ask_bpl_orchestrator.db.models import Feedback as FeedbackORM
 from ask_bpl_orchestrator.db.models import FeedbackRating, Question
@@ -25,7 +26,7 @@ class FeedbackPayload(BaseModel):
 
 
 @router.post("/")
-async def submit_feedback(body: FeedbackPayload, db: DbSessionDep):
+async def submit_feedback(claims: JwtAuthClaims, body: FeedbackPayload, db: DbSessionDep):
     q = (
         (
             await db.execute(select(Question).where(Question.request_id == body.request_id))
@@ -35,6 +36,8 @@ async def submit_feedback(body: FeedbackPayload, db: DbSessionDep):
     )
     if q is None:
         raise HTTPException(status_code=404, detail="request not found")
+    if q.session_id != claims["session_id"]:
+        raise HTTPException(status_code=403, detail="question does not belong to this session")
 
     existing = (
         (

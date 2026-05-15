@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import type { Application } from '@splinetool/runtime'
+import { UiErrorBoundary } from '../UiErrorBoundary'
 import {
   AVATAR_STATE_VARIABLE,
   PLACEHOLDER_ACCENT,
@@ -11,12 +12,17 @@ import type { AvatarStateName } from './avatar.types'
 /**
  * Loads the authored Spline scene and drives it from the avatar state
  * machine via `setVariable('avatarState', '<StateName>')` (spec §8). Pauses
- * rendering when minimized, resumes on restore. When the .splinecode asset
- * is missing or fails to load we fall back to a friendly SVG book so that
- * the build never blocks on art delivery.
+ * rendering when minimized, resumes on restore.
+ *
+ * Spline is **opt-in** (`VITE_ENABLE_SPLINE=true`): WebGL can blank the whole
+ * tab on some GPUs. Without that flag we use the SVG book so pilots can sign
+ * in and test the orchestrator without the 3D runtime.
  */
 
 const Spline = lazy(() => import('@splinetool/react-spline'))
+
+/** Spline/WebGL can take down the whole tab on some GPUs; load only when explicitly opted in. */
+const SPLINE_EXPLICITLY_ENABLED = import.meta.env.VITE_ENABLE_SPLINE === 'true'
 
 type AvatarSceneProps = {
   state: AvatarStateName
@@ -32,7 +38,11 @@ const probeSceneAvailability = async (path: string): Promise<boolean> => {
   if (typeof fetch === 'undefined') return false
   try {
     const res = await fetch(path, { method: 'HEAD', cache: 'no-store' })
-    return res.ok
+    if (!res.ok) return false
+    const ct = (res.headers.get('content-type') ?? '').toLowerCase()
+    // SPA fallbacks often return 200 + text/html for unknown paths — never feed that to Spline.
+    if (ct.includes('text/html')) return false
+    return true
   } catch {
     return false
   }
@@ -49,6 +59,12 @@ export function AvatarScene({
 
   useEffect(() => {
     let cancelled = false
+    if (!SPLINE_EXPLICITLY_ENABLED) {
+      setStatus('fallback')
+      return () => {
+        cancelled = true
+      }
+    }
     void probeSceneAvailability(scenePath).then((ok) => {
       if (cancelled) return
       setStatus(ok ? 'loading' : 'fallback')
@@ -88,25 +104,31 @@ export function AvatarScene({
 
   return (
     <div className="avatar-scene-canvas" aria-hidden="true">
-      <Suspense fallback={<FallbackBook state={state} reducedMotion={true} />}>
-        {status === 'loading' || status === 'ready' ? (
-          <Spline
-            scene={scenePath}
-            onLoad={(app) => {
-              appRef.current = app
-              setStatus('ready')
-              try {
-                app.setVariable(AVATAR_STATE_VARIABLE, SPLINE_STATE_NAMES[state])
-              } catch {
-                // ignore
-              }
-            }}
-            onError={() => setStatus('fallback')}
-          />
-        ) : (
-          <FallbackBook state={state} reducedMotion={reducedMotion || paused} />
-        )}
-      </Suspense>
+      <UiErrorBoundary
+        key={scenePath}
+        label="AvatarScene/Spline"
+        fallback={<FallbackBook state={state} reducedMotion={reducedMotion || paused} />}
+      >
+        <Suspense fallback={<FallbackBook state={state} reducedMotion={true} />}>
+          {status === 'loading' || status === 'ready' ? (
+            <Spline
+              scene={scenePath}
+              onLoad={(app) => {
+                appRef.current = app
+                setStatus('ready')
+                try {
+                  app.setVariable(AVATAR_STATE_VARIABLE, SPLINE_STATE_NAMES[state])
+                } catch {
+                  // ignore
+                }
+              }}
+              onError={() => setStatus('fallback')}
+            />
+          ) : (
+            <FallbackBook state={state} reducedMotion={reducedMotion || paused} />
+          )}
+        </Suspense>
+      </UiErrorBoundary>
     </div>
   )
 }

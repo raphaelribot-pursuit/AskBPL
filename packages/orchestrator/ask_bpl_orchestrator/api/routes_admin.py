@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 basic_auth = HTTPBasic(auto_error=False)
 
 
-async def guard_admin(creds: Annotated[HTTPBasicCredentials | None, Depends(basic_auth)]):
+async def guard_admin(creds: Annotated[Optional[HTTPBasicCredentials], Depends(basic_auth)]):
     settings = get_settings()
     username = creds.username if creds else ""
     password = creds.password if creds else ""

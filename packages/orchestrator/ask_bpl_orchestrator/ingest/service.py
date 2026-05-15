@@ -7,7 +7,7 @@ import hashlib
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 from openai import AsyncOpenAI
 from sqlalchemy import delete, select
@@ -17,6 +17,7 @@ from ask_bpl_orchestrator.db.models import Chunk, Document, IngestStatus, Policy
 from ask_bpl_orchestrator.db.session import async_session_factory
 from ask_bpl_orchestrator.ingest.chunking import split_text
 from ask_bpl_orchestrator.ingest.loaders import load_bytes
+from ask_bpl_orchestrator.services.pinecone_client import get_pinecone_index
 
 DOC_NS = uuid.UUID("6fa459ea-ee8a-3ca4-894e-db77e160355e")
 
@@ -50,9 +51,7 @@ def pinecone_bulk_delete(identifiers: Sequence[str]) -> None:
     if not cfg.pinecone_api_key:
         return
 
-    from pinecone import Pinecone
-
-    index = Pinecone(api_key=cfg.pinecone_api_key).Index(cfg.pinecone_index_name)
+    index = get_pinecone_index()
 
     BATCH = 200
     for start in range(0, len(identifiers), BATCH):
@@ -67,9 +66,7 @@ def pinecone_bulk_upsert(rows: List[Tuple[str, List[float], dict]]) -> None:
     if not cfg.pinecone_api_key:
         return
 
-    from pinecone import Pinecone
-
-    index = Pinecone(api_key=cfg.pinecone_api_key).Index(cfg.pinecone_index_name)
+    index = get_pinecone_index()
 
     payloads = [{"id": rid, "values": vec, "metadata": meta} for rid, vec, meta in rows]
     index.upsert(vectors=payloads)
@@ -82,6 +79,7 @@ async def ingest_file(
     policy_slug: str,
     title: str,
     version_label: str,
+    supersedes_document_id: Optional[uuid.UUID] = None,
 ) -> None:
     cfg = get_settings()
 
@@ -223,3 +221,25 @@ async def ingest_file(
         payloads.append((cid, vector, meta_payload))
 
     await asyncio.to_thread(pinecone_bulk_upsert, payloads)
+
+    if supersedes_document_id is not None:
+        if supersedes_document_id == doc_uuid:
+            raise ValueError("`supersedes` cannot point at the document being ingested")
+        async with async_session_factory() as sup_sess:
+            prior = await sup_sess.get(Document, supersedes_document_id)
+            if prior is None:
+                raise ValueError(f"No document found for supersedes={supersedes_document_id}")
+            prev_chunks = (
+                (
+                    await sup_sess.execute(
+                        select(Chunk.chunk_id).where(Chunk.document_id == supersedes_document_id)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            prev_ids = [str(cid) for cid in prev_chunks]
+            if prev_ids:
+                await asyncio.to_thread(pinecone_bulk_delete, prev_ids)
+            prior.superseded_by_document_id = doc_uuid
+            await sup_sess.commit()

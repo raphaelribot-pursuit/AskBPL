@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
-from typing import List, Optional
+from typing import List
 
 import anthropic
 
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.services.retrieval import RetrievedChunk
 
+log = logging.getLogger("ask_bpl.generation")
 
 SYSTEM_PROMPT = """You are Ask BPL, an internal Brooklyn Public Library assistant.
 You answer ONLY using the RETRIEVAL_BLOCK JSON provided by the user (curated policy excerpts).
@@ -80,11 +82,16 @@ def _parse_json_best_effort(raw: str) -> dict:
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
-        start = raw.find("{")
-        end = raw.rfind("}")
-        if start >= 0 and end > start:
-            try:
-                return json.loads(raw[start : end + 1])
-            except json.JSONDecodeError:
-                pass
+        pass
+
+    start = raw.find("{")
+    end = raw.rfind("}")
+    if start >= 0 and end > start:
+        try:
+            return json.loads(raw[start : end + 1])
+        except json.JSONDecodeError:
+            log.warning("model JSON extract failed; refusing. raw_prefix=%s", raw[:200])
+    else:
+        log.warning("model returned non-JSON (no object bounds); refusing. raw_prefix=%s", raw[:200])
+
     return {"answer": "", "refuse": True, "cited_chunk_ids": []}

@@ -3,7 +3,7 @@ name = "ask-bpl-orchestrator"
 version = "0.1.0"
 description = "Ask BPL pilot Python orchestrator"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
@@ -47,7 +47,7 @@ include = ["ask_bpl_orchestrator*"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]

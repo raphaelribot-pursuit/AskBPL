@@ -1,6 +1,5 @@
 import type { CSSProperties, FormEvent, KeyboardEvent } from 'react'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { AskBPLAvatar } from './avatar/AskBPLAvatar'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AvatarDebugPanel } from './avatar/AvatarDebugPanel'
 import { AvatarEventsProvider, useAvatarEvents } from './avatar/AvatarEventsContext'
 import {
@@ -14,7 +13,11 @@ import {
 import type { AvatarPosition } from './avatar/avatar.types'
 import { useAvatarDrag } from './avatar/useAvatarDrag'
 import { useAvatarMinimize } from './avatar/useAvatarMinimize'
-import { useAvatarStateMachine } from './avatar/useAvatarStateMachine'
+import { useAvatarStateMachine, type AvatarSnapshot } from './avatar/useAvatarStateMachine'
+
+const AskBPLAvatarLazy = lazy(() =>
+  import('./avatar/AskBPLAvatar').then((m) => ({ default: m.AskBPLAvatar })),
+)
 
 /**
  * Floating "Ask BPL" pilot shell. Owns the request lifecycle previously
@@ -24,6 +27,9 @@ import { useAvatarStateMachine } from './avatar/useAvatarStateMachine'
  *  - closed → bottom-right book FAB (unchanged from before)
  *  - open + normal → positioned modal anchored at the persisted coords
  *  - open + minimized → pill (default) or edge dock per spec §7
+ *
+ * 3D `AskBPLAvatar` loads only when `VITE_ENABLE_SPLINE=true`; otherwise the toolbar uses
+ * `BookAvatarLite` (same as `VITE_LITE_DEMO`) so WebGL never runs in pilot builds.
  */
 
 const SAMPLE_PROMPT =
@@ -70,6 +76,70 @@ const PILL_SIZE: ShellSize = { width: PILL_WIDTH_PX, height: 56 }
 const DOCK_SIZE: ShellSize = { width: DOCK_TAB_WIDTH_PX, height: 132 }
 
 const FIRST_OPEN_KEY = STORAGE_KEYS.greeted
+
+function formatFastApiDetail(detail: unknown): string {
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (item && typeof item === 'object' && 'msg' in item) {
+          return String((item as { msg: unknown }).msg)
+        }
+        try {
+          return JSON.stringify(item)
+        } catch {
+          return String(item)
+        }
+      })
+      .join('; ')
+  }
+  if (detail && typeof detail === 'object' && 'msg' in detail) {
+    return String((detail as { msg: unknown }).msg)
+  }
+  try {
+    return JSON.stringify(detail)
+  } catch {
+    return 'Request failed'
+  }
+}
+
+function BookAvatarLite(props: {
+  snapshot: AvatarSnapshot
+  reducedMotion: boolean
+  size?: 'thumb' | 'standard' | 'pill'
+  paused?: boolean
+}) {
+  const { snapshot, size = 'standard' } = props
+  const sizeClass =
+    size === 'pill' ? 'avatar-face pill' : size === 'thumb' ? 'avatar-face thumb' : 'avatar-face standard'
+  return (
+    <div className={sizeClass} data-state={snapshot.state}>
+      <span className="book-lite-glyph" role="img" aria-hidden="true">
+        📖
+      </span>
+    </div>
+  )
+}
+
+function DynamicAvatar(props: {
+  snapshot: AvatarSnapshot
+  reducedMotion: boolean
+  size?: 'thumb' | 'standard' | 'pill'
+  paused?: boolean
+}) {
+  const liteDemo = import.meta.env.VITE_LITE_DEMO === 'true'
+  const splineEnabled = import.meta.env.VITE_ENABLE_SPLINE === 'true'
+  // Never load AskBPLAvatar (Spline / WebGL dependency graph) unless explicitly opted in —
+  // otherwise some environments lose the whole tab ~1–2s after opening the modal.
+  if (liteDemo || !splineEnabled) {
+    return <BookAvatarLite {...props} />
+  }
+  return (
+    <Suspense fallback={<BookAvatarLite {...props} />}>
+      <AskBPLAvatarLazy {...props} />
+    </Suspense>
+  )
+}
 
 const wasGreetedThisSession = (): boolean => {
   if (typeof window === 'undefined') return false
@@ -254,7 +324,7 @@ export function AskPilotShell({ apiBase, docsBase }: AskPilotShellProps) {
                 : undefined
             }
           >
-            <AskBPLAvatar
+            <DynamicAvatar
               snapshot={snapshot}
               reducedMotion={isReducedMotion}
               size={isPill ? 'pill' : 'thumb'}
@@ -288,7 +358,7 @@ export function AskPilotShell({ apiBase, docsBase }: AskPilotShellProps) {
             {...drag.bind()}
             style={{ touchAction: 'none', cursor: drag.isDragging ? 'grabbing' : 'grab' }}
           >
-            <AskBPLAvatar
+            <DynamicAvatar
               snapshot={snapshot}
               reducedMotion={isReducedMotion}
               size="standard"
@@ -379,9 +449,8 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
     })
     const body = (await res.json().catch(() => ({}))) as Record<string, unknown>
     if (!res.ok) {
-      setFeedbackStatus(
-        `Sign-in failed: ${typeof body.detail === 'string' ? body.detail : res.status}`,
-      )
+      const detailRaw = body.detail
+      setFeedbackStatus(`Sign-in failed: ${formatFastApiDetail(detailRaw) || res.status}`)
       return
     }
     setToken(String(body.token ?? ''))
@@ -531,7 +600,10 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
     setFeedbackStatus('')
     const res = await fetch(`${apiBase}/feedback/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
         request_id: reqId,
         rating,

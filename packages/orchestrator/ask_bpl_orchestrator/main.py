@@ -10,6 +10,7 @@ from ask_bpl_orchestrator.api.routes_auth import router as auth_router
 from ask_bpl_orchestrator.api.routes_feedback import router as feedback_router
 from ask_bpl_orchestrator.api.routes_questions import router as question_router
 from ask_bpl_orchestrator.config import get_settings
+from ask_bpl_orchestrator.middleware.request_id import RequestIdMiddleware
 
 
 def create_app() -> FastAPI:
@@ -17,12 +18,14 @@ def create_app() -> FastAPI:
 
     application = FastAPI(title="Ask BPL Orchestrator", version="0.1.0")
 
+    application.add_middleware(RequestIdMiddleware)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Request-ID"],
     )
 
     application.include_router(auth_router)

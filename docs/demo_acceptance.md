@@ -37,4 +37,6 @@ Pilot credentials (seeded): **pilot-demo@bklynlibrary.org / DEMO2026**.
 | Citations | When answer returns, clickable chips obey `DOCUMENTS_PUBLIC_BASE_URL` / `VITE_DOCUMENTS_PUBLIC_BASE`. |
 | Build-team dashboards | Navigate to modal “Build-team readout”; enter `admin_basic_*` creds → JSON mirrors TRD aggregates. |
 
-Log each `X-Request-ID` header emitted by `/questions/ask` for audit replay.
+**Request IDs:** Every response includes `X-Request-ID` (or echoes a client-sent `X-Request-ID`). Collect it from **any** orchestrator response (including `/healthz`) for support or log correlation — not only `/questions/ask`.
+
+Log each `X-Request-ID` from `/questions/ask` (and other calls) for audit replay.

@@ -10,6 +10,8 @@
 | LOG-4 | Operational summaries | `/admin/summary`, web “Build-team readout” panel | Feedback + routing counts surfaced. |
 | UI-7 | Feedback controls | Modal assistant footer + `/feedback/` | Mirrors TRD discrete buttons. |
 | GRD-2 | Regex PII categories | `services/pii_gate.py`, `tests/test_pii_gate.py` | Raises 400 before embeddings. |
+| AUTH-FEEDBACK | JWT on `POST /feedback/` | `routes_feedback.py`, web `AskPilotShell` | Session must own `request_id`. |
+| RET-SUPERSEDED | Exclude superseded documents from hydration | `retrieval.py`, ingest `--supersedes` | PRD §8.5. |
 | IGN-1 | Strict ingest loaders | `ingest/loaders.py` | Fails loudly for unknown corpus formats. |
 | IGN-4 | Idempotent ingestion | `ingest/service.py` | Stable IDs + deletes orphan vectors before upsert. |
 

@@ -594,6 +594,19 @@ textarea:focus-visible {
   height: 32px;
 }
 
+.book-lite-glyph {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.avatar-face.standard .book-lite-glyph {
+  font-size: 1.75rem;
+}
+
+.avatar-face.pill .book-lite-glyph {
+  font-size: 1.1rem;
+}
+
 .avatar-scene-canvas,
 .avatar-fallback {
   width: 100%;

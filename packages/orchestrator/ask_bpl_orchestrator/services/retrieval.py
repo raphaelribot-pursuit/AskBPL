@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.db.models import Chunk, Document
+from ask_bpl_orchestrator.services.pinecone_client import get_pinecone_index
 
 
 @dataclass
@@ -37,10 +38,7 @@ class VectorRetriever:
         return list(resp.data[0].embedding)
 
     def _pinecone_index(self):
-        from pinecone import Pinecone
-
-        pc = Pinecone(api_key=self.settings.pinecone_api_key)
-        return pc.Index(self.settings.pinecone_index_name)
+        return get_pinecone_index()
 
     async def _pinecone_scores(self, question: str, top_k: int) -> Dict[uuid.UUID, float]:
         if not self.settings.pinecone_api_key:
@@ -71,6 +69,7 @@ class VectorRetriever:
             select(Chunk, Document)
             .join(Document, Chunk.document_id == Document.document_id)
             .where(Chunk.chunk_id.in_(identities))
+            .where(Document.superseded_by_document_id.is_(None))
         )
         rows = (await db.execute(stmt)).all()
         mapper = {chunk.chunk_id: (chunk, document) for chunk, document in rows}
