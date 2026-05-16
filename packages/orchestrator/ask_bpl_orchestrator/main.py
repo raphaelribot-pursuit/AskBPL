@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from ask_bpl_orchestrator.api.routes_admin import router as admin_router
 from ask_bpl_orchestrator.api.routes_auth import router as auth_router
 from ask_bpl_orchestrator.api.routes_feedback import router as feedback_router
 from ask_bpl_orchestrator.api.routes_questions import router as question_router
+from ask_bpl_orchestrator.api.session_dep import DbSessionDep
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.middleware.request_id import RequestIdMiddleware
 
@@ -36,6 +38,18 @@ def create_app() -> FastAPI:
     @application.get("/healthz")
     async def health():  # noqa: WPS430 nested function intentional
         return {"status": "ok"}
+
+    @application.get("/readyz")
+    async def readyz(db: DbSessionDep):
+        """Liveness remains `/healthz`; this probes the database."""
+        try:
+            await db.execute(text("SELECT 1"))
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="database_unavailable",
+            ) from exc
+        return {"status": "ok", "database": True}
 
     return application
 

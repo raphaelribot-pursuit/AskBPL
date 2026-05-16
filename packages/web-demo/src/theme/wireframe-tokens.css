@@ -1,0 +1,971 @@
+/* ──────────────────────────────────────────────────────────────────────────
+ * Wireframe v3 design tokens + pilot component styles.
+ *
+ * These rules drive the tester-facing surfaces only — login page, host
+ * stub, and the Ask BPL chat modal. They live behind the
+ * `.askbpl-pilot-surface` wrapper so the build console (dark
+ * Neubrutomorphism theme in App.css) is unaffected.
+ *
+ * Token names follow Wireframe §1 (light, library-paper inspired palette).
+ * Component class names use a `pilot-` prefix to avoid clashing with the
+ * existing `bubble`, `brutal-card`, `fab-book`, etc. used by the avatar
+ * shell (gated behind VITE_ENABLE_AVATAR_SHELL).
+ * ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --wf-bg: #f7f6f2;
+  --wf-surface: #ffffff;
+  --wf-note: #f1ece1;
+  --wf-warn-bg: #fff4d6;
+  --wf-warn-border: #d9a52f;
+  --wf-danger-bg: #fde7e9;
+  --wf-danger-border: #b03a48;
+  --wf-success: #1f7a3a;
+  --wf-ink: #1f2330;
+  --wf-ink-muted: #4f5567;
+  --wf-ink-faint: #79809a;
+  --wf-line: #d8d4c7;
+  --wf-line-strong: #b8b3a3;
+  --wf-accent: #185fa5;
+  --wf-accent-strong: #0f4576;
+  --wf-accent-soft: rgba(24, 95, 165, 0.08);
+  --wf-shadow: 0 1px 2px rgba(31, 35, 48, 0.06), 0 8px 24px rgba(31, 35, 48, 0.08);
+  --wf-shadow-modal: 0 12px 40px rgba(31, 35, 48, 0.18),
+    0 2px 6px rgba(31, 35, 48, 0.08);
+  --wf-radius-sm: 6px;
+  --wf-radius: 10px;
+  --wf-radius-lg: 14px;
+  --wf-modal-width: 380px;
+  --wf-fab-size: 56px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Pilot surface — light host & login pages (Wireframe §4.2).
+ * Acts as the typographic + color baseline; descendants inherit Inter and
+ * the wireframe ink colors unless they explicitly opt out.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.askbpl-pilot-surface {
+  min-height: 100vh;
+  background: var(--wf-bg);
+  color: var(--wf-ink);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.askbpl-pilot-surface a {
+  color: var(--wf-accent);
+}
+
+.askbpl-pilot-surface a:hover,
+.askbpl-pilot-surface a:focus-visible {
+  color: var(--wf-accent-strong);
+}
+
+/* Login page (Wireframe §3) — centered card on the pilot surface. */
+
+.pilot-login {
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 6vw, 64px);
+}
+
+.pilot-login-card {
+  width: min(420px, 100%);
+  background: var(--wf-surface);
+  border: 1px solid var(--wf-line);
+  border-radius: var(--wf-radius-lg);
+  padding: clamp(20px, 4vw, 32px);
+  box-shadow: var(--wf-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pilot-login-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pilot-login-brand .pilot-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--wf-accent);
+  font-weight: 600;
+}
+
+.pilot-login-brand .pilot-title {
+  font-family: 'Space Grotesk', Inter, system-ui, sans-serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.pilot-login-brand .pilot-subtitle {
+  color: var(--wf-ink-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.pilot-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.pilot-note {
+  background: var(--wf-note);
+  border-radius: var(--wf-radius-sm);
+  padding: 0.65rem 0.75rem;
+  color: var(--wf-ink-muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.pilot-note code {
+  font-family: ui-monospace, SFMono-Regular, 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--wf-ink);
+}
+
+.pilot-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--wf-ink-muted);
+  margin-bottom: 0.3rem;
+  display: block;
+}
+
+.pilot-input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--wf-line-strong);
+  border-radius: var(--wf-radius-sm);
+  background: var(--wf-surface);
+  color: var(--wf-ink);
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.pilot-input:focus-visible {
+  outline: none;
+  border-color: var(--wf-accent);
+  box-shadow: 0 0 0 3px var(--wf-accent-soft);
+}
+
+.pilot-fieldset {
+  border: 1px dashed var(--wf-line-strong);
+  border-radius: var(--wf-radius-sm);
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.pilot-radio {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  font-size: 0.92rem;
+  color: var(--wf-ink);
+  cursor: pointer;
+}
+
+.pilot-button {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--wf-radius-sm);
+  padding: 0.6rem 1rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    box-shadow 0.12s ease, color 0.12s ease;
+}
+
+.pilot-button.pilot-button-primary {
+  background: var(--wf-accent);
+  color: #ffffff;
+  border-color: var(--wf-accent);
+}
+
+.pilot-button.pilot-button-primary:hover:not(:disabled),
+.pilot-button.pilot-button-primary:focus-visible {
+  background: var(--wf-accent-strong);
+  border-color: var(--wf-accent-strong);
+}
+
+.pilot-button.pilot-button-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--wf-accent-soft);
+}
+
+.pilot-button.pilot-button-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pilot-button.pilot-button-secondary {
+  background: var(--wf-surface);
+  color: var(--wf-ink);
+  border-color: var(--wf-line-strong);
+}
+
+.pilot-button.pilot-button-secondary:hover:not(:disabled),
+.pilot-button.pilot-button-secondary:focus-visible {
+  border-color: var(--wf-accent);
+  color: var(--wf-accent);
+}
+
+.pilot-button.pilot-button-ghost {
+  background: transparent;
+  color: var(--wf-ink-muted);
+  border: none;
+  padding: 0.4rem 0.6rem;
+}
+
+.pilot-button.pilot-button-ghost:hover:not(:disabled),
+.pilot-button.pilot-button-ghost:focus-visible {
+  color: var(--wf-accent);
+}
+
+.pilot-status {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--wf-ink-muted);
+}
+
+.pilot-status.is-error {
+  color: var(--wf-danger-border);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Host stub (Wireframe §4.2). Faint intranet-style page that sits behind
+ * the chat modal so testers see "page behind".
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-host {
+  display: flex;
+  flex-direction: column;
+  padding: clamp(20px, 4vw, 48px);
+  gap: 1.5rem;
+}
+
+.pilot-host-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pilot-host-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.pilot-host-brand .pilot-host-title {
+  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--wf-ink);
+}
+
+.pilot-host-brand .pilot-host-subtitle {
+  font-size: 0.88rem;
+  color: var(--wf-ink-muted);
+  margin: 0;
+}
+
+.pilot-host-nav {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.pilot-host-nav a {
+  font-size: 0.88rem;
+  text-decoration: none;
+  color: var(--wf-accent);
+  border-bottom: 1px solid transparent;
+  padding-bottom: 0.1rem;
+}
+
+.pilot-host-nav a:hover {
+  border-bottom-color: var(--wf-accent);
+}
+
+.pilot-host-stub {
+  background: var(--wf-surface);
+  border: 1px solid var(--wf-line);
+  border-radius: var(--wf-radius-lg);
+  padding: clamp(20px, 3vw, 28px);
+  max-width: 720px;
+  box-shadow: var(--wf-shadow);
+}
+
+.pilot-host-stub h1 {
+  margin: 0 0 0.5rem;
+  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--wf-ink);
+}
+
+.pilot-host-stub p {
+  margin: 0;
+  color: var(--wf-ink-muted);
+  line-height: 1.55;
+}
+
+.pilot-host-stub p + p {
+  margin-top: 0.6rem;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * AvatarTrigger (Wireframe §2.1) — 56px book FAB anchored bottom-right.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: var(--wf-fab-size);
+  height: var(--wf-fab-size);
+  border-radius: 50%;
+  background: var(--wf-accent);
+  color: #ffffff;
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--wf-shadow-modal);
+  z-index: 90;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+
+.pilot-fab:hover {
+  background: var(--wf-accent-strong);
+  transform: translateY(-1px);
+}
+
+.pilot-fab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--wf-accent-soft), var(--wf-shadow-modal);
+}
+
+.pilot-fab svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Modal (Wireframe §2.2) — fixed 380px above the FAB.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 95;
+  pointer-events: none;
+}
+
+.pilot-modal {
+  position: fixed;
+  right: 24px;
+  bottom: 92px;
+  width: var(--wf-modal-width);
+  max-height: min(640px, calc(100vh - 116px));
+  background: var(--wf-surface);
+  border: 1px solid var(--wf-line);
+  border-radius: var(--wf-radius-lg);
+  box-shadow: var(--wf-shadow-modal);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+@media (max-width: 480px) {
+  .pilot-modal {
+    width: calc(100vw - 32px);
+    right: 16px;
+    bottom: 88px;
+    max-height: calc(100vh - 104px);
+  }
+  .pilot-fab {
+    right: 16px;
+    bottom: 16px;
+  }
+}
+
+.pilot-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--wf-line);
+  background: var(--wf-surface);
+}
+
+.pilot-modal-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--wf-accent-soft);
+  color: var(--wf-accent);
+  flex: none;
+}
+
+.pilot-modal-avatar svg {
+  width: 18px;
+  height: 18px;
+}
+
+.pilot-modal-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.pilot-modal-title strong {
+  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--wf-ink);
+}
+
+.pilot-modal-title span {
+  font-size: 0.78rem;
+  color: var(--wf-ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pilot-modal-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.pilot-icon-button {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--wf-ink-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--wf-radius-sm);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.pilot-icon-button:hover,
+.pilot-icon-button:focus-visible {
+  background: var(--wf-note);
+  color: var(--wf-ink);
+}
+
+.pilot-icon-button:focus-visible {
+  outline: 2px solid var(--wf-accent);
+  outline-offset: -2px;
+}
+
+.pilot-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: #fafaf7;
+  padding: 1rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  scroll-behavior: smooth;
+}
+
+.pilot-modal-footer {
+  border-top: 1px solid var(--wf-line);
+  background: var(--wf-surface);
+  padding: 0.65rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* First-open hint (Wireframe §4.4). */
+
+.pilot-hint {
+  font-size: 0.85rem;
+  color: var(--wf-ink-muted);
+  background: var(--wf-note);
+  border-radius: var(--wf-radius-sm);
+  padding: 0.55rem 0.7rem;
+  line-height: 1.45;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Bubbles (Wireframe §2.4). Bot bubble groups answer + cards + feedback.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-width: 100%;
+}
+
+.pilot-row.pilot-row-user {
+  align-items: flex-end;
+}
+
+.pilot-row.pilot-row-bot {
+  align-items: flex-start;
+}
+
+.pilot-bubble {
+  max-width: 85%;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.94rem;
+  line-height: 1.5;
+  border-radius: var(--wf-radius);
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.pilot-bubble.pilot-bubble-user {
+  background: var(--wf-accent);
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+.pilot-bubble.pilot-bubble-bot {
+  background: var(--wf-surface);
+  border: 1px solid var(--wf-line);
+  color: var(--wf-ink);
+  border-bottom-left-radius: 4px;
+}
+
+.pilot-bubble.pilot-bubble-bot.pilot-bubble-error {
+  border-color: var(--wf-danger-border);
+  background: var(--wf-danger-bg);
+  color: var(--wf-danger-border);
+}
+
+.pilot-bubble.pilot-bubble-bot.pilot-bubble-typing {
+  padding: 0.55rem 0.85rem;
+}
+
+.pilot-typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pilot-typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--wf-ink-faint);
+  animation: pilot-typing-bob 1.2s ease-in-out infinite;
+}
+
+.pilot-typing-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.pilot-typing-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes pilot-typing-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pilot-typing-dots span {
+    animation: none;
+  }
+}
+
+/* Bot bubble may host stacked sub-cards (citations, routing, feedback). */
+
+.pilot-bubble-stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.pilot-bubble-stack > p {
+  margin: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * CitationCard (Wireframe §2.5). Up to 3 surfaced inline; overflow gets a
+ * collapsed +N footer. Always opens in a new tab.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-citation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pilot-citation {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--wf-note);
+  color: var(--wf-ink);
+  border: 1px solid var(--wf-line);
+  border-left: 3px solid var(--wf-accent);
+  border-radius: var(--wf-radius-sm);
+  padding: 0.5rem 0.65rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.88rem;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.pilot-citation:hover,
+.pilot-citation:focus-visible {
+  background: #ece6d5;
+  border-left-color: var(--wf-accent-strong);
+  outline: none;
+}
+
+.pilot-citation strong {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.pilot-citation small {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--wf-ink-muted);
+}
+
+.pilot-citation-overflow {
+  font-size: 0.78rem;
+  color: var(--wf-ink-muted);
+  margin: 0;
+}
+
+.pilot-citation-empty {
+  font-size: 0.82rem;
+  color: var(--wf-ink-muted);
+  margin: 0;
+  font-style: italic;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * RoutingCard (Wireframe §2.6).
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-routing {
+  background: var(--wf-warn-bg);
+  border: 1px solid var(--wf-warn-border);
+  border-radius: var(--wf-radius-sm);
+  padding: 0.6rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pilot-routing-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6c4d09;
+  margin: 0;
+}
+
+.pilot-routing-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.pilot-routing-item strong {
+  display: block;
+  color: var(--wf-ink);
+  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-size: 0.92rem;
+}
+
+.pilot-routing-item p {
+  margin: 0.1rem 0 0;
+  font-size: 0.85rem;
+  color: var(--wf-ink-muted);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * PIIBanner (Wireframe §2.7). Sibling of the user bubble — never bot copy.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-pii {
+  align-self: flex-end;
+  max-width: 90%;
+  background: var(--wf-danger-bg);
+  border: 1px solid var(--wf-danger-border);
+  border-radius: var(--wf-radius-sm);
+  padding: 0.6rem 0.75rem;
+  color: var(--wf-danger-border);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.pilot-pii strong {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.pilot-pii p {
+  margin: 0;
+  color: var(--wf-ink-muted);
+}
+
+.pilot-pii ul {
+  margin: 0.2rem 0 0;
+  padding-left: 1rem;
+  color: var(--wf-ink-muted);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * InputField (Wireframe §2.3). Auto-grow textarea with Enter submit.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.pilot-input-textarea {
+  width: 100%;
+  min-height: 40px;
+  max-height: 120px;
+  padding: 0.55rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.94rem;
+  line-height: 1.4;
+  color: var(--wf-ink);
+  background: var(--wf-bg);
+  border: 1px solid var(--wf-line-strong);
+  border-radius: var(--wf-radius-sm);
+  resize: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.pilot-input-textarea::placeholder {
+  color: var(--wf-ink-faint);
+}
+
+.pilot-input-textarea:focus-visible {
+  outline: none;
+  border-color: var(--wf-accent);
+  box-shadow: 0 0 0 3px var(--wf-accent-soft);
+}
+
+.pilot-input-textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pilot-input-send {
+  height: 40px;
+  padding: 0 0.85rem;
+}
+
+.pilot-input-meta {
+  font-size: 0.72rem;
+  color: var(--wf-ink-faint);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pilot-input-meta button {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.72rem;
+  color: var(--wf-accent);
+  cursor: pointer;
+}
+
+.pilot-input-meta button:hover {
+  color: var(--wf-accent-strong);
+  text-decoration: underline;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * FeedbackControl (Wireframe §2.8). Per-message rating + optional comment.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  border-top: 1px dashed var(--wf-line);
+  padding-top: 0.4rem;
+  margin-top: 0.1rem;
+}
+
+.pilot-feedback-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.pilot-feedback-label {
+  font-size: 0.78rem;
+  color: var(--wf-ink-muted);
+  margin-right: 0.2rem;
+}
+
+.pilot-feedback-button {
+  appearance: none;
+  background: var(--wf-surface);
+  border: 1px solid var(--wf-line-strong);
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--wf-ink-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: background-color 0.12s ease, border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.pilot-feedback-button:hover,
+.pilot-feedback-button:focus-visible {
+  outline: none;
+  border-color: var(--wf-accent);
+  color: var(--wf-accent);
+}
+
+.pilot-feedback-button.is-active {
+  border-color: var(--wf-accent);
+  color: var(--wf-accent);
+  background: var(--wf-accent-soft);
+}
+
+.pilot-feedback-comment {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.45rem 0.6rem;
+  font-family: inherit;
+  font-size: 0.86rem;
+  color: var(--wf-ink);
+  background: var(--wf-bg);
+  border: 1px solid var(--wf-line-strong);
+  border-radius: var(--wf-radius-sm);
+  resize: vertical;
+}
+
+.pilot-feedback-comment:focus-visible {
+  outline: none;
+  border-color: var(--wf-accent);
+  box-shadow: 0 0 0 3px var(--wf-accent-soft);
+}
+
+.pilot-feedback-actions {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.pilot-feedback-thanks {
+  font-size: 0.82rem;
+  color: var(--wf-success);
+}
+
+.pilot-feedback-error {
+  font-size: 0.78rem;
+  color: var(--wf-danger-border);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * "↓ new message" floating control (Wireframe §4.8).
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-jump-down {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  appearance: none;
+  background: var(--wf-accent);
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--wf-shadow);
+}
+
+.pilot-modal-body-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pilot-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  clip: rect(0, 0, 1px, 1px);
+  overflow: hidden;
+}

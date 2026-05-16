@@ -18,3 +18,4 @@ packages/orchestrator/.venv/
 packages/orchestrator/.qa_venv/
 packages/orchestrator/.tvenv/
 alembic.ini.bak
+.pdf-venv/

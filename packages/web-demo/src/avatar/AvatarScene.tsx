@@ -54,13 +54,14 @@ export function AvatarScene({
   reducedMotion,
   scenePath = SCENE_PATH,
 }: AvatarSceneProps) {
-  const [status, setStatus] = useState<SceneStatus>('probing')
+  const [status, setStatus] = useState<SceneStatus>(() =>
+    SPLINE_EXPLICITLY_ENABLED ? 'probing' : 'fallback',
+  )
   const appRef = useRef<Application | null>(null)
 
   useEffect(() => {
     let cancelled = false
     if (!SPLINE_EXPLICITLY_ENABLED) {
-      setStatus('fallback')
       return () => {
         cancelled = true
       }

@@ -6,7 +6,12 @@ Goal: repeatable walkthrough proving closed-corpus safeguards, ingestion visibil
 
 1. `docker compose -f infra/docker-compose.yml up -d`
 2. `cd packages/orchestrator`
-3. `python3 -m venv .venv && source .venv/bin/activate`
+3. **Python 3.10+** (CI uses **3.11** — match that locally to avoid typing/FastAPI collection errors on 3.9):
+
+   `python3.11 -m venv .venv && source .venv/bin/activate`  
+
+   (Use `python3.10` if 3.11 is unavailable.)
+
 4. `pip install -e '.[dev]'`
 5. `alembic upgrade head`
 6. `askbpl-seed`
@@ -38,5 +43,9 @@ Pilot credentials (seeded): **pilot-demo@bklynlibrary.org / DEMO2026**.
 | Build-team dashboards | Navigate to modal “Build-team readout”; enter `admin_basic_*` creds → JSON mirrors TRD aggregates. |
 
 **Request IDs:** Every response includes `X-Request-ID` (or echoes a client-sent `X-Request-ID`). Collect it from **any** orchestrator response (including `/healthz`) for support or log correlation — not only `/questions/ask`.
+
+**Readiness:** `GET /readyz` runs `SELECT 1` against Postgres — use behind the load balancer for “dependencies up” (keep `GET /healthz` for simple process checks).
+
+**Admin tests / CI:** Set `ADMIN_BASIC_PASSWORD` in `.env` locally; CI injects a non-empty secret so `/admin/summary` basic-auth tests pass.
 
 Log each `X-Request-ID` from `/questions/ask` (and other calls) for audit replay.

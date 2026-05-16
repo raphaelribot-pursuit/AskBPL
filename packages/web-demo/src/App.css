@@ -1,3 +1,5 @@
+@import './theme/wireframe-tokens.css';
+
 :root {
   --accent: #00e5ff;
   --cyan-muted: #00b8d4;
@@ -874,4 +876,343 @@ textarea:focus-visible {
 
 .avatar-debug-meta code {
   color: var(--accent);
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Screen 1 — standalone login route (`/login`).
+ * The form lives on its own page now instead of inside the
+ * avatar-positioned modal, so it gets its own centered shell.
+ * ───────────────────────────────────────────────────────────── */
+
+.login-page {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 6vw, 64px);
+}
+
+.login-card {
+  width: min(440px, 100%);
+  padding: clamp(20px, 4vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Screen 2 host page stub. Wireframe §4.2 — a faint intranet
+ * page so testers see "page behind" the modal/avatar.
+ * ───────────────────────────────────────────────────────────── */
+
+.host-page {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text);
+  padding: clamp(20px, 4vw, 48px);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.host-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.brand-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.host-nav {
+  display: inline-flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.host-nav-link {
+  font-size: 0.9rem;
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+}
+
+.host-nav-link:hover {
+  border-bottom-color: var(--cyan-muted);
+}
+
+.error-fallback {
+  margin-top: 1rem;
+}
+
+.host-stub {
+  max-width: 680px;
+  margin-block: 2.5rem;
+}
+
+.host-stub h1 {
+  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-size: 1.55rem;
+  margin: 0 0 0.5rem;
+}
+
+.host-stub p {
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0 0 0.85rem;
+}
+
+.host-meta {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.host-meta code {
+  color: var(--accent);
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Screen 4 — build-team console (`/internal/console`).
+ * Wireframe §6 prescribes a ~200 px left rail + main panel.
+ * Spec §6.7 says the console shares only tokens with the modal,
+ * so the layout below intentionally does not reuse modal styles.
+ * ───────────────────────────────────────────────────────────── */
+
+.console-shell {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text);
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.admin-sidebar {
+  border-right: 2px solid var(--border);
+  background: var(--surface);
+  padding: 1.25rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-sidebar-brand {
+  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding-inline: 0.5rem;
+}
+
+.admin-sidebar-nav,
+.admin-sidebar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.admin-sidebar-link {
+  display: block;
+  padding: 0.55rem 0.75rem;
+  border-radius: 6px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.admin-sidebar-link:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.admin-sidebar-link.active {
+  color: var(--text);
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+}
+
+.console-main {
+  padding: clamp(20px, 3vw, 36px);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.console-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.console-title {
+  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-size: 1.35rem;
+  margin: 0;
+}
+
+.console-panel {
+  min-height: 240px;
+}
+
+.console-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.console-section-head h2 {
+  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-size: 1.15rem;
+  margin: 0 0 0.25rem;
+}
+
+.console-section-head p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.45rem 1.1rem;
+  margin: 0;
+}
+
+.settings-grid dt {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.settings-grid dd {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.overview-stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+}
+
+.overview-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.85rem;
+  border-radius: 8px;
+  background: var(--surface-alt);
+}
+
+.overview-stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.overview-stat-value {
+  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * Transcript row primitives shared by Screens 2 + 3 modal.
+ * Wireframe §5.3 — PII banner is a sibling of the user bubble,
+ * not a bot bubble. The pending-typing indicator anchors to the
+ * next assistant turn and is hidden once a row lands.
+ * ───────────────────────────────────────────────────────────── */
+
+.pii-banner {
+  align-self: flex-end;
+  max-width: 78%;
+  padding: 0.65rem 0.85rem;
+  border: 2px solid var(--danger);
+  border-radius: 8px;
+  background: rgba(255, 61, 113, 0.08);
+  color: #ffd6e1;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.pii-banner strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  letter-spacing: 0.03em;
+}
+
+.bubble.pending {
+  align-self: flex-start;
+  padding: 0.55rem 0.85rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.typing-dots {
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: typing-bob 1.2s ease-in-out infinite;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes typing-bob {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-dots span {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .console-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    border-right: none;
+    border-bottom: 2px solid var(--border);
+  }
 }
