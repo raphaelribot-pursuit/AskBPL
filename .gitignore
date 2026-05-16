@@ -14,6 +14,7 @@ node_modules/
 htmlcov/
 .DS_Store
 packages/web-demo/dist/
+packages/web-demo/coverage/
 packages/orchestrator/.venv/
 packages/orchestrator/.qa_venv/
 packages/orchestrator/.tvenv/

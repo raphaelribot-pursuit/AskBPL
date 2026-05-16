@@ -1,4 +1,10 @@
-# React + TypeScript + Vite
+# Ask BPL web demo
+
+Pilot UI (Vite + React). **Tests:** `npm run test` (Vitest + Testing Library). **Spline / heavy WebGL** loads only when `VITE_ENABLE_SPLINE=true`; for slow networks leave it unset or use `VITE_LITE_DEMO` per `.env.example`.
+
+---
+
+## Vite template notes
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

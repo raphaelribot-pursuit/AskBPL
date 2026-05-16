@@ -6,7 +6,8 @@ services:
       POSTGRES_PASSWORD: askbpl_dev_password
       POSTGRES_DB: askbpl
     ports:
-      - "5432:5432"
+      # Host 5434 avoids conflict with local Postgres (5432) and other Docker DBs (5433)
+      - "5434:5432"
     volumes:
       - askbpl_pgdata:/var/lib/postgresql/data
     healthcheck:

@@ -51,10 +51,11 @@ export function Modal({
   useEffect(() => {
     if (!open) return
     const previous = document.activeElement as HTMLElement | null
+    const focusReturnEl = returnFocusRef?.current ?? null
     closeButtonRef.current?.focus()
     return () => {
-      if (returnFocusRef?.current) {
-        returnFocusRef.current.focus()
+      if (focusReturnEl) {
+        focusReturnEl.focus()
       } else {
         previous?.focus?.()
       }

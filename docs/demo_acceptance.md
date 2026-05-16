@@ -4,17 +4,20 @@ Goal: repeatable walkthrough proving closed-corpus safeguards, ingestion visibil
 
 ### Preconditions
 
-1. `docker compose -f infra/docker-compose.yml up -d`
-2. `cd packages/orchestrator`
-3. **Python 3.10+** (CI uses **3.11** — match that locally to avoid typing/FastAPI collection errors on 3.9):
+1. `docker compose -f infra/docker-compose.yml up -d` (or `make postgres` from repo root).
+2. `./scripts/wait-postgres.sh` — blocks until `pg_isready`.
+3. **Python 3.10+** (CI uses **3.11**). Prefer **recreate venv** so `.venv` is not stuck on system `python3` 3.9:
 
-   `python3.11 -m venv .venv && source .venv/bin/activate`  
+   `./scripts/recreate-orchestrator-venv.sh`  
 
-   (Use `python3.10` if 3.11 is unavailable.)
+   (`packages/orchestrator/.python-version` is `3.11` for pyenv; pass `PYTHON=python3.10` if needed.)
 
-4. `pip install -e '.[dev]'`
-5. `alembic upgrade head`
-6. `askbpl-seed`
+4. `cd packages/orchestrator` — export `DATABASE_URL`, `JWT_SECRET_KEY`, `ADMIN_BASIC_PASSWORD`, `ANTHROPIC_API_KEY` (see repo `.env.example`).
+5. `.venv/bin/pip install -e '.[dev]'` (already done by the recreate script).
+6. `.venv/bin/alembic upgrade head`
+7. `.venv/bin/askbpl-seed`
+
+**One-liner after env is set:** from repo root, `make orchestrator-test` runs migrate + seed + `pytest` (requires `.venv` present).
 
 ### Automated smoke
 
