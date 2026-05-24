@@ -15,6 +15,31 @@ policy_types:
     display_name: Sample Policy Bucket
     description: Fallback sample policy corpus for ingest smoke tests.
 
+  # BPL pilot PDF corpus (mirrors askbpl/config/routing.yaml — Selvon approval pending)
+  - slug: materials_selection
+    display_name: Materials Selection Policy
+    description: Criteria and process for library materials selection.
+
+  - slug: unattended_children
+    display_name: Policy on Unattended Children
+    description: Safety and conduct standards for unattended children in library branches.
+
+  - slug: annual_leave
+    display_name: Annual Leave Policy
+    description: Employee annual leave entitlements and procedures.
+
+  - slug: conflict_of_interest
+    display_name: Conflicts of Interest and Disclosure Policy
+    description: Disclosure requirements and conflict-of-interest standards.
+
+  - slug: fundraising
+    display_name: Fundraising Policy
+    description: BPL institutional fundraising guidelines (PDF corpus).
+
+  - slug: volunteer_manual
+    display_name: Volunteer Manual and Policy
+    description: Volunteer roles, expectations, and library policies.
+
 teams:
   - name: Supervisor / General
     contact_hint: Ask your supervisor or intranet Policies portal.
@@ -31,6 +56,34 @@ teams:
   - name: Information Technology
     contact_hint: Contact IT Help Desk.
     key: IT
+
+  - name: Human Resources
+    contact_hint: Contact Human Resources via Ask BPL internal intake.
+    key: HR
+
+  - name: Executive Director
+    contact_hint: Escalate to Executive Director office — TBD pending Selvon approval.
+    key: EXECUTIVE
+
+  - name: Materials Review Committee
+    contact_hint: Contact Materials Review Committee — TBD pending Selvon approval.
+    key: MATERIALS
+
+  - name: Public Service Policy Committee
+    contact_hint: Contact Public Service Policy Committee — TBD pending Selvon approval.
+    key: PUBLIC_SERVICE
+
+  - name: Department of Public Safety
+    contact_hint: Contact Department of Public Safety — TBD pending Selvon approval.
+    key: PUBLIC_SAFETY
+
+  - name: Audit Committee
+    contact_hint: Contact Audit Committee via General Counsel intake — TBD pending Selvon approval.
+    key: AUDIT
+
+  - name: Office of Volunteer Resources
+    contact_hint: Contact Office of Volunteer Resources — TBD pending Selvon approval.
+    key: VOLUNTEER
 
 routing_rules:
   - policy_type_slug: fundraising_policy
@@ -49,3 +102,36 @@ routing_rules:
 
   - policy_type_slug: generic_policy
     team_key: SUPERVISOR
+
+  - policy_type_slug: fundraising
+    team_key: DEVELOPMENT
+
+  - policy_type_slug: materials_selection
+    team_key: EXECUTIVE
+    priority: 1
+
+  - policy_type_slug: materials_selection
+    team_key: MATERIALS
+    priority: 2
+
+  - policy_type_slug: unattended_children
+    team_key: PUBLIC_SERVICE
+    priority: 1
+
+  - policy_type_slug: unattended_children
+    team_key: PUBLIC_SAFETY
+    priority: 2
+
+  - policy_type_slug: annual_leave
+    team_key: HR
+
+  - policy_type_slug: conflict_of_interest
+    team_key: LEGAL
+    priority: 1
+
+  - policy_type_slug: conflict_of_interest
+    team_key: AUDIT
+    priority: 2
+
+  - policy_type_slug: volunteer_manual
+    team_key: VOLUNTEER

@@ -9,7 +9,9 @@ from sqlalchemy import text
 from ask_bpl_orchestrator.api.routes_admin import router as admin_router
 from ask_bpl_orchestrator.api.routes_auth import router as auth_router
 from ask_bpl_orchestrator.api.routes_feedback import router as feedback_router
+from ask_bpl_orchestrator.api.routes_internal import router as internal_router
 from ask_bpl_orchestrator.api.routes_questions import router as question_router
+from ask_bpl_orchestrator.api.routes_v1 import router as v1_router
 from ask_bpl_orchestrator.api.session_dep import DbSessionDep
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.middleware.request_id import RequestIdMiddleware
@@ -17,6 +19,7 @@ from ask_bpl_orchestrator.middleware.request_id import RequestIdMiddleware
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    settings.require_secrets()
 
     application = FastAPI(title="Ask BPL Orchestrator", version="0.1.0")
 
@@ -34,6 +37,15 @@ def create_app() -> FastAPI:
     application.include_router(question_router)
     application.include_router(feedback_router)
     application.include_router(admin_router)
+    application.include_router(internal_router)
+
+    # TRD v1 path aliases (canonical contract)
+    application.include_router(v1_router)
+    application.include_router(auth_router, prefix="/v1")
+    application.include_router(question_router, prefix="/v1")
+    application.include_router(feedback_router, prefix="/v1")
+    application.include_router(internal_router, prefix="/v1")
+    application.include_router(admin_router, prefix="/v1")
 
     @application.get("/healthz")
     async def health():  # noqa: WPS430 nested function intentional

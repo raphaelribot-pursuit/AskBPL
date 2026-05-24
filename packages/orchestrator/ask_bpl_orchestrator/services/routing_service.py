@@ -16,6 +16,7 @@ async def teams_for_policy(session: AsyncSession, policy_type: str) -> List[Owni
     q = await session.execute(
         select(RoutingRule)
         .where(RoutingRule.policy_type == policy_type)
+        .where(RoutingRule.selvon_approved.is_(True))
         .options(selectinload(RoutingRule.team))
         .order_by(RoutingRule.priority.asc())
     )

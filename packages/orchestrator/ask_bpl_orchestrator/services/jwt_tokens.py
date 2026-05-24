@@ -15,9 +15,15 @@ def create_session_token(settings: Settings, claims: Dict[str, Any]) -> str:
     return jwt.encode(claims, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
-def decode_session_token(settings: Settings, token: str) -> Dict[str, Any]:
+def decode_session_token(settings: Settings, token: str, *, verify_exp: bool = False) -> Dict[str, Any]:
     try:
-        return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+        options = {"verify_exp": verify_exp}
+        return jwt.decode(
+            token,
+            settings.jwt_secret_key,
+            algorithms=[settings.jwt_algorithm],
+            options=options,
+        )
     except JWTError as e:
         raise ValueError("INVALID_TOKEN") from e
 

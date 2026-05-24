@@ -1,0 +1,4 @@
+provider: "anthropic"
+model: "claude-sonnet-4-20250514"
+max_tokens: 1200
+# Closed-corpus guardrail is enforced in generation/generator.py system prompt (TRD-GEN-2).

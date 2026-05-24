@@ -2,21 +2,13 @@ import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
+import { BookGlyph } from '../components/pilot/AvatarTrigger'
 import type { AttributionMode } from '../auth/types'
 import { useAuth } from '../auth/useAuth'
 
 /**
- * Screen 1 (Wireframe §3) — full-page sign-in. The form lived inside
- * `AskPilotShell` previously; pulling it out keeps Screen 1 standalone and
- * lets the host route assume an authenticated session for the modal.
- *
- * On success the JWT lives in `AuthContext` only — never `localStorage` —
- * per Wireframe §3.7. The previous post-login destination is preserved in
- * `location.state.from` so callers (e.g. the host route) can redirect back.
- *
- * The page sits on the wireframe pilot surface (`.askbpl-pilot-surface`)
- * defined in `theme/wireframe-tokens.css`, so the visual language matches
- * Screens 2–3 of the chat modal.
+ * Screen 1 (Wireframe §3) — full-page sign-in.
+ * Denward Systems × VizionScop3 — Ask BPL pilot v3.
  */
 
 type LocationState = { from?: string } | null
@@ -53,8 +45,8 @@ export function LoginPage() {
   const location = useLocation()
   const { session, signIn } = useAuth()
 
-  const [email, setEmail] = useState('pilot-demo@bklynlibrary.org')
-  const [accessCode, setAccessCode] = useState('DEMO2026')
+  const [email, setEmail] = useState(import.meta.env.VITE_PILOT_DEMO_EMAIL ?? '')
+  const [accessCode, setAccessCode] = useState(import.meta.env.VITE_PILOT_DEMO_ACCESS_CODE ?? '')
   const [attribution, setAttribution] = useState<AttributionMode>('attributed')
   const [signingIn, setSigningIn] = useState(false)
   const [status, setStatus] = useState('')
@@ -76,7 +68,7 @@ export function LoginPage() {
     setStatusKind('info')
     setSigningIn(true)
     try {
-      const res = await fetch(`${apiBase}/auth/sign-in`, {
+      const res = await fetch(`${apiBase}/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -115,6 +107,9 @@ export function LoginPage() {
     <main className="askbpl-pilot-surface pilot-login">
       <section className="pilot-login-card" aria-labelledby="pilot-login-heading">
         <header className="pilot-login-brand">
+          <div className="pilot-login-icon" aria-hidden="true">
+            <BookGlyph />
+          </div>
           <span className="pilot-eyebrow">Pilot v3</span>
           <h1 id="pilot-login-heading" className="pilot-title">
             Ask BPL — tester sign-in

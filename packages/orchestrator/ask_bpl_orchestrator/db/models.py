@@ -123,6 +123,7 @@ class RoutingRule(Base):
     )
     team_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("owning_teams.team_id"))
     priority: Mapped[int] = mapped_column(Integer, default=0)
+    selvon_approved: Mapped[bool] = mapped_column(Boolean, default=False)
     approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     policy_type_row: Mapped[PolicyType] = relationship(back_populates="routing_rules")

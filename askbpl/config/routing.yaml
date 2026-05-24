@@ -1,0 +1,33 @@
+# Ask BPL — Routing configuration (seed)
+# Per TRD-RTG-2, RTG-3, RTG-4. Selvon approves the mapping before the June 15 demo.
+# Multi-team owners are supported (e.g., conflict_of_interest -> two teams).
+
+policy_types:
+  materials_selection:
+    owners:
+      - "Executive Director"
+      - "Materials Review Committee"
+  unattended_children:
+    owners:
+      - "Public Service Policy Committee"
+      - "Department of Public Safety"
+  annual_leave:
+    owners:
+      - "Human Resources"
+  conflict_of_interest:
+    owners:
+      - "General Counsel"
+      - "Audit Committee"
+  fundraising:
+    owners:
+      - "Development Office"
+  volunteer_manual:
+    owners:
+      - "Office of Volunteer Resources"
+
+# Fallback per TRD-RTG-5: if a question maps to no known policy_type,
+# route to the user's supervisor or the most appropriate general department.
+fallback:
+  owners:
+    - "Direct Supervisor"
+    - "Human Resources"

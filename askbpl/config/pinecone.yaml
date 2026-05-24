@@ -1,0 +1,6 @@
+index_name: "askbpl-pilot"
+metric: "cosine"
+dimensions: 1536
+# Serverless config — adjust cloud/region to BPL's preferred AWS region.
+cloud: "aws"
+region: "us-east-1"

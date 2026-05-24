@@ -6,12 +6,12 @@ import uuid
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from openai import AsyncOpenAI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.db.models import Chunk, Document
+from ask_bpl_orchestrator.services.langchain_embeddings import embed_query
 from ask_bpl_orchestrator.services.pinecone_client import get_pinecone_index
 
 
@@ -32,10 +32,7 @@ class VectorRetriever:
         self.settings = get_settings()
 
     async def embed_question(self, question: str) -> List[float]:
-        client = AsyncOpenAI(api_key=self.settings.openai_api_key or None)
-        model = self.settings.openai_embedding_model
-        resp = await client.embeddings.create(model=model, input=question)
-        return list(resp.data[0].embedding)
+        return await embed_query(question, settings=self.settings)
 
     def _pinecone_index(self):
         return get_pinecone_index()

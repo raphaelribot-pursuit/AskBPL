@@ -9,13 +9,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
-from openai import AsyncOpenAI
-from sqlalchemy import delete, select
+from ask_bpl_orchestrator.services.langchain_embeddings import embed_query
 
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.db.models import Chunk, Document, IngestStatus, PolicyType, SourceFormat
 from ask_bpl_orchestrator.db.session import async_session_factory
-from ask_bpl_orchestrator.ingest.chunking import split_text
+from ask_bpl_orchestrator.ingest.chunking import split_text_with_sections
 from ask_bpl_orchestrator.ingest.loaders import load_bytes
 from ask_bpl_orchestrator.services.pinecone_client import get_pinecone_index
 
@@ -37,9 +36,7 @@ def approx_word_tokens(snippet: str) -> int:
 
 async def embed_snippet(snippet: str) -> List[float]:
     cfg = get_settings()
-    client = AsyncOpenAI(api_key=cfg.openai_api_key or None)
-    response = await client.embeddings.create(model=cfg.openai_embedding_model, input=snippet)
-    return list(response.data[0].embedding)
+    return await embed_query(snippet, settings=cfg)
 
 
 def pinecone_bulk_delete(identifiers: Sequence[str]) -> None:
@@ -136,7 +133,7 @@ async def ingest_file(
             await db_session.commit()
         raise
 
-    segmented = split_text(
+    segmented = split_text_with_sections(
         full_text,
         model_name=cfg.openai_embedding_model,
         chunk_size=cfg.chunk_size_tokens,
@@ -184,7 +181,8 @@ async def ingest_file(
 
         await db_session.merge(document_row)
 
-        for ordinal, snippet in enumerate(segmented, start=1):
+        for ordinal, segment in enumerate(segmented, start=1):
+            snippet = segment.text
             chunk_uuid = _chunk_uuid(doc_uuid, ordinal, snippet)
             staging.append((str(chunk_uuid), snippet, ordinal))
 
@@ -192,7 +190,7 @@ async def ingest_file(
                 Chunk(
                     chunk_id=uuid.UUID(chunk_uuid),
                     document_id=doc_uuid,
-                    section_heading=None,
+                    section_heading=segment.section_heading,
                     ordinal=ordinal,
                     text=snippet,
                     token_count=approx_word_tokens(snippet),

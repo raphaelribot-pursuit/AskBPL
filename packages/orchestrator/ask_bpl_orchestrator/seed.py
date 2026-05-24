@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -74,6 +75,7 @@ async def seed_policies(rows: list[dict]) -> None:
 
 
 async def seed_rules(rows: list[dict]) -> None:
+    auto_approve = os.environ.get("SEED_AUTO_APPROVE_ROUTING", "1").strip() not in {"0", "false", "False"}
     async with async_session_factory() as session:
         for rule_payload in rows:
             policy_slug = rule_payload["policy_type_slug"]
@@ -90,7 +92,8 @@ async def seed_rules(rows: list[dict]) -> None:
                 policy_type=policy_slug,
                 team_id=team_id_value,
                 priority=int(rule_payload.get("priority", 0)),
-                approved_at=datetime.now(timezone.utc),
+                selvon_approved=auto_approve,
+                approved_at=datetime.now(timezone.utc) if auto_approve else None,
             )
 
             legacy = (
@@ -111,7 +114,9 @@ async def seed_rules(rows: list[dict]) -> None:
             merged.policy_type = policy_slug
             merged.team_id = team_id_value
             merged.priority = int(rule_payload.get("priority", 0))
-            merged.approved_at = datetime.now(timezone.utc)
+            if auto_approve:
+                merged.selvon_approved = True
+                merged.approved_at = datetime.now(timezone.utc)
 
             await session.merge(merged)
         await session.commit()
@@ -169,9 +174,11 @@ async def asyncio_main() -> None:
     await seed_teams(teams)
     await seed_policies(policies)
     await seed_rules(rules_blob)
-    await seed_demo_tester("pilot-demo@bklynlibrary.org", "DEMO2026")
+    demo_email = os.environ.get("PILOT_DEMO_EMAIL", "pilot-demo@bklynlibrary.org")
+    demo_code = os.environ.get("PILOT_DEMO_ACCESS_CODE", "DEMO2026")
+    await seed_demo_tester(demo_email, demo_code)
 
-    print("Seed complete: routing + pilot tester pilot-demo@bklynlibrary.org / DEMO2026")  # noqa: T201
+    print(f"Seed complete: routing + pilot tester {demo_email} (access code from env)")  # noqa: T201
 
 
 def main() -> None:

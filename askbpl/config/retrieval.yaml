@@ -1,0 +1,19 @@
+top_k: 6
+# Minimum cosine similarity for the best retrieved chunk before calling Claude (TRD-RET-3).
+# Calibrate with: python -m verification.tune_threshold
+grounding_threshold: 0.42
+
+# Candidate values scanned by the threshold tuner (TRD-RET-3).
+threshold_candidates:
+  - 0.35
+  - 0.38
+  - 0.40
+  - 0.42
+  - 0.45
+  - 0.48
+  - 0.50
+  - 0.55
+  - 0.60
+  - 0.65
+  - 0.70
+  - 0.72

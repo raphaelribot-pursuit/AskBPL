@@ -1,0 +1,11 @@
+chunk_size_tokens: 800
+chunk_overlap_tokens: 100
+# Recursive split: try these separators in order, falling back to the next
+# if a chunk is still too large.
+separators:
+  - "\n\n## "      # Markdown-style headers (if present after parsing)
+  - "\n\n"         # Paragraph break
+  - "\n"           # Line break
+  - ". "           # Sentence end
+  - " "            # Word boundary (last resort)
+encoding: "cl100k_base"   # tiktoken encoding for text-embedding-3-small

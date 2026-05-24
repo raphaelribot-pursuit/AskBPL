@@ -49,7 +49,7 @@ export async function askQuestion({
   const f = fetchImpl ?? fetch
   let res: Response
   try {
-    res = await f(`${apiBase}/questions/ask`, {
+    res = await f(`${apiBase}/v1/ask`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ export async function submitFeedback({
   const f = fetchImpl ?? fetch
   let res: Response
   try {
-    res = await f(`${apiBase}/feedback/`, {
+    res = await f(`${apiBase}/v1/feedback`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -3,24 +3,27 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from passlib.hash import bcrypt
 from sqlalchemy import select
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ask_bpl_orchestrator.api.session_dep import session_dependency
 from ask_bpl_orchestrator.config import get_settings
-from ask_bpl_orchestrator.db.models import Tester
+from ask_bpl_orchestrator.db.models import Session, Tester
 from ask_bpl_orchestrator.services.jwt_tokens import decode_session_token
-from passlib.hash import bcrypt
+from ask_bpl_orchestrator.services.session_service import touch_session
 
 Bearer = HTTPBearer(auto_error=False)
 
 
 async def jwt_auth(
     credentials: HTTPAuthorizationCredentials = Depends(Bearer),
+    db: AsyncSession = Depends(session_dependency),
 ) -> Dict[str, Any]:
     if not credentials:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
@@ -39,6 +42,17 @@ async def jwt_auth(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Malformed session"
         ) from exc
+
+    sess = await db.get(Session, session_uuid)
+    if not sess:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Session not found")
+    expires = sess.expires_at
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    if expires < datetime.now(timezone.utc):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Session expired")
+
+    await touch_session(db, session_uuid)
 
     tester_raw = payload.get("tester_id")
     tester_uuid: Optional[uuid.UUID] = None

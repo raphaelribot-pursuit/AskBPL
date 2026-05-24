@@ -1,0 +1,62 @@
+# Ask BPL Pilot Corpus Manifest
+# Vizion | Built by Denward Lee Aulder | BPL Lead: Selvon Smith
+# TRD v0.3: TRD-IGN-1 through IGN-4
+#
+# Place production PDFs/DOCX under `sample_corpus/pilot/` then run:
+#   askbpl-ingest-batch --manifest sample_corpus/corpus_manifest.yaml
+
+corpus_root: pilot
+default_version: pilot-2026-04
+
+documents:
+  # --- Selvon sample markdown corpus (smoke / demo) ---
+  - path: gift_acceptance.md
+    policy: gift_acceptance
+    title: Gift Acceptance Policy
+    version: pilot-2026-04
+
+  - path: fundraising_policy.md
+    policy: fundraising_policy
+    title: Institutional Fundraising Policy
+    version: pilot-2026-04
+
+  - path: data_retention.md
+    policy: data_retention
+    title: Data Retention Policy
+    version: pilot-2026-04
+
+  - path: employee_conduct.md
+    policy: generic_policy
+    title: Employee Conduct Guidelines
+    version: pilot-2026-04
+
+  # --- BPL pilot PDF corpus (production policies) ---
+  - path: "02 - Materials Selection Policy (04.05) (1) (1).pdf"
+    policy: materials_selection
+    title: Materials Selection Policy
+    version: "2005-04-19"
+
+  - path: "02 - Policy on Unattended Children (09.05) (1).pdf"
+    policy: unattended_children
+    title: Policy on Unattended Children
+    version: "2005-09-20"
+
+  - path: "04 - Annual Leave Policy (01.06) (1).pdf"
+    policy: annual_leave
+    title: Annual Leave Policy
+    version: "2006-01"
+
+  - path: "06 - Conflict of Interest (06.14) (1) (1).pdf"
+    policy: conflict_of_interest
+    title: Conflicts of Interest and Disclosure Policy
+    version: "2014-06"
+
+  - path: "06 - Fundraising Policy (12.01) (1).pdf"
+    policy: fundraising
+    title: Fundraising Policy
+    version: "2001-12"
+
+  - path: "07 - Volunteer Manual (12.08) (1).pdf"
+    policy: volunteer_manual
+    title: Volunteer Manual and Policy
+    version: "2008-12-16"

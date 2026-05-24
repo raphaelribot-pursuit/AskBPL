@@ -32,6 +32,7 @@ class SignInResponse(BaseModel):
 
 
 @router.post("/sign-in", response_model=SignInResponse)
+@router.post("/login", response_model=SignInResponse, include_in_schema=True)
 async def sign_in(payload: SignInRequest, response: Response, db: DbSessionDep):
     settings = get_settings()
     tester = await authenticate_tester(db, payload.email, payload.access_code)

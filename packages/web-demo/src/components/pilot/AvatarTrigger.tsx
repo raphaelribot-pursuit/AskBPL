@@ -29,7 +29,8 @@ export function AvatarTrigger({ onClick, hidden, buttonRef }: AvatarTriggerProps
   )
 }
 
-function BookGlyph() {
+/** Shared book icon for login header and floating FAB (Wireframe §2.1). */
+export function BookGlyph() {
   return (
     <svg viewBox="0 0 24 24" role="presentation" aria-hidden="true" focusable={false}>
       <path

@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     database_url: str = "postgresql+asyncpg://askbpl:askbpl_dev_password@localhost:5434/askbpl"
-    jwt_secret_key: str = "change-me"
+    jwt_secret_key: str = ""
     jwt_algorithm: str = "HS256"
     session_ttl_hours: int = 8
 
@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> List[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    def require_secrets(self) -> None:
+        if not self.jwt_secret_key.strip():
+            raise RuntimeError("JWT_SECRET_KEY must be set (see .env.example)")
 
 
 @lru_cache

@@ -112,21 +112,12 @@ async def handle_ask(
     q_hash = question_sha256(question_text)
     blocked, cats = rejects_input(question_text)
     if blocked:
-        latency = int((time.perf_counter() - started) * 1000)
-        q = Question(
-            request_id=request_id,
-            session_id=sess.session_id,
-            tester_id=tester_storage,
-            question_text=None,
-            question_hash=q_hash,
-            pii_rejected=True,
-            latency_ms=latency,
-        )
-        db.add(q)
-        await db.flush()
-        db.add(Response(request_id=request_id, response_type=ResponseType.error_pii))
-        await db.commit()
-        return {"request_id": str(request_id), "type": "error_pii", "pii_categories": cats}, 400
+        return {
+            "type": "error_pii",
+            "detail": "PII_DETECTED",
+            "pii_categories": cats,
+            "message": "Personal information was detected. Rephrase your question without names, contact details, or identifiers.",
+        }, 400
 
     question_row = Question(
         request_id=request_id,

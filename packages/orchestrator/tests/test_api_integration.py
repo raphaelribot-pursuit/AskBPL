@@ -83,6 +83,38 @@ def test_ask_pii_returns_400() -> None:
     body = r.json()
     assert body.get("type") == "error_pii"
     assert body.get("pii_categories")
+    assert "request_id" not in body
+
+
+def test_v1_ask_alias_matches_questions_ask() -> None:
+    token = _pilot_token()
+    legacy = client.post(
+        "/questions/ask",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"question": "What is the data retention policy?"},
+    )
+    v1 = client.post(
+        "/v1/ask",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"question": "What is the data retention policy?"},
+    )
+    assert legacy.status_code == v1.status_code
+    assert legacy.json().get("type") == v1.json().get("type")
+
+
+def test_internal_corpus_requires_admin() -> None:
+    r = client.get("/v1/internal/corpus")
+    assert r.status_code == 401
+
+
+def test_internal_corpus_ok() -> None:
+    user = os.environ.get("ADMIN_BASIC_USER", "vizion_build")
+    password = os.environ["ADMIN_BASIC_PASSWORD"]
+    r = client.get("/v1/internal/corpus", auth=(user, password))
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert "doc_count" in data
+    assert "documents" in data
 
 
 def test_ask_without_corpus_refusal_200() -> None:

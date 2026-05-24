@@ -141,7 +141,11 @@ export function rowFromAskResponse(args: {
       }
     }
 
-    if (responseType === 'refusal') {
+    if (
+      responseType === 'refusal' ||
+      responseType === 'refusal_oo_corpus' ||
+      responseType === 'refusal_citation_invalid'
+    ) {
       const explanation =
         typeof payload.refusal_explanation === 'string'
           ? payload.refusal_explanation

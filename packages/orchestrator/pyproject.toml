@@ -35,6 +35,7 @@ dev = [
 
 [project.scripts]
 askbpl-ingest = "ask_bpl_orchestrator.ingest.cli:main"
+askbpl-ingest-batch = "ask_bpl_orchestrator.ingest.batch:main"
 askbpl-seed = "ask_bpl_orchestrator.seed:main"
 askbpl-latency-smoke = "ask_bpl_orchestrator.latency_report:main"
 

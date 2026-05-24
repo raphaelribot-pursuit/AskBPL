@@ -1088,6 +1088,30 @@ textarea:focus-visible {
   line-height: 1.5;
 }
 
+.console-table-wrap {
+  overflow-x: auto;
+  margin-top: 0.5rem;
+}
+
+.console-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.console-table th,
+.console-table td {
+  border: 2px solid var(--border, #333355);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.console-table th {
+  background: var(--surface-alt);
+  font-weight: 600;
+}
+
 .settings-grid {
   display: grid;
   grid-template-columns: max-content 1fr;

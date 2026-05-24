@@ -1,0 +1,5 @@
+provider: "openai"
+model: "text-embedding-3-small"
+dimensions: 1536
+# At query time, the same model must be used. Do not change this file without
+# also planning a full re-ingest.
