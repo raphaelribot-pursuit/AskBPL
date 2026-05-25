@@ -21,7 +21,7 @@ class ConversationTurn(BaseModel):
 
 
 class AskBody(BaseModel):
-    question: str = Field(..., min_length=3)
+    question: str = Field(..., min_length=3, max_length=2000)
     conversation_context: Optional[list[ConversationTurn]] = Field(
         default=None,
         max_length=4,

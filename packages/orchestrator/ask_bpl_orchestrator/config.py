@@ -24,7 +24,8 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-sonnet-4-20250514"
 
     pinecone_top_k: int = 6
-    grounding_threshold: float = 0.72
+    # Tuned for text-embedding-3-small + pilot corpus (May 2026)
+    grounding_threshold: float = 0.40
 
     host: str = "0.0.0.0"
     port: int = 8000

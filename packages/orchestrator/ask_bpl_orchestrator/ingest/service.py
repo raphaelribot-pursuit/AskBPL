@@ -134,11 +134,20 @@ async def ingest_file(
             await db_session.commit()
         raise
 
+    chunk_size = cfg.chunk_size_tokens
+    chunk_overlap = cfg.chunk_overlap_tokens
+    if policy_slug == "conflict_of_interest":
+        # Pilot COI PDF extracts as one flat body (~few thousand chars) with no
+        # markdown headings, so default 800-token windows stay a single chunk.
+        # Narrower windows diversify retrieval across the policy until a structured source replaces the PDF path.
+        chunk_size = min(chunk_size, 280)
+        chunk_overlap = min(chunk_overlap, 50)
+
     segmented = split_text_with_sections(
         full_text,
         model_name=cfg.openai_embedding_model,
-        chunk_size=cfg.chunk_size_tokens,
-        overlap=cfg.chunk_overlap_tokens,
+        chunk_size=chunk_size,
+        overlap=chunk_overlap,
     )
 
     staging: List[Tuple[str, str, int]] = []
