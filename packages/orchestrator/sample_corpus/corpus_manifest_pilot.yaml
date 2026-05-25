@@ -1,0 +1,43 @@
+# ============================================================================
+# VIZIONSCOP3 LLC - PROPRIETARY AND CONFIDENTIAL
+# ============================================================================
+# Copyright (c) 2024-present Vizionscop3 LLC. All Rights Reserved.
+#
+# LEGAL ENTITY: Vizionscop3 LLC, Brooklyn, New York, USA
+# ============================================================================
+
+# Pilot-only manifest — BPL curated PDFs in sample_corpus/pilot/.
+# Keeps markdown smoke docs out of the June demo ingest (QA blocker §13).
+corpus_root: pilot
+default_version: pilot-2026-04
+
+documents:
+  - path: "02 - Materials Selection Policy (04.05) (1) (1).pdf"
+    policy: materials_selection
+    title: Materials Selection Policy
+    version: "2005-04-19"
+
+  - path: "02 - Policy on Unattended Children (09.05) (1).pdf"
+    policy: unattended_children
+    title: Policy on Unattended Children
+    version: "2005-09-20"
+
+  - path: "04 - Annual Leave Policy (01.06) (1).pdf"
+    policy: annual_leave
+    title: Annual Leave Policy
+    version: "2006-01"
+
+  - path: "06 - Conflict of Interest (06.14) (1) (1).pdf"
+    policy: conflict_of_interest
+    title: Conflicts of Interest and Disclosure Policy
+    version: "2014-06"
+
+  - path: "06 - Fundraising Policy (12.01) (1).pdf"
+    policy: fundraising
+    title: Fundraising Policy
+    version: "2001-12"
+
+  - path: "07 - Volunteer Manual (12.08) (1).pdf"
+    policy: volunteer_manual
+    title: Volunteer Manual and Policy
+    version: "2008-12-16"

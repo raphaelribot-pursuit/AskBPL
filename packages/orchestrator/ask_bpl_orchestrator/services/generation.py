@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from typing import List
+from typing import List, Optional
 
 import anthropic
 
@@ -25,7 +25,12 @@ Respond as a single JSON object with keys:
 Do not include markdown fences. Do not cite chunks you did not use."""
 
 
-async def generate_answer(*, question: str, chunks: List[RetrievedChunk]) -> tuple[str, bool, List[uuid.UUID], str]:
+async def generate_answer(
+    *,
+    question: str,
+    chunks: List[RetrievedChunk],
+    conversation_context: Optional[List[dict[str, str]]] = None,
+) -> tuple[str, bool, List[uuid.UUID], str]:
     """Return (answer_text, refuses, cited_ids, raw_model_text)."""
     settings = get_settings()
     client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key or None)
@@ -50,11 +55,17 @@ async def generate_answer(*, question: str, chunks: List[RetrievedChunk]) -> tup
         f"{json.dumps(pack, ensure_ascii=False)}"
     )
 
+    messages: list[dict[str, str]] = []
+    if conversation_context:
+        for turn in conversation_context:
+            messages.append({"role": turn["role"], "content": turn["content"]})
+    messages.append({"role": "user", "content": user_prompt})
+
     message = await client.messages.create(
         model=settings.anthropic_model,
         max_tokens=1200,
         system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_prompt}],
+        messages=messages,
     )
 
     text_parts = []

@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
 
     corpus_dir: str = "./sample_corpus"
+    # Default "Re-ingest" manifest — pilot PDFs only (see TRD §13 corpus exclusivity).
+    # Override with env INGEST_MANIFEST_PATH when running full dev manifests.
+    ingest_manifest_path: str = "sample_corpus/corpus_manifest_pilot.yaml"
     documents_public_base_url: str = ""
 
     chunk_size_tokens: int = 800

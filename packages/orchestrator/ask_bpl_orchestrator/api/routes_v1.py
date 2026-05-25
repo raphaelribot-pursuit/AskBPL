@@ -16,11 +16,17 @@ router = APIRouter(prefix="/v1", tags=["v1"])
 
 @router.post("/ask")
 async def ask_v1(body: AskBody, claims: JwtAuthClaims, db: DbSessionDep):
+    context_dicts = (
+        [{"role": t.role, "content": t.content.strip()} for t in body.conversation_context]
+        if body.conversation_context
+        else None
+    )
     payload, status_code = await ask_service.handle_ask(
         db,
         jwt_session_id=claims["session_id"],
         jwt_attribution=claims["attribution"],
         question_text=body.question.strip(),
+        conversation_context=context_dicts,
     )
     rid = payload.get("request_id")
     headers = {"X-Request-ID": rid} if isinstance(rid, str) else None

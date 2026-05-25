@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 
 import {
   askQuestion,
+  buildConversationContext,
   isMockEnabled,
   submitFeedback as submitFeedbackApi,
   type FeedbackRating,
@@ -86,6 +87,8 @@ export function useAskChat({
       setStatus('')
       setPending(true)
 
+      const conversationContext = buildConversationContext(rows)
+
       const userRowId = nextRowId()
       setRows((history) => [
         ...history,
@@ -97,6 +100,7 @@ export function useAskChat({
         token: token ?? '',
         question: text,
         rowId: nextRowId(),
+        conversationContext,
         mock: mockEnabled.current,
       })
 
@@ -124,7 +128,7 @@ export function useAskChat({
       setRows((history) => [...history, outcome.row])
       setPending(false)
     },
-    [apiBase, onRestoreInput, onSessionExpired, pending, token],
+    [apiBase, onRestoreInput, onSessionExpired, pending, rows, token],
   )
 
   const submitFeedback = useCallback(

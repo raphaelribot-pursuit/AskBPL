@@ -86,6 +86,47 @@ def test_ask_pii_returns_400() -> None:
     assert "request_id" not in body
 
 
+def test_ask_pii_in_conversation_context_returns_400() -> None:
+    token = _pilot_token()
+    r = client.post(
+        "/questions/ask",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "question": "Is that person eligible for leave?",
+            "conversation_context": [
+                {
+                    "role": "user",
+                    "content": "Can john.smith@bklynlibrary.org take time off?",
+                },
+                {"role": "assistant", "content": "Some prior answer..."},
+            ],
+        },
+    )
+    assert r.status_code == 400
+    body = r.json()
+    assert body.get("type") == "error_pii"
+    assert body.get("pii_categories")
+
+
+def test_ask_conversation_context_max_four_turns() -> None:
+    token = _pilot_token()
+    r = client.post(
+        "/questions/ask",
+        headers={"Authorization": f"Bearer {token}"},
+        json={
+            "question": "What about the next topic?",
+            "conversation_context": [
+                {"role": "user", "content": "Question one?"},
+                {"role": "assistant", "content": "Answer one."},
+                {"role": "user", "content": "Question two?"},
+                {"role": "assistant", "content": "Answer two."},
+                {"role": "user", "content": "Question three?"},
+            ],
+        },
+    )
+    assert r.status_code == 422
+
+
 def test_v1_ask_alias_matches_questions_ask() -> None:
     token = _pilot_token()
     legacy = client.post(

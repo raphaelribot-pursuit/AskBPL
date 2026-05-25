@@ -55,8 +55,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Ingest Selvon corpus from manifest YAML")
     parser.add_argument(
         "--manifest",
-        default="sample_corpus/corpus_manifest.yaml",
-        help="Path to corpus_manifest.yaml",
+        default="sample_corpus/corpus_manifest_pilot.yaml",
+        help="Path to corpus manifest YAML (default: pilot PDFs)",
     )
     args = parser.parse_args()
     lines = asyncio.run(ingest_manifest(Path(args.manifest).resolve()))

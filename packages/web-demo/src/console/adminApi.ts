@@ -53,6 +53,21 @@ export type ReadoutSummary = {
   feedback_not_helpful: number
 }
 
+export type FeedbackRow = {
+  request_id: string
+  session_id: string
+  helpful: boolean
+  comment: string | null
+  created_at: string
+}
+
+export type FeedbackListResponse = {
+  total: number
+  helpful_count: number
+  not_helpful_count: number
+  items: FeedbackRow[]
+}
+
 export type RoutingRuleRow = {
   rule_id: string
   policy_type: string
@@ -95,15 +110,32 @@ export async function fetchRoutingRules(
 export async function triggerReIngest(
   apiBase: string,
   creds: AdminCredentials,
-  manifestPath = 'sample_corpus/corpus_manifest.yaml',
+  /** Omit to let the API use server default pilot manifest (`INGEST_MANIFEST_PATH`). */
+  manifestPath?: string | null,
 ): Promise<{ status: string; manifest: string }> {
+  const body =
+    manifestPath === undefined || manifestPath === null
+      ? {}
+      : { manifest_path: manifestPath }
   const res = await adminFetch(apiBase, creds, '/v1/internal/ingest', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ manifest_path: manifestPath }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) throw new Error(await res.text())
   return (await res.json()) as { status: string; manifest: string }
+}
+
+export async function fetchFeedbackList(
+  apiBase: string,
+  creds: AdminCredentials,
+  limit = 50,
+  offset = 0,
+): Promise<FeedbackListResponse> {
+  const qs = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  const res = await adminFetch(apiBase, creds, `/v1/internal/feedback?${qs}`)
+  if (!res.ok) throw new Error(await res.text())
+  return (await res.json()) as FeedbackListResponse
 }
 
 export async function setRoutingApproval(

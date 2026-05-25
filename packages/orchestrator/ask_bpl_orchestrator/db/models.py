@@ -11,6 +11,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -180,6 +181,7 @@ class Question(Base):
     question_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     question_hash: Mapped[str] = mapped_column(String(64), index=True)
     pii_rejected: Mapped[bool] = mapped_column(Boolean, default=False)
+    pii_categories: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     latency_ms: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 

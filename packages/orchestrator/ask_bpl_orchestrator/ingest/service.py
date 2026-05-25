@@ -9,9 +9,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
-from ask_bpl_orchestrator.services.langchain_embeddings import embed_query
+from sqlalchemy import delete, select
 
 from ask_bpl_orchestrator.config import get_settings
+from ask_bpl_orchestrator.services.langchain_embeddings import embed_query
 from ask_bpl_orchestrator.db.models import Chunk, Document, IngestStatus, PolicyType, SourceFormat
 from ask_bpl_orchestrator.db.session import async_session_factory
 from ask_bpl_orchestrator.ingest.chunking import split_text_with_sections
@@ -188,7 +189,7 @@ async def ingest_file(
 
             db_session.add(
                 Chunk(
-                    chunk_id=uuid.UUID(chunk_uuid),
+                    chunk_id=chunk_uuid,
                     document_id=doc_uuid,
                     section_heading=segment.section_heading,
                     ordinal=ordinal,

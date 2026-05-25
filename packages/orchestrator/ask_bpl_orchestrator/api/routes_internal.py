@@ -13,16 +13,18 @@ from sqlalchemy.orm import selectinload
 
 from ask_bpl_orchestrator.api.routes_admin import aggregate_summary, guard_admin
 from ask_bpl_orchestrator.api.session_dep import DbSessionDep
-from ask_bpl_orchestrator.db.models import Chunk, Document, RoutingRule, Session
+from ask_bpl_orchestrator.config import get_settings
+from ask_bpl_orchestrator.db.models import Chunk, Document, FeedbackRating, Question, RoutingRule, Session
+from ask_bpl_orchestrator.db.models import Feedback as FeedbackORM
 from ask_bpl_orchestrator.ingest.batch import ingest_manifest
 
 router = APIRouter(prefix="/internal", tags=["internal"], dependencies=[Depends(guard_admin)])
 
 
 class IngestRequest(BaseModel):
-    manifest_path: str = Field(
-        default="sample_corpus/corpus_manifest.yaml",
-        description="Repo-relative path to corpus manifest YAML",
+    manifest_path: str | None = Field(
+        default=None,
+        description="Repo-relative YAML; omit to use INGEST_MANIFEST_PATH default (pilot bundle).",
     )
 
 
@@ -90,12 +92,69 @@ async def weekly_readout(db: DbSessionDep) -> dict:
     return await aggregate_summary(db)
 
 
+@router.get("/feedback")
+async def list_feedback(db: DbSessionDep, limit: int = 50, offset: int = 0) -> dict:
+    """Recent tester feedback rows for console (TRD-LOG-4)."""
+    cap = max(1, min(limit, 200))
+    off = max(0, offset)
+
+    total_fb = int((await db.execute(select(func.count()).select_from(FeedbackORM))).scalar_one() or 0)
+    helpful_count = int(
+        (
+            await db.execute(
+                select(func.count()).where(FeedbackORM.rating == FeedbackRating.helpful)
+            )
+        ).scalar_one()
+        or 0
+    )
+    not_helpful_count = int(
+        (
+            await db.execute(
+                select(func.count()).where(FeedbackORM.rating == FeedbackRating.not_helpful)
+            )
+        ).scalar_one()
+        or 0
+    )
+
+    stmt = (
+        select(FeedbackORM)
+        .options(selectinload(FeedbackORM.question))
+        .order_by(FeedbackORM.submitted_at.desc())
+        .limit(cap)
+        .offset(off)
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+
+    items = []
+    for fb in rows:
+        q = fb.question
+        if not q:
+            continue
+        items.append(
+            {
+                "request_id": str(fb.request_id),
+                "session_id": str(q.session_id),
+                "helpful": fb.rating == FeedbackRating.helpful,
+                "comment": fb.comment or None,
+                "created_at": fb.submitted_at.isoformat(),
+            }
+        )
+
+    return {
+        "total": total_fb,
+        "helpful_count": helpful_count,
+        "not_helpful_count": not_helpful_count,
+        "items": items,
+    }
+
+
 @router.post("/ingest")
 async def trigger_ingest(body: IngestRequest, background_tasks: BackgroundTasks) -> dict:
-    manifest = Path(body.manifest_path)
+    rel = body.manifest_path or get_settings().ingest_manifest_path
+    manifest = Path(rel)
     if not manifest.is_file():
         repo_root = Path(__file__).resolve().parents[2]
-        manifest = repo_root / body.manifest_path
+        manifest = repo_root / rel
     if not manifest.is_file():
         raise HTTPException(status_code=404, detail="manifest not found")
 

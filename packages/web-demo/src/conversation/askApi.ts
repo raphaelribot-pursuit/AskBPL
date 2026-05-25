@@ -13,6 +13,11 @@ import { rowFromAskResponse } from './types'
 
 export type FeedbackRating = 'helpful' | 'not_helpful'
 
+export type ConversationTurn = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export type FeedbackSubmitResult =
   | { ok: true }
   | { ok: false; error: string }
@@ -28,10 +33,33 @@ export type AskRequestArgs = {
   question: string
   /** Stable id for the row the caller will append to the transcript. */
   rowId: string
+  /** Last 2 Q&A pairs from the transcript, for follow-up resolution. */
+  conversationContext?: ConversationTurn[]
   /** When true, return canned data without hitting the orchestrator. */
   mock?: boolean
   /** Override `fetch`; mostly useful for tests. */
   fetchImpl?: typeof fetch
+}
+
+/** Extract the last 4 completed turns (2 Q&A pairs) for follow-up context. */
+export function buildConversationContext(
+  transcript: TranscriptRow[],
+): ConversationTurn[] | undefined {
+  const completedTurns: ConversationTurn[] = []
+
+  for (const row of transcript) {
+    if (row.kind === 'user_message') {
+      completedTurns.push({ role: 'user', content: row.body })
+    } else if (row.kind === 'assistant_answer') {
+      completedTurns.push({ role: 'assistant', content: row.body })
+    } else if (row.kind === 'assistant_refusal') {
+      completedTurns.push({ role: 'assistant', content: row.explanation })
+    }
+  }
+
+  const recent = completedTurns.slice(-4)
+  if (recent.length === 0) return undefined
+  return recent
 }
 
 export async function askQuestion({
@@ -39,6 +67,7 @@ export async function askQuestion({
   token,
   question,
   rowId,
+  conversationContext,
   mock,
   fetchImpl,
 }: AskRequestArgs): Promise<AskOutcome> {
@@ -55,7 +84,12 @@ export async function askQuestion({
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({
+        question,
+        ...(conversationContext?.length
+          ? { conversation_context: conversationContext }
+          : {}),
+      }),
     })
   } catch {
     return {
