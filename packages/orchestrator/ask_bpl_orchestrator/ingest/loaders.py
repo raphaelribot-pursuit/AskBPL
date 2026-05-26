@@ -9,14 +9,9 @@ def load_bytes(path: Path) -> str:
     suffix = path.suffix.lower()
 
     if suffix == ".pdf":
-        from pypdf import PdfReader
+        from ask_bpl_orchestrator.ingest.ocr_fallback import extract_pdf_text_with_ocr
 
-        reader = PdfReader(str(path))
-        fragments = []
-        for page in reader.pages:
-            fragments.append(((page.extract_text() or "").replace("\uf0b7", "")).strip())
-        merged = "\n\n".join(f for f in fragments if f)
-        return merged
+        return extract_pdf_text_with_ocr(path)
 
     if suffix == ".docx":
         import docx  # noqa: WPS433

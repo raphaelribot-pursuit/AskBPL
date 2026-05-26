@@ -26,8 +26,8 @@ import type { CitationPayload, TranscriptRow } from './types'
  *   - Network failure → restore the question text via `onRestoreInput` so
  *     the tester can retry (Wireframe §4.6).
  *   - `submitFeedback` for per-message ratings + comments.
- *   - `openCitation` with a graceful no-op + status when
- *     `VITE_DOCUMENTS_PUBLIC_BASE` is not configured.
+ *   - `openCitation` silently no-ops when `VITE_DOCUMENTS_PUBLIC_BASE`
+ *     is not configured (demo UI must not surface dev config hints).
  */
 
 let __rowSeq = 0
@@ -154,12 +154,7 @@ export function useAskChat({
 
   const openCitation = useCallback(
     (citation: CitationPayload) => {
-      if (!docsBase) {
-        setStatus(
-          'Set VITE_DOCUMENTS_PUBLIC_BASE (or DOCUMENTS_PUBLIC_BASE_URL on the orchestrator) to open citation links.',
-        )
-        return
-      }
+      if (!docsBase) return
       window.open(
         `${docsBase}/${citation.document_id}`,
         '_blank',

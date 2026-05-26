@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
 import { useAskChat } from '../../conversation/useAskChat'
 import { AvatarTrigger } from './AvatarTrigger'
+import { DocumentViewer } from './DocumentViewer'
 import { Modal } from './Modal'
 import { PilotTranscript } from './PilotTranscript'
 import { InputField } from './InputField'
@@ -44,6 +45,10 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
   const [showSampleChip, setShowSampleChip] = useState(true)
   const [showFirstOpenHint, setShowFirstOpenHint] = useState(false)
   const [showJumpDown, setShowJumpDown] = useState(false)
+  const [viewerState, setViewerState] = useState<{
+    documentId: string
+    chunkIds: string[]
+  } | null>(null)
 
   const fabRef = useRef<HTMLButtonElement | null>(null)
   const bodyRef = useRef<HTMLDivElement | null>(null)
@@ -152,8 +157,26 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
 
   const inputDisabled = chat.pending || !token
 
+  const handleCitationOpen = useCallback(
+    (documentId: string, chunkIds: string[]) => {
+      if (!token) return
+      setViewerState({ documentId, chunkIds })
+    },
+    [token],
+  )
+
   return (
     <>
+      {viewerState && token ? (
+        <DocumentViewer
+          apiBase={apiBase}
+          documentId={viewerState.documentId}
+          highlightChunkIds={viewerState.chunkIds}
+          token={token}
+          onClose={() => setViewerState(null)}
+        />
+      ) : null}
+
       <AvatarTrigger
         onClick={handleOpen}
         hidden={open}
@@ -225,7 +248,7 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
             rows={chat.rows}
             pending={chat.pending}
             onFeedback={chat.submitFeedback}
-            onOpenCitation={chat.openCitation}
+            onOpenCitation={handleCitationOpen}
           />
         </div>
 

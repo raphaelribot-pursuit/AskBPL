@@ -13,6 +13,8 @@ From repo root:
 # or: PYTHON=python3.11 ./scripts/recreate-orchestrator-venv.sh
 ```
 
+**Scanned PDFs:** install system **Tesseract** + **Poppler** (e.g. `brew install tesseract poppler`, or `apt install tesseract-ocr poppler-utils`). The venv script installs the Python OCR extra via `pip install -e '.[dev,ocr]'`. Set `OCR_ENABLED=false` to force pypdf-only when those binaries are unavailable.
+
 Then start Postgres and apply schema + seed (env vars from repo `.env.example`):
 
 ```bash

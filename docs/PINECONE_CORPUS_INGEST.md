@@ -72,7 +72,9 @@ From repo root `.env` (see `.env.example`):
 
 ## 5. Supported file formats
 
-The ingest CLI accepts **`.pdf`**, **`.docx`**, **`.md`**, **`.markdown`**, **`.txt`** under the path you pass (`ingest/cli.py` → `loaders.py`).
+The ingest CLI accepts **`.pdf`**, **`.docx`**, **`.md`**, **`.markdown`**, **`.txt`** under the path you pass (`ingest/cli.py` → `loaders.py` → `ocr_fallback.py` for PDFs).
+
+**Scanned PDFs (no text layer):** per-page pypdf extraction uses **OCR** when a page has fewer than `OCR_MIN_CHARS_PER_PAGE` characters (default 100). Install the Python extra **`pip install -e '.[ocr]'`** plus system **Tesseract** and **Poppler** (e.g. `brew install tesseract poppler`; Linux: `tesseract-ocr`, `poppler-utils`). Set **`OCR_ENABLED=false`** to force pypdf-only. Without the extra or binaries, thin pages are left empty (same as before OCR).
 
 Recommended for pilot drafts:
 

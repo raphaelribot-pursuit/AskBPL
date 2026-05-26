@@ -1,12 +1,12 @@
 import type {
   AssistantAnswerRow,
   AssistantRefusalRow,
-  CitationPayload,
   ErrorGenericRow,
   TranscriptRow,
   UserMessageRow,
 } from '../../conversation/types'
 import type { FeedbackRating, FeedbackSubmitResult } from '../../conversation/askApi'
+import { AnswerMarkdown } from './AnswerMarkdown'
 import { Bubble } from './Bubble'
 import { CitationCardList } from './CitationCard'
 import { FeedbackControl } from './FeedbackControl'
@@ -33,7 +33,7 @@ export type PilotTranscriptProps = {
   rows: TranscriptRow[]
   pending: boolean
   onFeedback: FeedbackHandler
-  onOpenCitation: (citation: CitationPayload) => void
+  onOpenCitation: (documentId: string, chunkIds: string[]) => void
 }
 
 export function PilotTranscript({
@@ -86,12 +86,12 @@ function AssistantAnswer({
 }: {
   row: AssistantAnswerRow
   onFeedback: FeedbackHandler
-  onOpenCitation: (citation: CitationPayload) => void
+  onOpenCitation: (documentId: string, chunkIds: string[]) => void
 }) {
   return (
     <Bubble variant="bot">
       <Bubble.Stack>
-        <p>{row.body}</p>
+        <AnswerMarkdown>{row.body}</AnswerMarkdown>
         <CitationCardList citations={row.citations} onOpen={onOpenCitation} />
         {row.routing.length > 0 ? (
           <RoutingCard routing={row.routing} variant="answer" />
@@ -112,7 +112,7 @@ function AssistantRefusal({
   return (
     <Bubble variant="bot">
       <Bubble.Stack>
-        <p>{row.explanation}</p>
+        <AnswerMarkdown>{row.explanation}</AnswerMarkdown>
         <RoutingCard routing={row.routing} variant="refusal" />
         <FeedbackControl requestId={row.requestId} onSubmit={onFeedback} />
       </Bubble.Stack>

@@ -36,5 +36,5 @@ echo "Using: $($PY --version) ($PY)"
 rm -rf .venv
 "$PY" -m venv .venv
 ./.venv/bin/python -m pip install -U pip
-./.venv/bin/pip install -e '.[dev]'
+./.venv/bin/pip install -e '.[dev,ocr]'
 echo "OK — $(./.venv/bin/python --version)"

@@ -8,6 +8,7 @@ from sqlalchemy import text
 
 from ask_bpl_orchestrator.api.routes_admin import router as admin_router
 from ask_bpl_orchestrator.api.routes_auth import router as auth_router
+from ask_bpl_orchestrator.api.routes_documents import router as documents_router
 from ask_bpl_orchestrator.api.routes_feedback import router as feedback_router
 from ask_bpl_orchestrator.api.routes_internal import router as internal_router
 from ask_bpl_orchestrator.api.routes_questions import router as question_router
@@ -35,6 +36,7 @@ def create_app() -> FastAPI:
 
     application.include_router(auth_router)
     application.include_router(question_router)
+    application.include_router(documents_router)
     application.include_router(feedback_router)
     application.include_router(admin_router)
     application.include_router(internal_router)
@@ -43,6 +45,7 @@ def create_app() -> FastAPI:
     application.include_router(v1_router)
     application.include_router(auth_router, prefix="/v1")
     application.include_router(question_router, prefix="/v1")
+    application.include_router(documents_router, prefix="/v1")
     application.include_router(feedback_router, prefix="/v1")
     application.include_router(internal_router, prefix="/v1")
     application.include_router(admin_router, prefix="/v1")

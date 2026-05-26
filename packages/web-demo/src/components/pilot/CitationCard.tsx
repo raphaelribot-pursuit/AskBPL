@@ -1,19 +1,55 @@
 import type { CitationPayload } from '../../conversation/types'
 
 /**
- * CitationCard (Wireframe v3 §2.5). Up to 3 citations surface inline; any
- * extras collapse into a `+N more sources` footer per the wireframe rule
- * (we cap inline cards rather than scroll a long list inside the bubble).
+ * CitationCard (Wireframe v3 §2.5). Up to 3 unique documents surface inline;
+ * extras collapse into a `+N more sources` footer. Multiple chunks from the
+ * same document render as one card with section headings and a count.
  *
- * Clicking a card always opens in a new tab through the parent-supplied
- * `onOpen` handler so the host page is never replaced.
+ * Clicking a card opens the in-app document viewer (parent supplies handler).
  */
 
 const VISIBLE_LIMIT = 3
 
+type GroupedCitation = {
+  title: string
+  documentId: string
+  sections: string[]
+  chunkIds: string[]
+  count: number
+}
+
 type CitationCardListProps = {
   citations: CitationPayload[]
-  onOpen: (citation: CitationPayload) => void
+  onOpen: (documentId: string, chunkIds: string[]) => void
+}
+
+function groupCitations(citations: CitationPayload[]): GroupedCitation[] {
+  const grouped = new Map<string, GroupedCitation>()
+
+  for (const cite of citations) {
+    const key = cite.document_id
+    const existing = grouped.get(key)
+    if (existing) {
+      existing.count += 1
+      existing.chunkIds.push(cite.chunk_id)
+      if (
+        cite.section_heading &&
+        !existing.sections.includes(cite.section_heading)
+      ) {
+        existing.sections.push(cite.section_heading)
+      }
+    } else {
+      grouped.set(key, {
+        title: cite.document_title || 'Unknown document',
+        documentId: cite.document_id,
+        sections: cite.section_heading ? [cite.section_heading] : [],
+        chunkIds: [cite.chunk_id],
+        count: 1,
+      })
+    }
+  }
+
+  return Array.from(grouped.values())
 }
 
 export function CitationCardList({ citations, onOpen }: CitationCardListProps) {
@@ -25,25 +61,37 @@ export function CitationCardList({ citations, onOpen }: CitationCardListProps) {
     )
   }
 
-  const visible = citations.slice(0, VISIBLE_LIMIT)
-  const overflow = citations.length - visible.length
+  const grouped = groupCitations(citations)
+  const visible = grouped.slice(0, VISIBLE_LIMIT)
+  const overflow = grouped.length - visible.length
 
   return (
     <>
       <ul className="pilot-citation-list" aria-label="Sources">
-        {visible.map((citation, idx) => (
-          <li key={`${citation.chunk_id}-${idx}`}>
+        {visible.map((doc) => (
+          <li key={doc.documentId}>
             <button
               type="button"
-              className="pilot-citation"
-              onClick={() => onOpen(citation)}
-              aria-label={`Open source: ${citation.document_title ?? 'Document'}${
-                citation.section_heading ? ` — ${citation.section_heading}` : ''
-              } (opens in a new tab)`}
+              className="pilot-citation pilot-citation-clickable"
+              onClick={() => onOpen(doc.documentId, doc.chunkIds)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onOpen(doc.documentId, doc.chunkIds)
+                }
+              }}
+              aria-label={`View source: ${doc.title}${
+                doc.sections.length > 0 ? ` — ${doc.sections.join(', ')}` : ''
+              }${doc.count > 1 ? ` — ${doc.count} sections referenced` : ''}`}
             >
-              <strong>{citation.document_title ?? 'Document'}</strong>
-              {citation.section_heading ? (
-                <small>{citation.section_heading}</small>
+              <strong>{doc.title}</strong>
+              {doc.sections.length > 0 ? (
+                <small>{doc.sections.join(' · ')}</small>
+              ) : null}
+              {doc.count > 1 ? (
+                <span className="pilot-citation-count">
+                  {doc.count} sections referenced
+                </span>
               ) : null}
             </button>
           </li>

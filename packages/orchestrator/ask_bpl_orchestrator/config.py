@@ -41,8 +41,14 @@ class Settings(BaseSettings):
     ingest_manifest_path: str = "sample_corpus/corpus_manifest_pilot.yaml"
     documents_public_base_url: str = ""
 
-    chunk_size_tokens: int = 800
+    chunk_size_tokens: int = 400
     chunk_overlap_tokens: int = 100
+
+    # Scanned PDF fallback (ingest-time only). Requires optional pip extra `[ocr]`
+    # plus system `tesseract-ocr` and `poppler-utils` when enabled.
+    ocr_enabled: bool = True
+    ocr_dpi: int = 300
+    ocr_min_chars_per_page: int = 100
 
     @field_validator("database_url", mode="before")
     @classmethod

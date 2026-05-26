@@ -11,6 +11,23 @@ import { rowFromAskResponse } from './types'
  * when the orchestrator is not running locally.
  */
 
+export type DocumentChunk = {
+  chunk_id: string
+  ordinal: number
+  text: string
+  section_heading: string | null
+  start_offset: number
+  end_offset: number
+}
+
+export type DocumentText = {
+  document_id: string
+  title: string
+  policy_type: string
+  full_text: string
+  chunks: DocumentChunk[]
+}
+
 export type FeedbackRating = 'helpful' | 'not_helpful'
 
 export type ConversationTurn = {
@@ -125,6 +142,35 @@ export type FeedbackSubmitArgs = {
   anonymousOverride?: boolean
   mock?: boolean
   fetchImpl?: typeof fetch
+}
+
+export type FetchDocumentTextArgs = {
+  apiBase: string
+  documentId: string
+  token: string
+  mock?: boolean
+  fetchImpl?: typeof fetch
+}
+
+export async function fetchDocumentText({
+  apiBase,
+  documentId,
+  token,
+  mock,
+  fetchImpl,
+}: FetchDocumentTextArgs): Promise<DocumentText> {
+  if (mock) {
+    return mockDocumentText(documentId)
+  }
+
+  const f = fetchImpl ?? fetch
+  const res = await f(`${apiBase}/v1/documents/${documentId}/text`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) {
+    throw new Error(`Failed to fetch document: ${res.status}`)
+  }
+  return res.json() as Promise<DocumentText>
 }
 
 export async function submitFeedback({
@@ -252,6 +298,36 @@ function mockAsk(
       })
     }, MOCK_LATENCY_MS)
   })
+}
+
+function mockDocumentText(documentId: string): DocumentText {
+  const chunks: DocumentChunk[] = [
+    {
+      chunk_id: 'mock-1',
+      ordinal: 0,
+      text:
+        '**Approval thresholds.** Routine gifts at or below $5,000 follow the standard intake form. Gifts above $5,000 require Director-level approval.',
+      section_heading: '§3 Approval Thresholds',
+      start_offset: 0,
+      end_offset: 142,
+    },
+    {
+      chunk_id: 'mock-2',
+      ordinal: 1,
+      text:
+        '**Donor record.** A written summary must be filed on the donor record before acceptance is finalized.',
+      section_heading: 'Filing & Review',
+      start_offset: 144,
+      end_offset: 230,
+    },
+  ]
+  return {
+    document_id: documentId,
+    title: 'Gift Acceptance Policy',
+    policy_type: 'gift_acceptance',
+    full_text: chunks.map((c) => c.text).join('\n\n'),
+    chunks,
+  }
 }
 
 export function isMockEnabled(): boolean {
