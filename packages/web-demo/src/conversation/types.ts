@@ -169,12 +169,16 @@ export function rowFromAskResponse(args: {
     }
   }
 
+  const serverMessage =
+    typeof payload.message === 'string'
+      ? payload.message
+      : typeof payload.detail === 'string'
+        ? payload.detail
+        : 'Something went wrong. Please try again.'
+
   return {
     kind: 'error_generic',
     id,
-    message:
-      typeof payload.detail === 'string'
-        ? payload.detail
-        : 'Something went wrong. Please try again.',
+    message: serverMessage,
   }
 }

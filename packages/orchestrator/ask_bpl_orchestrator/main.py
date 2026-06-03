@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException, status
+import logging
+
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from ask_bpl_orchestrator.api.routes_admin import router as admin_router
@@ -16,6 +19,8 @@ from ask_bpl_orchestrator.api.routes_v1 import router as v1_router
 from ask_bpl_orchestrator.api.session_dep import DbSessionDep
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.middleware.request_id import RequestIdMiddleware
+
+logger = logging.getLogger(__name__)
 
 
 def create_app() -> FastAPI:
@@ -33,6 +38,24 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
         expose_headers=["X-Request-ID"],
     )
+
+    @application.exception_handler(Exception)
+    async def unhandled_exception(_request: Request, exc: Exception) -> JSONResponse:
+        if isinstance(exc, HTTPException):
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": exc.detail},
+            )
+        # Plain-text 500s omit CORS headers; browsers surface that as "Network error".
+        logger.exception("unhandled_exception: %s", exc)
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "type": "error_internal",
+                "detail": "internal_error",
+                "message": "The server hit an unexpected error. Try again in a moment.",
+            },
+        )
 
     application.include_router(auth_router)
     application.include_router(question_router)

@@ -107,8 +107,17 @@ export async function askQuestion({
           ? { conversation_context: conversationContext }
           : {}),
       }),
+      // Render cold starts can exceed 30s; avoid aborting before the API responds.
+      signal: AbortSignal.timeout(180_000),
     })
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      return {
+        kind: 'network_error',
+        message:
+          'The request timed out. The API may be waking up — wait a moment and try again.',
+      }
+    }
     return {
       kind: 'network_error',
       message:
