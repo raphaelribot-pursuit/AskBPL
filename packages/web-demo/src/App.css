@@ -1,16 +1,17 @@
+@import './theme/sharepoint-tokens.css';
 @import './theme/wireframe-tokens.css';
 
 :root {
-  --accent: #00e5ff;
-  --cyan-muted: #00b8d4;
-  --background: #0a0a0a;
-  --surface: #1a1a2e;
-  --surface-alt: #252540;
-  --border: #333355;
-  --text: #ffffff;
-  --text-muted: #a0a0b0;
-  --danger: #ff3d71;
-  --avatar-modal-accent: #185fa5;
+  --accent: var(--sp-blue-primary);
+  --cyan-muted: var(--sp-blue-hover);
+  --background: var(--sp-canvas-bg);
+  --surface: var(--sp-surface-card);
+  --surface-alt: var(--sp-nav-bg);
+  --border: var(--sp-border);
+  --text: var(--sp-text-primary);
+  --text-muted: var(--sp-text-secondary);
+  --danger: var(--sp-danger-text);
+  --avatar-modal-accent: var(--sp-blue-primary);
 }
 
 * {
@@ -25,15 +26,11 @@ input {
 
 .ask-root {
   min-height: 100vh;
-  background-color: var(--background);
-  color: var(--text);
+  background-color: var(--sp-canvas-bg);
+  color: var(--sp-text-primary);
   padding: 1.75rem clamp(16px, 4vw, 48px);
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  font-family: var(--sp-font-family);
+  font-size: var(--sp-font-size-base);
 }
 
 .ask-topbar {
@@ -46,13 +43,9 @@ input {
 }
 
 .brand-title {
-  font-family:
-    'Space Grotesk',
-    Inter,
-    system-ui,
-    sans-serif;
-  font-size: 1.65rem;
-  font-weight: 700;
+  font-family: var(--sp-font-family);
+  font-size: var(--sp-font-size-xl);
+  font-weight: var(--sp-font-weight-semibold);
 }
 
 .brand-subtitle {
@@ -64,39 +57,64 @@ input {
 
 .segmented {
   display: inline-flex;
-  gap: 0.5rem;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  padding: 0.35rem;
-  background: var(--surface);
+  gap: 0;
+  border: none;
+  border-bottom: 1px solid var(--sp-border);
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
 }
 
 .seg {
   border: none;
   background: transparent;
-  padding: 0.45rem 0.95rem;
-  border-radius: 6px;
-  color: inherit;
-  font-weight: 600;
+  padding: 0.55rem 1rem;
+  border-radius: 0;
+  color: var(--sp-tab-text-inactive);
+  font-weight: var(--sp-font-weight-normal);
+  font-size: var(--sp-font-size-base);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
 }
 
 .seg.active {
-  border: 2px solid var(--accent);
-  background: rgba(0, 229, 255, 0.1);
+  color: var(--sp-tab-text-active);
+  font-weight: var(--sp-font-weight-semibold);
+  border-bottom-color: var(--sp-tab-active-border);
+  background: transparent;
 }
 
 .brutal-card {
-  background: var(--surface);
-  border: 3px solid #000000;
-  border-radius: 10px;
+  background: var(--sp-surface-card);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius-md);
   padding: clamp(16px, 3vw, 28px);
-  box-shadow:
-    4px 4px 0px #000000,
-    inset 0 0 0 1px var(--border);
+  box-shadow: var(--sp-shadow-panel);
+}
+
+.json-pane {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--sp-border-strong);
+  border-radius: var(--sp-radius-sm);
+  padding: 0.75rem;
+  background: var(--sp-nav-bg);
+  font-family:
+    ui-monospace,
+    SFMono-Regular,
+    'JetBrains Mono',
+    monospace;
+  font-size: var(--sp-font-size-sm);
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--sp-text-primary);
 }
 
 .build-panel pre {
-  background: var(--surface-alt);
+  background: var(--sp-nav-bg);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius-sm);
+  padding: 0.75rem;
 }
 
 .form-grid {
@@ -105,6 +123,11 @@ input {
   gap: 0.85rem;
   align-items: center;
   margin: 1rem 0;
+}
+
+.form-grid label {
+  font-size: var(--sp-font-size-base);
+  color: var(--sp-text-primary);
 }
 
 .row-actions {
@@ -119,27 +142,12 @@ input {
   gap: 1rem;
 }
 
-.json-pane {
-  max-height: 320px;
-  overflow: auto;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  padding: 0.75rem;
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    'JetBrains Mono',
-    monospace;
-  font-size: 0.8rem;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
 .error-block {
-  border: 2px solid var(--danger);
-  border-radius: 8px;
+  border: 1px solid var(--sp-danger-border);
+  border-radius: var(--sp-radius-sm);
   padding: 0.75rem;
-  color: #ffdcdc;
+  color: var(--sp-danger-text);
+  background: var(--sp-danger-bg);
 }
 
 .fab-book {
@@ -220,20 +228,21 @@ input {
 .brutal-input,
 textarea {
   width: 100%;
-  padding: 0.75rem;
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-alt);
-  color: inherit;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--sp-input-border);
+  border-radius: var(--sp-input-radius);
+  background: var(--sp-input-bg);
+  color: var(--sp-text-primary);
+  font-size: var(--sp-font-size-base);
+  font-family: inherit;
 }
 
 .brutal-input:focus-visible,
 textarea:focus-visible {
-  border-color: var(--accent);
-  box-shadow:
-    0 0 0 1px rgba(0, 229, 255, 0.45),
-    4px 4px 0px #000000;
-  outline: none;
+  border-color: var(--sp-input-border-focus);
+  outline: 2px solid var(--sp-blue-light);
+  outline-offset: 0;
+  box-shadow: none;
 }
 
 .binding-note {
@@ -245,43 +254,63 @@ textarea:focus-visible {
 .primary,
 .secondary,
 .ghost {
-  border-radius: 8px;
-  border: 2px solid transparent;
-  font-weight: 600;
+  border-radius: var(--sp-button-radius);
+  border: 1px solid transparent;
+  font-weight: var(--sp-font-weight-semibold);
+  font-size: var(--sp-font-size-base);
+  height: 32px;
+  padding: 0 16px;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .primary {
-  background: var(--accent);
-  color: #0a0a0a;
-  border-color: #000000;
-  box-shadow:
-    4px 4px 0px #000000,
-    inset 0 2px rgba(255, 255, 255, 0.08);
+  background: var(--sp-button-primary-bg);
+  color: var(--sp-button-primary-text);
+  border-color: var(--sp-button-primary-bg);
+  box-shadow: none;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--sp-button-primary-hover);
+  border-color: var(--sp-button-primary-hover);
+}
+
+.primary:focus-visible {
+  outline: 2px solid var(--sp-blue-light);
+  outline-offset: 1px;
 }
 
 .primary:disabled {
   opacity: 0.65;
   cursor: wait;
-  box-shadow: 2px 2px 0px #000000;
+  box-shadow: none;
 }
 
 .secondary {
-  background: var(--surface-alt);
-  border-color: var(--border);
-  color: var(--text);
-  box-shadow: 2px 2px 0px #000000;
+  background: var(--sp-surface-card);
+  border-color: var(--sp-border-strong);
+  color: var(--sp-text-primary);
+  box-shadow: none;
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--sp-nav-hover-bg);
 }
 
 .secondary.slim {
   padding-inline: 0.75rem;
-  padding-block: 0.4rem;
+  padding-block: 0;
   font-weight: 500;
+  height: 28px;
 }
 
 .ghost {
   background: transparent;
-  color: var(--accent);
+  color: var(--sp-blue-primary);
   border: none;
+  height: auto;
+  padding: 0.4rem 0.6rem;
 }
 
 .signin-form {
@@ -378,8 +407,8 @@ textarea:focus-visible {
 }
 
 .brutal-border {
-  border: 3px solid #000000;
-  box-shadow: 4px 4px 0px rgba(0, 0, 0, 1);
+  border: 1px solid var(--sp-border);
+  box-shadow: var(--sp-shadow-panel);
 }
 
 .assistant-head {
@@ -388,23 +417,33 @@ textarea:focus-visible {
   align-items: center;
 }
 
+.console-main a {
+  color: var(--sp-blue-primary);
+}
+
+.console-main a:hover {
+  color: var(--sp-blue-hover);
+}
+
 .pill {
-  border-radius: 6px;
+  border-radius: var(--sp-radius-sm);
   padding-inline: 0.55rem;
   padding-block: 0.2rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
+  font-weight: var(--sp-font-weight-semibold);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  font-size: var(--sp-font-size-sm);
 }
 
 .pill.success {
-  background: #00ff88;
-  color: #08130d;
+  background: var(--sp-blue-light);
+  color: var(--sp-blue-primary);
 }
 
 .pill.subtle {
-  border: 1px solid rgba(160, 160, 176, 0.6);
-  color: var(--text-muted);
+  border: 1px solid var(--sp-border);
+  background: var(--sp-nav-bg);
+  color: var(--sp-text-secondary);
 }
 
 .answer-body {
@@ -915,10 +954,11 @@ textarea:focus-visible {
 
 .host-page {
   min-height: 100vh;
-  background: var(--background);
-  color: var(--text);
+  background: var(--sp-canvas-bg);
+  color: var(--sp-text-primary);
   padding: clamp(20px, 4vw, 48px);
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--sp-font-family);
+  font-size: var(--sp-font-size-base);
 }
 
 .host-topbar {
@@ -985,41 +1025,67 @@ textarea:focus-visible {
 
 /* ─────────────────────────────────────────────────────────────
  * Screen 4 — build-team console (`/internal/console`).
- * Wireframe §6 prescribes a ~200 px left rail + main panel.
- * Spec §6.7 says the console shares only tokens with the modal,
- * so the layout below intentionally does not reuse modal styles.
+ * SharePoint Admin Center layout: global top bar + left nav + main panel.
  * ───────────────────────────────────────────────────────────── */
 
-.console-shell {
+.console-app {
   min-height: 100vh;
-  background: var(--background);
-  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  background: var(--sp-canvas-bg);
+  color: var(--sp-text-primary);
+  font-family: var(--sp-font-family);
+  font-size: var(--sp-font-size-base);
+}
+
+.console-global-topbar {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 16px;
+  background: var(--sp-topbar-bg);
+  color: var(--sp-topbar-text);
+  flex-shrink: 0;
+}
+
+.console-global-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+}
+
+.console-global-brand strong {
+  font-size: 15px;
+  font-weight: var(--sp-font-weight-semibold);
+  color: var(--sp-topbar-text);
+}
+
+.console-global-brand span {
+  font-size: var(--sp-font-size-sm);
+  font-weight: var(--sp-font-weight-normal);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.console-shell {
+  flex: 1;
   display: grid;
-  grid-template-columns: 200px 1fr;
-  font-family: Inter, system-ui, sans-serif;
+  grid-template-columns: 220px 1fr;
+  min-height: 0;
 }
 
 .admin-sidebar {
-  border-right: 2px solid var(--border);
-  background: var(--surface);
-  padding: 1.25rem 0.75rem;
+  background: var(--sp-nav-bg);
+  padding: 0.75rem 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-}
-
-.admin-sidebar-brand {
-  font-family: 'Space Grotesk', Inter, sans-serif;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding-inline: 0.5rem;
+  border-right: 1px solid var(--sp-border);
 }
 
 .admin-sidebar-nav,
 .admin-sidebar-list {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0;
   list-style: none;
   padding: 0;
   margin: 0;
@@ -1027,33 +1093,37 @@ textarea:focus-visible {
 
 .admin-sidebar-link {
   display: block;
-  padding: 0.55rem 0.75rem;
-  border-radius: 6px;
-  color: var(--text-muted);
+  padding: 0.55rem 1rem 0.55rem 0.85rem;
+  border-left: 3px solid transparent;
+  border-radius: 0;
+  color: var(--sp-nav-text);
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: var(--sp-font-size-base);
+  line-height: 1.35;
 }
 
 .admin-sidebar-link:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--sp-nav-text);
+  background: var(--sp-nav-hover-bg);
 }
 
 .admin-sidebar-link.active {
-  color: var(--text);
-  background: rgba(0, 229, 255, 0.08);
-  border: 1px solid rgba(0, 229, 255, 0.4);
+  color: var(--sp-nav-active-text);
+  background: var(--sp-blue-light);
+  border-left-color: var(--sp-nav-active-border);
+  font-weight: var(--sp-font-weight-semibold);
 }
 
 .console-main {
-  padding: clamp(20px, 3vw, 36px);
+  padding: 24px 32px;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
   min-width: 0;
+  background: var(--sp-content-bg);
 }
 
-.console-topbar {
+.console-page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -1061,9 +1131,11 @@ textarea:focus-visible {
 }
 
 .console-title {
-  font-family: 'Space Grotesk', Inter, sans-serif;
-  font-size: 1.35rem;
+  font-family: var(--sp-font-family);
+  font-size: var(--sp-font-size-xl);
+  font-weight: var(--sp-font-weight-semibold);
   margin: 0;
+  color: var(--sp-text-primary);
 }
 
 .console-panel {
@@ -1077,15 +1149,18 @@ textarea:focus-visible {
 }
 
 .console-section-head h2 {
-  font-family: 'Space Grotesk', Inter, sans-serif;
-  font-size: 1.15rem;
+  font-family: var(--sp-font-family);
+  font-size: var(--sp-font-size-lg);
+  font-weight: var(--sp-font-weight-semibold);
   margin: 0 0 0.25rem;
+  color: var(--sp-text-primary);
 }
 
 .console-section-head p {
   margin: 0;
-  color: var(--text-muted);
+  color: var(--sp-text-secondary);
   line-height: 1.5;
+  font-size: var(--sp-font-size-base);
 }
 
 .console-table-wrap {
@@ -1096,20 +1171,30 @@ textarea:focus-visible {
 .console-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: var(--sp-font-size-base);
 }
 
 .console-table th,
 .console-table td {
-  border: 2px solid var(--border, #333355);
-  padding: 0.5rem 0.75rem;
+  border: none;
+  border-bottom: 1px solid var(--sp-border);
+  padding: 0.55rem 0.75rem;
   text-align: left;
   vertical-align: top;
 }
 
 .console-table th {
-  background: var(--surface-alt);
-  font-weight: 600;
+  background: transparent;
+  font-weight: var(--sp-font-weight-semibold);
+  font-size: var(--sp-font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sp-text-secondary);
+  border-bottom: 1px solid var(--sp-border-strong);
+}
+
+.console-table tbody tr:hover {
+  background: var(--sp-nav-hover-bg);
 }
 
 .settings-grid {
@@ -1120,13 +1205,13 @@ textarea:focus-visible {
 }
 
 .settings-grid dt {
-  color: var(--text-muted);
-  font-size: 0.88rem;
+  color: var(--sp-text-secondary);
+  font-size: var(--sp-font-size-base);
 }
 
 .settings-grid dd {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--sp-font-size-base);
 }
 
 .overview-stats {
@@ -1141,23 +1226,26 @@ textarea:focus-visible {
 .overview-stat {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  padding: 0.85rem;
-  border-radius: 8px;
-  background: var(--surface-alt);
+  gap: 0.35rem;
+  padding: 1rem;
+  border-radius: var(--sp-radius-md);
+  background: var(--sp-surface-card);
+  border: 1px solid var(--sp-border);
+  box-shadow: var(--sp-shadow-panel);
 }
 
 .overview-stat-label {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  color: var(--sp-text-secondary);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .overview-stat-value {
-  font-family: 'Space Grotesk', Inter, sans-serif;
-  font-size: 1.4rem;
-  font-weight: 700;
+  font-family: var(--sp-font-family);
+  font-size: 24px;
+  font-weight: var(--sp-font-weight-semibold);
+  color: var(--sp-text-primary);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1237,6 +1325,10 @@ textarea:focus-visible {
 
   .admin-sidebar {
     border-right: none;
-    border-bottom: 2px solid var(--border);
+    border-bottom: 1px solid var(--sp-border);
+  }
+
+  .console-main {
+    padding: 16px;
   }
 }

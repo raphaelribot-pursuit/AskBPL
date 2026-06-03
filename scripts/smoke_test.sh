@@ -9,7 +9,7 @@
 #   routing: []  (array, not object)
 # =============================================================
 
-BASE="http://localhost:8000"
+BASE="${BASE:-http://localhost:8000}"
 EMAIL="pilot-demo@bklynlibrary.org"
 CODE="DEMO2026"
 
@@ -30,15 +30,17 @@ echo "======================================================="
 echo ""
 echo -e "${BLUE}[AUTH] Signing in as demo tester...${NC}"
 
-AUTH_RESPONSE=$(curl -s -X POST "$BASE/auth/sign-in" \
+AUTH_HTTP=$(curl -sS -o /tmp/askbpl_auth_body.json -w "%{http_code}" --max-time 120 \
+  -X POST "$BASE/v1/auth/login" \
   -H "Content-Type: application/json" \
   -d "{\"email\": \"$EMAIL\", \"access_code\": \"$CODE\", \"attribution_mode\": \"anonymous\"}")
+AUTH_RESPONSE=$(cat /tmp/askbpl_auth_body.json)
 
-TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.token // .access_token // empty')
+TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.token // .access_token // empty' 2>/dev/null)
 
 if [ -z "$TOKEN" ]; then
-  echo -e "${RED}[FAIL] Auth failed. Response:${NC}"
-  echo "$AUTH_RESPONSE" | jq .
+  echo -e "${RED}[FAIL] Auth failed (HTTP ${AUTH_HTTP}). Response:${NC}"
+  cat /tmp/askbpl_auth_body.json
   exit 1
 fi
 echo -e "${GREEN}[PASS] Auth OK — JWT obtained${NC}"
@@ -54,14 +56,22 @@ echo -e "${BLUE}TEST 1: Gift acceptance question${NC}"
 echo "  Q: Can I accept a gift from a vendor?"
 echo "-------------------------------------------------------"
 
-RESP1=$(curl -s -X POST "$BASE/v1/ask" \
+ASK1_HTTP=$(curl -sS -o /tmp/askbpl_ask1_body.json -w "%{http_code}" --max-time 180 \
+  -X POST "$BASE/v1/ask" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"question":"Can I accept a gift from a vendor?","conversation_history":[]}')
+  -d '{"question":"Can I accept a gift from a vendor?"}')
+RESP1=$(cat /tmp/askbpl_ask1_body.json)
 
 echo ""
+echo "HTTP status: $ASK1_HTTP"
 echo "Full response:"
-echo "$RESP1" | jq .
+if echo "$RESP1" | jq . >/dev/null 2>&1; then
+  echo "$RESP1" | jq .
+else
+  echo "$RESP1"
+  echo -e "${YELLOW}[WARN] Body is not JSON (often HTTP 500 plain text from an unhandled server error).${NC}"
+fi
 
 TYPE1=$(echo "$RESP1" | jq -r '.type // empty')
 ANSWER1=$(echo "$RESP1" | jq -r '.answer // empty')
@@ -104,14 +114,22 @@ echo -e "${BLUE}TEST 2: Out-of-corpus refusal + routing card${NC}"
 echo "  Q: What is BPL's employee discipline policy?"
 echo "-------------------------------------------------------"
 
-RESP2=$(curl -s -X POST "$BASE/v1/ask" \
+ASK2_HTTP=$(curl -sS -o /tmp/askbpl_ask2_body.json -w "%{http_code}" --max-time 180 \
+  -X POST "$BASE/v1/ask" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"question":"What is BPL'\''s employee discipline policy?","conversation_history":[]}')
+  -d '{"question":"What is BPL'\''s employee discipline policy?"}')
+RESP2=$(cat /tmp/askbpl_ask2_body.json)
 
 echo ""
+echo "HTTP status: $ASK2_HTTP"
 echo "Full response:"
-echo "$RESP2" | jq .
+if echo "$RESP2" | jq . >/dev/null 2>&1; then
+  echo "$RESP2" | jq .
+else
+  echo "$RESP2"
+  echo -e "${YELLOW}[WARN] Body is not JSON (often HTTP 500 plain text from an unhandled server error).${NC}"
+fi
 
 TYPE2=$(echo "$RESP2" | jq -r '.type // empty')
 ROUTING_COUNT=$(echo "$RESP2" | jq -r '.routing | length')

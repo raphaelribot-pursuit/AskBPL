@@ -1,0 +1,80 @@
+/**
+ * SharePoint Admin Center design tokens — root palette for Ask BPL.
+ * Imported first so every route (tester UI + build console) inherits these values.
+ */
+
+:root {
+  /* ── SharePoint Color Palette ── */
+  --sp-blue-primary: #0078d4;
+  --sp-blue-hover: #106ebe;
+  --sp-blue-light: #deecf9;
+  --sp-blue-dark: #005a9e;
+
+  --sp-nav-bg: #f3f2f1;
+  --sp-nav-active-border: #0078d4;
+  --sp-nav-active-text: #0078d4;
+  --sp-nav-text: #323130;
+  --sp-nav-hover-bg: #edebe9;
+
+  --sp-topbar-bg: #0078d4;
+  --sp-topbar-text: #ffffff;
+
+  --sp-content-bg: #ffffff;
+  --sp-canvas-bg: #f3f2f1;
+
+  --sp-text-primary: #323130;
+  --sp-text-secondary: #605e5c;
+  --sp-text-disabled: #a19f9d;
+
+  --sp-border: #edebe9;
+  --sp-border-strong: #c8c6c4;
+
+  --sp-surface-card: #ffffff;
+  --sp-surface-overlay: #ffffff;
+
+  --sp-tab-active-border: #0078d4;
+  --sp-tab-text-active: #323130;
+  --sp-tab-text-inactive: #605e5c;
+
+  --sp-input-bg: #ffffff;
+  --sp-input-border: #8a8886;
+  --sp-input-border-focus: #0078d4;
+  --sp-input-radius: 2px;
+
+  --sp-button-radius: 2px;
+  --sp-button-primary-bg: #0078d4;
+  --sp-button-primary-text: #ffffff;
+  --sp-button-primary-hover: #106ebe;
+
+  --sp-font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --sp-font-size-base: 14px;
+  --sp-font-size-sm: 12px;
+  --sp-font-size-lg: 18px;
+  --sp-font-size-xl: 20px;
+  --sp-font-weight-normal: 400;
+  --sp-font-weight-semibold: 600;
+
+  --sp-radius-sm: 2px;
+  --sp-radius-md: 2px;
+  --sp-shadow-panel: 0 1.6px 3.6px rgba(0, 0, 0, 0.13), 0 0.3px 0.9px rgba(0, 0, 0, 0.11);
+
+  /* Semantic (unchanged behavior, SharePoint-aligned where possible) */
+  --sp-success: #107c10;
+  --sp-warning-bg: #fff4ce;
+  --sp-warning-border: #d9a52f;
+  --sp-danger-bg: #fde7e9;
+  --sp-danger-border: #a4262c;
+  --sp-danger-text: #a4262c;
+}
+
+html {
+  font-family: var(--sp-font-family);
+  font-size: var(--sp-font-size-base);
+  color: var(--sp-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+input[type='radio'],
+input[type='checkbox'] {
+  accent-color: var(--sp-blue-primary);
+}

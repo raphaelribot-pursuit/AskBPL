@@ -1,0 +1,24 @@
+---
+description: Testing standards — follow AGENTS.md for all test and behavior changes
+alwaysApply: true
+---
+
+# Testing
+
+Before writing or changing behavior, tests, or fixing test failures, read and follow **[AGENTS.md](../../AGENTS.md)** at the repo root.
+
+## Quick reference
+
+| Package | Tests | Run |
+|---------|-------|-----|
+| `packages/orchestrator` | `tests/test_*.py` | `cd packages/orchestrator && pytest` |
+| `packages/web-demo` | `src/**/*.test.{ts,tsx}` | `cd packages/web-demo && npm run test` |
+
+Integration tests in the orchestrator need Postgres, migrations, and `askbpl-seed` (see AGENTS.md). CI: `.github/workflows/ci.yml`.
+
+## Non‑negotiables
+
+- Failing test first (red → green → refactor)
+- Test behavior, not implementation
+- Run the relevant suite before reporting done; include command + exit status
+- No `.only`, `.skip`, or deleted tests to green a build

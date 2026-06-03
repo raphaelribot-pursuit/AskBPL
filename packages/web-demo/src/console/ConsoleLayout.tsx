@@ -16,22 +16,30 @@ import { AdminSidebar } from './AdminSidebar'
 export function ConsoleLayout() {
   const location = useLocation()
   return (
-    <div className="console-shell">
-      <AdminSidebar currentPath={location.pathname} />
-      <main className="console-main">
-        <header className="console-topbar">
-          <div className="console-topbar-meta">
-            <h1 className="console-title">Build-team console</h1>
-            <p className="muted small">
-              Basic-auth admin surface. Not the tester sign-in flow — sign tester
-              traffic in via <Link to="/login">/login</Link>.
-            </p>
-          </div>
-        </header>
-        <section className="console-panel brutal-card">
-          <Outlet />
-        </section>
-      </main>
+    <div className="console-app">
+      <header className="console-global-topbar">
+        <div className="console-global-brand">
+          <strong>Ask BPL</strong>
+          <span>Internal console</span>
+        </div>
+      </header>
+      <div className="console-shell">
+        <AdminSidebar currentPath={location.pathname} />
+        <main className="console-main">
+          <header className="console-page-header">
+            <div className="console-topbar-meta">
+              <h1 className="console-title">Build-team console</h1>
+              <p className="muted small">
+                Basic-auth admin surface. Not the tester sign-in flow — sign tester
+                traffic in via <Link to="/login">/login</Link>.
+              </p>
+            </div>
+          </header>
+          <section className="console-panel">
+            <Outlet />
+          </section>
+        </main>
+      </div>
     </div>
   )
 }

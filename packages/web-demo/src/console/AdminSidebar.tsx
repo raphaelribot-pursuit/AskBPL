@@ -25,10 +25,6 @@ const SECTIONS: SectionLink[] = [
 export function AdminSidebar({ currentPath }: { currentPath: string }) {
   return (
     <nav className="admin-sidebar" aria-label="Console sections">
-      <div className="admin-sidebar-brand">
-        <strong>Ask BPL</strong>
-        <span className="muted small">internal console</span>
-      </div>
       <ul className="admin-sidebar-list">
         {SECTIONS.map((section) => {
           const isRootDefault =

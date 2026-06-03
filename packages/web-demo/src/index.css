@@ -7,7 +7,11 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #0a0a0a;
+  background-color: #f3f2f1;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: #323130;
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {

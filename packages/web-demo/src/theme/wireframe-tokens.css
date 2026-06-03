@@ -1,40 +1,32 @@
 /* ──────────────────────────────────────────────────────────────────────────
  * Wireframe v3 design tokens + pilot component styles.
  *
- * These rules drive the tester-facing surfaces only — login page, host
- * stub, and the Ask BPL chat modal. They live behind the
- * `.askbpl-pilot-surface` wrapper so the build console (dark
- * Neubrutomorphism theme in App.css) is unaffected.
- *
- * Token names follow Wireframe §1 (light, library-paper inspired palette).
- * Component class names use a `pilot-` prefix to avoid clashing with the
- * existing `bubble`, `brutal-card`, `fab-book`, etc. used by the avatar
- * shell (gated behind VITE_ENABLE_AVATAR_SHELL).
+ * Tester-facing surfaces — login, host stub, and Ask BPL chat modal.
+ * Tokens alias SharePoint Admin Center palette (`sharepoint-tokens.css`).
  * ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --wf-bg: #f7f6f2;
-  --wf-surface: #ffffff;
-  --wf-note: #f1ece1;
-  --wf-warn-bg: #fff4d6;
-  --wf-warn-border: #d9a52f;
-  --wf-danger-bg: #fde7e9;
-  --wf-danger-border: #b03a48;
-  --wf-success: #1f7a3a;
-  --wf-ink: #1f2330;
-  --wf-ink-muted: #4f5567;
-  --wf-ink-faint: #79809a;
-  --wf-line: #d8d4c7;
-  --wf-line-strong: #b8b3a3;
-  --wf-accent: #185fa5;
-  --wf-accent-strong: #0f4576;
-  --wf-accent-soft: rgba(24, 95, 165, 0.08);
-  --wf-shadow: 0 1px 2px rgba(31, 35, 48, 0.06), 0 8px 24px rgba(31, 35, 48, 0.08);
-  --wf-shadow-modal: 0 12px 40px rgba(31, 35, 48, 0.18),
-    0 2px 6px rgba(31, 35, 48, 0.08);
-  --wf-radius-sm: 6px;
-  --wf-radius: 10px;
-  --wf-radius-lg: 14px;
+  --wf-bg: var(--sp-canvas-bg);
+  --wf-surface: var(--sp-surface-card);
+  --wf-note: var(--sp-blue-light);
+  --wf-warn-bg: var(--sp-warning-bg);
+  --wf-warn-border: var(--sp-warning-border);
+  --wf-danger-bg: var(--sp-danger-bg);
+  --wf-danger-border: var(--sp-danger-border);
+  --wf-success: var(--sp-success);
+  --wf-ink: var(--sp-text-primary);
+  --wf-ink-muted: var(--sp-text-secondary);
+  --wf-ink-faint: var(--sp-text-disabled);
+  --wf-line: var(--sp-border);
+  --wf-line-strong: var(--sp-border-strong);
+  --wf-accent: var(--sp-blue-primary);
+  --wf-accent-strong: var(--sp-blue-dark);
+  --wf-accent-soft: var(--sp-blue-light);
+  --wf-shadow: var(--sp-shadow-panel);
+  --wf-shadow-modal: var(--sp-shadow-panel);
+  --wf-radius-sm: var(--sp-radius-sm);
+  --wf-radius: var(--sp-radius-md);
+  --wf-radius-lg: var(--sp-radius-md);
   --wf-modal-width: 420px;
   --wf-fab-size: 56px;
 }
@@ -47,9 +39,10 @@
 
 .askbpl-pilot-surface {
   min-height: 100vh;
-  background: var(--wf-bg);
-  color: var(--wf-ink);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--sp-canvas-bg);
+  color: var(--sp-text-primary);
+  font-family: var(--sp-font-family);
+  font-size: var(--sp-font-size-base);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -72,11 +65,11 @@
 
 .pilot-login-card {
   width: min(420px, 100%);
-  background: var(--wf-surface);
-  border: 1px solid var(--wf-line);
-  border-radius: var(--wf-radius-lg);
+  background: var(--sp-surface-card);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius-md);
   padding: clamp(20px, 4vw, 32px);
-  box-shadow: var(--wf-shadow);
+  box-shadow: var(--sp-shadow-panel);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -89,30 +82,31 @@
 }
 
 .pilot-login-brand .pilot-eyebrow {
-  font-size: 0.75rem;
-  letter-spacing: 0.16em;
+  font-size: 11px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--wf-accent);
-  font-weight: 600;
+  color: var(--sp-text-secondary);
+  font-weight: var(--sp-font-weight-semibold);
 }
 
 .pilot-login-brand .pilot-title {
-  font-family: 'Space Grotesk', Inter, system-ui, sans-serif;
-  font-size: 1.55rem;
-  font-weight: 700;
+  font-family: var(--sp-font-family);
+  font-size: var(--sp-font-size-xl);
+  font-weight: var(--sp-font-weight-semibold);
   margin: 0;
+  color: var(--sp-text-primary);
 }
 
 .pilot-login-brand .pilot-subtitle {
-  color: var(--wf-ink-muted);
-  font-size: 0.9rem;
+  color: var(--sp-text-secondary);
+  font-size: var(--sp-font-size-base);
   margin: 0;
 }
 
 .pilot-login-icon {
   width: 48px;
   height: 48px;
-  color: var(--wf-accent);
+  color: var(--sp-blue-primary);
   margin-bottom: 0.35rem;
 }
 
@@ -128,11 +122,12 @@
 }
 
 .pilot-note {
-  background: var(--wf-note);
-  border-radius: var(--wf-radius-sm);
+  background: var(--sp-blue-light);
+  border-left: 3px solid var(--sp-blue-primary);
+  border-radius: var(--sp-radius-sm);
   padding: 0.65rem 0.75rem;
-  color: var(--wf-ink-muted);
-  font-size: 0.85rem;
+  color: var(--sp-text-secondary);
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -143,31 +138,32 @@
 }
 
 .pilot-label {
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
-  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  font-weight: var(--sp-font-weight-semibold);
   text-transform: uppercase;
-  color: var(--wf-ink-muted);
+  color: var(--sp-text-secondary);
   margin-bottom: 0.3rem;
   display: block;
 }
 
 .pilot-input {
   width: 100%;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid var(--wf-line-strong);
-  border-radius: var(--wf-radius-sm);
-  background: var(--wf-surface);
-  color: var(--wf-ink);
-  font-size: 0.95rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--sp-input-border);
+  border-radius: var(--sp-input-radius);
+  background: var(--sp-input-bg);
+  color: var(--sp-text-primary);
+  font-size: var(--sp-font-size-base);
   font-family: inherit;
   transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .pilot-input:focus-visible {
-  outline: none;
-  border-color: var(--wf-accent);
-  box-shadow: 0 0 0 3px var(--wf-accent-soft);
+  outline: 2px solid var(--sp-blue-light);
+  outline-offset: 0;
+  border-color: var(--sp-input-border-focus);
+  box-shadow: none;
 }
 
 .pilot-fieldset {
@@ -192,31 +188,33 @@
 .pilot-button {
   appearance: none;
   border: 1px solid transparent;
-  border-radius: var(--wf-radius-sm);
-  padding: 0.6rem 1rem;
+  border-radius: var(--sp-button-radius);
+  padding: 0 16px;
+  height: 32px;
   font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: var(--sp-font-size-base);
+  font-weight: var(--sp-font-weight-semibold);
   cursor: pointer;
-  transition: background-color 0.12s ease, border-color 0.12s ease,
-    box-shadow 0.12s ease, color 0.12s ease;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
 .pilot-button.pilot-button-primary {
-  background: var(--wf-accent);
-  color: #ffffff;
-  border-color: var(--wf-accent);
+  background: var(--sp-button-primary-bg);
+  color: var(--sp-button-primary-text);
+  border-color: var(--sp-button-primary-bg);
+  box-shadow: none;
 }
 
 .pilot-button.pilot-button-primary:hover:not(:disabled),
 .pilot-button.pilot-button-primary:focus-visible {
-  background: var(--wf-accent-strong);
-  border-color: var(--wf-accent-strong);
+  background: var(--sp-button-primary-hover);
+  border-color: var(--sp-button-primary-hover);
 }
 
 .pilot-button.pilot-button-primary:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--wf-accent-soft);
+  outline: 2px solid var(--sp-blue-light);
+  outline-offset: 1px;
+  box-shadow: none;
 }
 
 .pilot-button.pilot-button-primary:disabled {
@@ -285,7 +283,7 @@
 }
 
 .pilot-host-brand .pilot-host-title {
-  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-family: var(--sp-font-family);
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0;
@@ -327,7 +325,7 @@
 
 .pilot-host-stub h1 {
   margin: 0 0 0.5rem;
-  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-family: var(--sp-font-family);
   font-size: 1.45rem;
   font-weight: 700;
   color: var(--wf-ink);
@@ -427,9 +425,10 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.75rem 0.85rem;
-  border-bottom: 1px solid var(--wf-line);
-  background: var(--wf-surface);
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--sp-border);
+  background: var(--sp-topbar-bg);
+  color: var(--sp-topbar-text);
 }
 
 .pilot-modal-avatar {
@@ -438,8 +437,8 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--wf-accent-soft);
-  color: var(--wf-accent);
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--sp-topbar-text);
   flex: none;
 }
 
@@ -456,15 +455,15 @@
 }
 
 .pilot-modal-title strong {
-  font-family: 'Space Grotesk', Inter, sans-serif;
-  font-size: 0.98rem;
-  font-weight: 700;
-  color: var(--wf-ink);
+  font-family: var(--sp-font-family);
+  font-size: 15px;
+  font-weight: var(--sp-font-weight-semibold);
+  color: var(--sp-topbar-text);
 }
 
 .pilot-modal-title span {
-  font-size: 0.78rem;
-  color: var(--wf-ink-muted);
+  font-size: var(--sp-font-size-sm);
+  color: rgba(255, 255, 255, 0.85);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -480,10 +479,10 @@
   appearance: none;
   background: transparent;
   border: none;
-  color: var(--wf-ink-muted);
+  color: rgba(255, 255, 255, 0.9);
   width: 32px;
   height: 32px;
-  border-radius: var(--wf-radius-sm);
+  border-radius: var(--sp-radius-sm);
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -493,12 +492,12 @@
 
 .pilot-icon-button:hover,
 .pilot-icon-button:focus-visible {
-  background: var(--wf-note);
-  color: var(--wf-ink);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
 }
 
 .pilot-icon-button:focus-visible {
-  outline: 2px solid var(--wf-accent);
+  outline: 2px solid rgba(255, 255, 255, 0.6);
   outline-offset: -2px;
 }
 
@@ -507,7 +506,7 @@
   min-height: 0;
   max-height: min(520px, calc(100vh - 180px));
   overflow-y: auto;
-  background: #fafaf7;
+  background: var(--sp-content-bg);
   padding: 1rem 0.85rem;
   display: flex;
   flex-direction: column;
@@ -791,7 +790,7 @@
 
 .doc-viewer-header h3 {
   margin: 0;
-  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-family: var(--sp-font-family);
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--wf-ink);
@@ -907,7 +906,7 @@
 .pilot-routing-item strong {
   display: block;
   color: var(--wf-ink);
-  font-family: 'Space Grotesk', Inter, sans-serif;
+  font-family: var(--sp-font-family);
   font-size: 0.92rem;
 }
 
@@ -1050,9 +1049,9 @@
 
 .pilot-feedback-button {
   appearance: none;
-  background: var(--wf-surface);
-  border: 1px solid var(--wf-line-strong);
-  border-radius: 999px;
+  background: var(--sp-surface-card);
+  border: 1px solid var(--sp-border-strong);
+  border-radius: var(--sp-radius-sm);
   padding: 0.25rem 0.65rem;
   font-family: inherit;
   font-size: 0.85rem;
