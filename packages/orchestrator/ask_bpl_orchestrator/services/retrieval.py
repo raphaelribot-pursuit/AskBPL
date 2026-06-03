@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import uuid
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+from pinecone.errors.exceptions import PineconeError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +16,8 @@ from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.db.models import Chunk, Document
 from ask_bpl_orchestrator.services.langchain_embeddings import embed_query
 from ask_bpl_orchestrator.services.pinecone_client import get_pinecone_index
+
+logger = logging.getLogger(__name__)
 
 
 def _pinecone_query_matches(response: Any) -> List[Any]:
@@ -67,12 +71,17 @@ class VectorRetriever:
             return {}
         vector = await self.embed_question(question)
         idx = self._pinecone_index()
-        pine = await asyncio.to_thread(
-            idx.query,
-            vector=vector,
-            top_k=top_k,
-            include_metadata=False,
-        )
+        try:
+            pine = await asyncio.to_thread(
+                idx.query,
+                vector=vector,
+                top_k=top_k,
+                include_metadata=False,
+            )
+        except PineconeError as exc:
+            # Quota / auth / index errors must not 500 the ask endpoint.
+            logger.warning("pinecone_query_failed: %s", exc)
+            return {}
         scores: Dict[uuid.UUID, float] = {}
 
         for m in _pinecone_query_matches(pine):
