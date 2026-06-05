@@ -110,8 +110,32 @@ export function rowFromAskResponse(args: {
     return {
       kind: 'error_generic',
       id,
-      message: 'Session expired. Sign in again.',
+      message: 'Your session has expired. Please sign out and sign back in.',
     }
+  }
+
+  if (status === 429) {
+    return {
+      kind: 'error_generic',
+      id,
+      message: 'Too many requests. Please wait a moment and try again.',
+    }
+  }
+
+  if (status === 500) {
+    const serverMessage =
+      typeof payload.message === 'string'
+        ? payload.message
+        : 'The server encountered an error. Please try again.'
+    return { kind: 'error_generic', id, message: serverMessage }
+  }
+
+  if (status === 502 || status === 503 || status === 504) {
+    const serverMessage =
+      typeof payload.message === 'string'
+        ? payload.message
+        : 'The server is temporarily unavailable. Please try again in a moment.'
+    return { kind: 'error_generic', id, message: serverMessage }
   }
 
   if (status === 400 && responseType === 'error_pii') {

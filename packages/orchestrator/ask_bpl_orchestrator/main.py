@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,16 +19,36 @@ from ask_bpl_orchestrator.api.routes_questions import router as question_router
 from ask_bpl_orchestrator.api.routes_v1 import router as v1_router
 from ask_bpl_orchestrator.api.session_dep import DbSessionDep
 from ask_bpl_orchestrator.config import get_settings
+from ask_bpl_orchestrator.health_checks import probe_pinecone, run_deep_health_checks
 from ask_bpl_orchestrator.middleware.request_id import RequestIdMiddleware
 
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def _lifespan(application: FastAPI):
+    settings = get_settings()
+    settings.require_secrets()
+    pinecone_status = await probe_pinecone(settings)
+    if pinecone_status.get("status") != "ok":
+        logger.error("pinecone_startup_check_failed: %s", pinecone_status)
+    else:
+        logger.info(
+            "pinecone_startup_ok vectors=%s",
+            pinecone_status.get("vectors"),
+        )
+    yield
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
     settings.require_secrets()
 
-    application = FastAPI(title="Ask BPL Orchestrator", version="0.1.0")
+    application = FastAPI(
+        title="Ask BPL Orchestrator",
+        version="0.1.0",
+        lifespan=_lifespan,
+    )
 
     application.add_middleware(RequestIdMiddleware)
     application.add_middleware(
@@ -74,8 +95,20 @@ def create_app() -> FastAPI:
     application.include_router(admin_router, prefix="/v1")
 
     @application.get("/healthz")
+    @application.get("/health")
     async def health():  # noqa: WPS430 nested function intentional
-        return {"status": "ok"}
+        return {"status": "ok", "service": "askbpl-orchestrator"}
+
+    @application.get("/health/deep")
+    async def health_deep():
+        """Connectivity check for Pinecone, OpenAI embeddings, and Anthropic."""
+        report = await run_deep_health_checks(settings)
+        status_code = (
+            status.HTTP_200_OK
+            if report.get("status") == "ok"
+            else status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+        return JSONResponse(status_code=status_code, content=report)
 
     @application.get("/readyz")
     async def readyz(db: DbSessionDep):

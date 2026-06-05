@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
+
+import anthropic
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
@@ -12,6 +16,9 @@ from ask_bpl_orchestrator.api.session_dep import DbSessionDep
 from ask_bpl_orchestrator.services import ask_service
 
 router = APIRouter(prefix="/v1", tags=["v1"])
+logger = logging.getLogger(__name__)
+
+ASK_PIPELINE_TIMEOUT_SECONDS = 120.0
 
 
 @router.post("/ask")
@@ -21,13 +28,48 @@ async def ask_v1(body: AskBody, claims: JwtAuthClaims, db: DbSessionDep):
         if body.conversation_context
         else None
     )
-    payload, status_code = await ask_service.handle_ask(
-        db,
-        jwt_session_id=claims["session_id"],
-        jwt_attribution=claims["attribution"],
-        question_text=body.question.strip(),
-        conversation_context=context_dicts,
-    )
+    try:
+        payload, status_code = await asyncio.wait_for(
+            ask_service.handle_ask(
+                db,
+                jwt_session_id=claims["session_id"],
+                jwt_attribution=claims["attribution"],
+                question_text=body.question.strip(),
+                conversation_context=context_dicts,
+            ),
+            timeout=ASK_PIPELINE_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        logger.error("ask_pipeline_timeout session=%s", claims.get("session_id"))
+        return JSONResponse(
+            status_code=504,
+            content={
+                "type": "error_timeout",
+                "detail": "pipeline_timeout",
+                "message": "Upstream API timeout. Please retry.",
+            },
+        )
+    except anthropic.APIError as exc:
+        logger.error("anthropic_api_error: %s", exc)
+        return JSONResponse(
+            status_code=502,
+            content={
+                "type": "error_upstream",
+                "detail": "generation_service_error",
+                "message": "AI generation service error. Please retry.",
+            },
+        )
+    except Exception as exc:
+        logger.exception("ask_pipeline_error: %s", exc)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "type": "error_internal",
+                "detail": "ask_pipeline_error",
+                "message": "Something went wrong processing your question.",
+            },
+        )
+
     rid = payload.get("request_id")
     headers = {"X-Request-ID": rid} if isinstance(rid, str) else None
     return JSONResponse(content=payload, status_code=status_code, headers=headers or None)

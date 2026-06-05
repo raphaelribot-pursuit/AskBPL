@@ -44,6 +44,51 @@ export type AskOutcome =
   | { kind: 'network_error'; message: string }
   | { kind: 'row'; row: Exclude<TranscriptRow, { kind: 'user_message' }> }
 
+const ASK_FETCH_TIMEOUT_MS = 60_000
+const ASK_NETWORK_RETRY_DELAY_MS = 3_000
+const ASK_NETWORK_MAX_ATTEMPTS = 2
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
+
+function isRetryableNetworkError(err: unknown): boolean {
+  if (!(err instanceof DOMException)) return true
+  return err.name !== 'TimeoutError'
+}
+
+export function networkErrorMessage(err: unknown): string {
+  if (err instanceof DOMException && err.name === 'TimeoutError') {
+    return 'Your question is taking longer than expected. Please try again.'
+  }
+  return 'Unable to reach the server. It may be starting up — please wait 30 seconds and try again.'
+}
+
+async function postAsk(
+  fetchImpl: typeof fetch,
+  apiBase: string,
+  token: string,
+  question: string,
+  conversationContext?: ConversationTurn[],
+): Promise<Response> {
+  return fetchImpl(`${apiBase}/v1/ask`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      question,
+      ...(conversationContext?.length
+        ? { conversation_context: conversationContext }
+        : {}),
+    }),
+    signal: AbortSignal.timeout(ASK_FETCH_TIMEOUT_MS),
+  })
+}
+
 export type AskRequestArgs = {
   apiBase: string
   token: string
@@ -93,35 +138,31 @@ export async function askQuestion({
   }
 
   const f = fetchImpl ?? fetch
-  let res: Response
-  try {
-    res = await f(`${apiBase}/v1/ask`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        question,
-        ...(conversationContext?.length
-          ? { conversation_context: conversationContext }
-          : {}),
-      }),
-      // Render cold starts can exceed 30s; avoid aborting before the API responds.
-      signal: AbortSignal.timeout(180_000),
-    })
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'TimeoutError') {
-      return {
-        kind: 'network_error',
-        message:
-          'The request timed out. The API may be waking up — wait a moment and try again.',
+  let res: Response | undefined
+  let lastError: unknown
+  for (let attempt = 0; attempt < ASK_NETWORK_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      res = await postAsk(f, apiBase, token, question, conversationContext)
+      lastError = undefined
+      break
+    } catch (err) {
+      lastError = err
+      const shouldRetry =
+        attempt + 1 < ASK_NETWORK_MAX_ATTEMPTS && isRetryableNetworkError(err)
+      if (!shouldRetry) {
+        return {
+          kind: 'network_error',
+          message: networkErrorMessage(err),
+        }
       }
+      await sleep(ASK_NETWORK_RETRY_DELAY_MS)
     }
+  }
+
+  if (!res) {
     return {
       kind: 'network_error',
-      message:
-        'Network error. Check your connection or the orchestrator and try again.',
+      message: networkErrorMessage(lastError),
     }
   }
 

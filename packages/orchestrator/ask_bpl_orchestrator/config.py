@@ -33,7 +33,10 @@ class Settings(BaseSettings):
     admin_basic_user: str = "vizion_build"
     admin_basic_password: str = ""
 
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = (
+        "http://localhost:5173,http://localhost:3000,http://localhost:4173,"
+        "https://askbpl-web-demo.vercel.app"
+    )
 
     corpus_dir: str = "./sample_corpus"
     # Default "Re-ingest" manifest — pilot PDFs only (see TRD §13 corpus exclusivity).
@@ -62,8 +65,23 @@ class Settings(BaseSettings):
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 
     def require_secrets(self) -> None:
+        """Fail fast at startup when auth or RAG secrets are missing."""
+        missing: list[str] = []
         if not self.jwt_secret_key.strip():
-            raise RuntimeError("JWT_SECRET_KEY must be set (see .env.example)")
+            missing.append("JWT_SECRET_KEY")
+        if not self.openai_api_key.strip():
+            missing.append("OPENAI_API_KEY")
+        if not self.anthropic_api_key.strip():
+            missing.append("ANTHROPIC_API_KEY")
+        if not self.pinecone_api_key.strip():
+            missing.append("PINECONE_API_KEY")
+        if not self.pinecone_index_name.strip():
+            missing.append("PINECONE_INDEX_NAME")
+        if missing:
+            raise RuntimeError(
+                f"Missing required environment variables: {', '.join(missing)} "
+                "(see .env.example)"
+            )
 
 
 @lru_cache

@@ -35,6 +35,21 @@ describe('rowFromAskResponse refusal mapping', () => {
     expect(row.kind).toBe('assistant_refusal')
   })
 
+  it('maps HTTP 504 to a temporary-unavailability message', () => {
+    const row = rowFromAskResponse({
+      status: 504,
+      id: 'r4',
+      payload: {
+        type: 'error_timeout',
+        message: 'Upstream API timeout. Please retry.',
+      },
+    })
+    expect(row.kind).toBe('error_generic')
+    if (row.kind === 'error_generic') {
+      expect(row.message).toContain('timeout')
+    }
+  })
+
   it('maps error_pii to pii_banner with categories', () => {
     const row = rowFromAskResponse({
       status: 400,
