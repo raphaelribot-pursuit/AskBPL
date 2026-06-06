@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Sequence
@@ -17,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 PINECONE_PATH = PROJECT_ROOT / "config" / "pinecone.yaml"
 UPSERT_BATCH_SIZE = 100
+# Shared with orchestrator packages/orchestrator — Postgres-hydrated UUID vectors only.
+ORCHESTRATOR_DEMO_INDEX = "askbpl-pilot"
 
 
 @dataclass(frozen=True)
@@ -76,6 +79,14 @@ class PineconeClient:
 
     def upsert_records(self, records: Sequence[VectorRecord]) -> int:
         """Upsert vectors in batches of 100 (TRD-IGN-4)."""
+        if self.index_name == ORCHESTRATOR_DEMO_INDEX and os.environ.get(
+            "ASKBPL_ALLOW_DEMO_INDEX_WRITE", ""
+        ).strip().lower() not in {"1", "true", "yes"}:
+            raise RuntimeError(
+                f"Refusing to upsert into orchestrator demo index `{ORCHESTRATOR_DEMO_INDEX}`. "
+                "Use askbpl-ingest-batch in packages/orchestrator, or set "
+                "ASKBPL_ALLOW_DEMO_INDEX_WRITE=1 to override (not recommended)."
+            )
         total = 0
         for start in range(0, len(records), UPSERT_BATCH_SIZE):
             batch = records[start : start + UPSERT_BATCH_SIZE]

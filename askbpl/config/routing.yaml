@@ -24,6 +24,12 @@ policy_types:
   volunteer_manual:
     owners:
       - "Office of Volunteer Resources"
+  technology_use:
+    owners:
+      - "Information Technology"
+  technology_usage_policy:
+    owners:
+      - "Information Technology"
 
 # Fallback per TRD-RTG-5: if a question maps to no known policy_type,
 # route to the user's supervisor or the most appropriate general department.

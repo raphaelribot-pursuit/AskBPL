@@ -13,7 +13,14 @@ from sqlalchemy import delete, select
 
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.services.langchain_embeddings import embed_query
-from ask_bpl_orchestrator.db.models import Chunk, Document, IngestStatus, PolicyType, SourceFormat
+from ask_bpl_orchestrator.db.models import (
+    Chunk,
+    Citation,
+    Document,
+    IngestStatus,
+    PolicyType,
+    SourceFormat,
+)
 from ask_bpl_orchestrator.db.session import async_session_factory
 from ask_bpl_orchestrator.ingest.chunking import split_text_with_sections
 from ask_bpl_orchestrator.ingest.loaders import load_bytes
@@ -175,6 +182,7 @@ async def ingest_file(
 
         if legacy_ids:
             pinecone_bulk_delete(legacy_ids)
+            await db_session.execute(delete(Citation).where(Citation.chunk_id.in_(legacy_ids_rows)))
             await db_session.execute(delete(Chunk).where(Chunk.document_id == doc_uuid))
 
         document_row = Document(

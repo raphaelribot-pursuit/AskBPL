@@ -40,6 +40,14 @@ policy_types:
     display_name: Volunteer Manual and Policy
     description: Volunteer roles, expectations, and library policies.
 
+  - slug: technology_use
+    display_name: Technology Use Policy
+    description: Acceptable use and standards for BPL technology resources.
+
+  - slug: technology_usage_policy
+    display_name: Technology Usage Policy
+    description: Staff technology usage rules and procedures.
+
 teams:
   - name: Supervisor / General
     contact_hint: Ask your supervisor or intranet Policies portal.
@@ -135,3 +143,9 @@ routing_rules:
 
   - policy_type_slug: volunteer_manual
     team_key: VOLUNTEER
+
+  - policy_type_slug: technology_use
+    team_key: IT
+
+  - policy_type_slug: technology_usage_policy
+    team_key: IT

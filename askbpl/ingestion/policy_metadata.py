@@ -52,6 +52,14 @@ _POLICY_PATTERNS: List[tuple[str, PolicyRecord]] = [
         "07_-_Volunteer_Manual_*",
         PolicyRecord("volunteer_manual", "Volunteer Manual", "2008-12-16"),
     ),
+    (
+        "01_-_Technology_Use_*",
+        PolicyRecord("technology_use", "Technology Use Policy", "2013-06"),
+    ),
+    (
+        "12_-_Technology_Usage_Policy_*",
+        PolicyRecord("technology_usage_policy", "Technology Usage Policy", "2006-06"),
+    ),
 ]
 
 # Match normalized stems: leading prefix + descriptive slug (spaces or underscores in filenames).
@@ -62,6 +70,8 @@ _NORMALIZED_STEM_RULES: List[tuple[Pattern[str], PolicyRecord]] = [
     (re.compile(r"^06_.*conflict.*interest"), _POLICY_PATTERNS[3][1]),
     (re.compile(r"^06_.*fundraising"), _POLICY_PATTERNS[4][1]),
     (re.compile(r"^07_.*volunteer"), _POLICY_PATTERNS[5][1]),
+    (re.compile(r"^01_.*technology.*use"), _POLICY_PATTERNS[6][1]),
+    (re.compile(r"^12_.*technology.*usage"), _POLICY_PATTERNS[7][1]),
 ]
 
 

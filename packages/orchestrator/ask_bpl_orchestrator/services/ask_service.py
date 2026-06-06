@@ -27,6 +27,7 @@ from ask_bpl_orchestrator.db.models import (
     Session,
 )
 from ask_bpl_orchestrator.services import generation, routing_service
+from ask_bpl_orchestrator.services.crisis_gate import detect_crisis, format_crisis_response
 from ask_bpl_orchestrator.services.intent_guard import flagged_intents
 from ask_bpl_orchestrator.services.pii_gate import rejects_input
 from ask_bpl_orchestrator.services.query_rewriter import rewrite_follow_up
@@ -37,6 +38,8 @@ logger = logging.getLogger(__name__)
 
 # Placeholder hash so we never store PII-bearing text but satisfy NOT NULL question_hash.
 PII_REDACTED_QUESTION_HASH = question_sha256("__pii_gate_redacted_v1__")
+# Placeholder hash for crisis-gate interception (same privacy principle).
+CRISIS_REDACTED_QUESTION_HASH = question_sha256("__crisis_gate_redacted_v1__")
 
 
 def _routing_team_names(teams: List[OwningTeam]) -> Optional[List[str]]:
@@ -218,6 +221,35 @@ async def handle_ask(
             400,
         )
 
+    # Crisis gate — parallel to PII gate, runs BEFORE retrieval.
+    # On match: bypass RAG pipeline entirely, return crisis resource response.
+    # NEVER log message content (same privacy principle as PII gate).
+    if detect_crisis(combined_text):
+        crisis_row = Question(
+            request_id=request_id,
+            session_id=sess.session_id,
+            tester_id=tester_storage,
+            question_text=None,  # NEVER store potentially sensitive content
+            question_hash=CRISIS_REDACTED_QUESTION_HASH,
+            pii_rejected=False,
+            latency_ms=int((time.perf_counter() - started) * 1000),
+        )
+        db.add(crisis_row)
+        await db.commit()
+        _emit_structured_ask_log(
+            {
+                "event": "ask_completed",
+                "request_id": str(request_id),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "session": session_marker,
+                "crisis_resource_served": True,
+                "latency_ms": round((time.perf_counter() - started) * 1000, 3),
+            }
+        )
+        crisis_payload = format_crisis_response()
+        crisis_payload["request_id"] = str(request_id)
+        return crisis_payload, 200
+
     question_row = Question(
         request_id=request_id,
         session_id=sess.session_id,
@@ -287,9 +319,13 @@ async def handle_ask(
     team_names_for_log = _routing_team_names(route_targets)
 
     n_chunks = len(retrieved)
-    grounding_passed = bool(retrieved) and best >= settings.grounding_threshold
+    # Margin rule: ≥2 chunks above floor OR one chunk above strong threshold
+    floor = settings.grounding_threshold
+    strong = settings.grounding_strong_threshold
+    n_above_floor = sum(1 for c in retrieved if c.score >= floor)
+    grounding_passed = bool(retrieved) and (n_above_floor >= 2 or best >= strong)
 
-    if best < settings.grounding_threshold or not retrieved:
+    if not grounding_passed:
         out = await _finish_refusal(
             db,
             start=started,

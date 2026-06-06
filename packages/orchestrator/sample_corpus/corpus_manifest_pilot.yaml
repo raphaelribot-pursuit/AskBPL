@@ -41,3 +41,13 @@ documents:
     policy: volunteer_manual
     title: Volunteer Manual and Policy
     version: "2008-12-16"
+
+  - path: "01 - Technology Use (6.13).pdf"
+    policy: technology_use
+    title: Technology Use Policy
+    version: "2013-06"
+
+  - path: "12 - Technology Usage Policy (06.06) (1).pdf"
+    policy: technology_usage_policy
+    title: Technology Usage Policy
+    version: "2006-06"

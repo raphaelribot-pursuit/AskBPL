@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     pinecone_top_k: int = 6
     # Tuned for text-embedding-3-small + pilot corpus (May 2026)
     grounding_threshold: float = 0.40
+    # Margin rule: ground if ≥2 chunks above floor OR one chunk above strong threshold
+    grounding_strong_threshold: float = 0.45
 
     host: str = "0.0.0.0"
     port: int = 8000

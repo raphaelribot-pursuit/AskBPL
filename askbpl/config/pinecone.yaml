@@ -1,4 +1,6 @@
-index_name: "askbpl-pilot"
+# Standalone Step 01–02 pipeline only — NOT the orchestrator demo index.
+# Orchestrator owns askbpl-pilot (UUID chunk IDs + Postgres hydration).
+index_name: "askbpl-standalone-local"
 metric: "cosine"
 dimensions: 1536
 # Serverless config — adjust cloud/region to BPL's preferred AWS region.
