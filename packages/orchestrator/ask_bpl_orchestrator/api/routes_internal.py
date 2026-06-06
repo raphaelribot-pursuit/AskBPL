@@ -148,6 +148,44 @@ async def list_feedback(db: DbSessionDep, limit: int = 50, offset: int = 0) -> d
     }
 
 
+@router.get("/ingest/preview")
+async def ingest_preview(manifest_path: str | None = None) -> dict:
+    """Dry-run ingest: list files in manifest and check their existence."""
+    import yaml
+
+    rel = manifest_path or get_settings().ingest_manifest_path
+    manifest = Path(rel)
+    if not manifest.is_file():
+        repo_root = Path(__file__).resolve().parents[2]
+        manifest = repo_root / rel
+    if not manifest.is_file():
+        return {"error": "manifest not found", "tried": [rel, str(repo_root / rel)]}
+
+    raw = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+    corpus_root = (manifest.parent / raw.get("corpus_root", ".")).resolve()
+
+    files_info = []
+    for entry in raw.get("documents", []):
+        rel_path = entry["path"]
+        target = (corpus_root / rel_path).resolve()
+        files_info.append({
+            "rel_path": rel_path,
+            "full_path": str(target),
+            "exists": target.is_file(),
+            "size": target.stat().st_size if target.is_file() else None,
+            "policy": entry.get("policy") or entry.get("policy_type") or "generic_policy",
+            "title": entry.get("title"),
+        })
+
+    return {
+        "manifest_path": str(manifest.resolve()),
+        "corpus_root": str(corpus_root),
+        "corpus_root_exists": corpus_root.is_dir(),
+        "document_count": len(files_info),
+        "files": files_info,
+    }
+
+
 @router.post("/ingest")
 async def trigger_ingest(body: IngestRequest, background_tasks: BackgroundTasks) -> dict:
     rel = body.manifest_path or get_settings().ingest_manifest_path
@@ -166,6 +204,30 @@ async def trigger_ingest(body: IngestRequest, background_tasks: BackgroundTasks)
 
     background_tasks.add_task(_run_sync)
     return {"status": "accepted", "manifest": str(manifest.resolve())}
+
+
+@router.post("/ingest/sync")
+async def trigger_ingest_sync(body: IngestRequest) -> dict:
+    """Synchronous ingest that returns detailed results (for debugging)."""
+    rel = body.manifest_path or get_settings().ingest_manifest_path
+    manifest = Path(rel)
+    if not manifest.is_file():
+        repo_root = Path(__file__).resolve().parents[2]
+        manifest = repo_root / rel
+    if not manifest.is_file():
+        raise HTTPException(status_code=404, detail="manifest not found")
+
+    lines = await ingest_manifest(manifest.resolve())
+    indexed = [ln for ln in lines if ln.startswith("indexed:")]
+    failed = [ln for ln in lines if ln.startswith("failed:")]
+    return {
+        "manifest": str(manifest.resolve()),
+        "total": len(lines),
+        "indexed_count": len(indexed),
+        "failed_count": len(failed),
+        "indexed": indexed,
+        "failed": failed,
+    }
 
 
 @router.get("/routing")
