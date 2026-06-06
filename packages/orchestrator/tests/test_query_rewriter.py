@@ -32,7 +32,7 @@ async def test_rewrite_follow_up_strips_wrapping_quotes() -> None:
             },
         ],
         client=client,
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
     )
 
     assert result == "What criteria are used when selecting library materials?"
@@ -48,7 +48,7 @@ async def test_rewrite_follow_up_falls_back_on_api_error() -> None:
         question=question,
         context=[{"role": "user", "content": "Prior question?"}],
         client=client,
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
     )
 
     assert result == question

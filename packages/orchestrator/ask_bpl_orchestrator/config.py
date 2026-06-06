@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     pinecone_host: Optional[str] = None
 
     anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-20250514"
+    anthropic_model: str = "claude-sonnet-4-6"
 
     pinecone_top_k: int = 6
     # Tuned for text-embedding-3-small + pilot corpus (May 2026)
