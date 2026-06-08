@@ -5,7 +5,6 @@
 policy_types:
   materials_selection:
     owners:
-      - "Executive Director"
       - "Materials Review Committee"
   unattended_children:
     owners:

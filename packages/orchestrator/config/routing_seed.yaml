@@ -69,10 +69,6 @@ teams:
     contact_hint: Contact Human Resources via Ask BPL internal intake.
     key: HR
 
-  - name: Executive Director
-    contact_hint: Escalate to Executive Director office — TBD pending Selvon approval.
-    key: EXECUTIVE
-
   - name: Materials Review Committee
     contact_hint: Contact Materials Review Committee — TBD pending Selvon approval.
     key: MATERIALS
@@ -115,12 +111,8 @@ routing_rules:
     team_key: DEVELOPMENT
 
   - policy_type_slug: materials_selection
-    team_key: EXECUTIVE
-    priority: 1
-
-  - policy_type_slug: materials_selection
     team_key: MATERIALS
-    priority: 2
+    priority: 1
 
   - policy_type_slug: unattended_children
     team_key: PUBLIC_SERVICE
