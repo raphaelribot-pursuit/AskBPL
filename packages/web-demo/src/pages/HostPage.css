@@ -1,0 +1,778 @@
+/**
+ * ============================================================================
+ * Demo Day Onboarding Dashboard — Authentic SharePoint UI
+ * ============================================================================
+ *
+ * Replicates Microsoft SharePoint Online team site visual language (2022–2026).
+ * All 6 SharePoint layout layers implemented for instant recognition.
+ *
+ * Layers:
+ *   1. App Bar (far-left vertical icon strip, ~48px)
+ *   2. Suite Header (dark horizontal bar with search)
+ *   3. Mega Navigation (blue horizontal nav bar)
+ *   4. Site Header (white band with site icon + title)
+ *   5. Left Site Navigation (text-based nav items)
+ *   6. Content Area (web part cards on light background)
+ */
+
+/* ============================================================================
+   SharePoint Design Tokens
+   ============================================================================ */
+
+:root {
+  /* Primary colors */
+  --sp-theme-primary: #0078d4;
+  --sp-theme-dark: #005a9e;
+  
+  /* Header/chrome colors */
+  --sp-header-bg: #1b1b1b;
+  --sp-header-search-bg: #3b3b3b;
+  --sp-appbar-bg: #1b1b1b;
+  
+  /* Text colors */
+  --sp-text-primary: #323130;
+  --sp-text-secondary: #605e5c;
+  --sp-text-disabled: #a19f9d;
+  --sp-text-white: #ffffff;
+  
+  /* Background colors */
+  --sp-bg-page: #faf9f8;
+  --sp-bg-card: #ffffff;
+  --sp-border: #edebe9;
+  --sp-hover: #f3f2f1;
+  --sp-selected-bg: #e1dfdd;
+  
+  /* BPL brand green (for welcome banner) */
+  --bpl-green: #006847;
+  --bpl-green-dark: #004d35;
+  
+  /* SharePoint font stack */
+  --sp-font-family: "Segoe UI", "Segoe UI Web (West European)", -apple-system,
+    BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+}
+
+/* ============================================================================
+   Base Page Layout — Full viewport, no scroll on outer container
+   ============================================================================ */
+
+.sp-page {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  grid-template-rows: 48px 40px auto 1fr;
+  grid-template-areas:
+    "appbar suite-header"
+    "appbar mega-nav"
+    "appbar site-header"
+    "appbar site-content";
+  min-height: 100vh;
+  font-family: var(--sp-font-family);
+  background-color: var(--sp-bg-page);
+}
+
+/* ============================================================================
+   LAYER 1: App Bar (far-left vertical icon strip)
+   ============================================================================ */
+
+.sp-appbar {
+  grid-area: appbar;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  background-color: var(--sp-appbar-bg);
+  border-right: 1px solid #2b2b2b;
+}
+
+.sp-appbar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 4px;
+  color: var(--sp-text-white);
+  opacity: 0.8;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.sp-appbar-icon:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  opacity: 1;
+}
+
+.sp-appbar-icon.sp-appbar-active {
+  background-color: rgba(255, 255, 255, 0.15);
+  opacity: 1;
+}
+
+.sp-appbar-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+/* Waffle icon (signature M365 launcher) */
+.sp-waffle-icon {
+  display: grid;
+  grid-template-columns: repeat(3, 4px);
+  gap: 3px;
+}
+
+.sp-waffle-dot {
+  width: 4px;
+  height: 4px;
+  background-color: currentColor;
+  border-radius: 1px;
+}
+
+/* ============================================================================
+   LAYER 2: Suite Header Bar (dark horizontal bar with search)
+   ============================================================================ */
+
+.sp-suite-header {
+  grid-area: suite-header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background-color: var(--sp-header-bg);
+  color: var(--sp-text-white);
+}
+
+.sp-suite-brand {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sp-text-white);
+  white-space: nowrap;
+}
+
+.sp-suite-search {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 0 24px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.sp-search-box {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 468px;
+  height: 32px;
+  padding: 0 12px;
+  background-color: var(--sp-header-search-bg);
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.sp-search-box:hover {
+  background-color: #454545;
+}
+
+.sp-search-box:focus-within {
+  background-color: #454545;
+  border-color: var(--sp-theme-primary);
+}
+
+.sp-search-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  color: var(--sp-text-disabled);
+}
+
+.sp-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--sp-text-white);
+  font-size: 14px;
+  font-family: var(--sp-font-family);
+}
+
+.sp-search-input::placeholder {
+  color: var(--sp-text-disabled);
+}
+
+.sp-suite-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sp-user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: var(--sp-theme-primary);
+  color: var(--sp-text-white);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* ============================================================================
+   LAYER 3: Mega Navigation Bar (blue horizontal nav)
+   ============================================================================ */
+
+.sp-mega-nav {
+  grid-area: mega-nav;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background-color: var(--sp-theme-primary);
+  overflow-x: auto;
+}
+
+.sp-mega-nav-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sp-mega-nav-item {
+  position: relative;
+}
+
+.sp-mega-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  height: 40px;
+  color: var(--sp-text-white);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.sp-mega-nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.sp-mega-nav-link.sp-mega-nav-active {
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+.sp-mega-nav-link.sp-mega-nav-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  height: 3px;
+  background-color: var(--sp-text-white);
+  border-radius: 2px 2px 0 0;
+}
+
+.sp-dropdown-arrow {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+/* ============================================================================
+   LAYER 4: Site Header (white band with site icon + title)
+   ============================================================================ */
+
+.sp-site-header {
+  grid-area: site-header;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background-color: var(--sp-bg-card);
+  border-bottom: 1px solid var(--sp-border);
+}
+
+.sp-site-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sp-site-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: var(--bpl-green);
+  color: var(--sp-text-white);
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 4px;
+}
+
+.sp-site-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--sp-text-primary);
+}
+
+.sp-site-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sp-site-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--sp-text-secondary);
+}
+
+.sp-site-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sp-site-meta-divider {
+  color: var(--sp-text-disabled);
+}
+
+.sp-build-console-link {
+  font-size: 12px;
+  color: var(--sp-theme-primary);
+  text-decoration: none;
+}
+
+.sp-build-console-link:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   LAYER 5: Left Site Navigation
+   ============================================================================ */
+
+.sp-site-content {
+  grid-area: site-content;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sp-site-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  background-color: var(--sp-bg-card);
+  border-right: 1px solid var(--sp-border);
+  overflow-y: auto;
+}
+
+.sp-site-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sp-site-nav-item {
+  position: relative;
+}
+
+.sp-site-nav-link {
+  display: block;
+  padding: 8px 12px 8px 16px;
+  font-size: 14px;
+  color: var(--sp-text-primary);
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.sp-site-nav-link:hover {
+  background-color: var(--sp-hover);
+}
+
+.sp-site-nav-link.sp-site-nav-active {
+  font-weight: 600;
+  color: var(--sp-theme-primary);
+  background-color: var(--sp-selected-bg);
+}
+
+.sp-site-nav-link.sp-site-nav-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--sp-theme-primary);
+}
+
+.sp-site-nav-divider {
+  height: 1px;
+  margin: 8px 16px;
+  background-color: var(--sp-border);
+}
+
+/* ============================================================================
+   LAYER 6: Content Area — SharePoint Web Parts
+   ============================================================================ */
+
+.sp-content-area {
+  padding: 20px 24px;
+  overflow-y: auto;
+  background-color: var(--sp-bg-page);
+}
+
+.sp-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+}
+
+.sp-content-main {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sp-content-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Web Part Card */
+.sp-webpart {
+  background-color: var(--sp-bg-card);
+  border: 1px solid var(--sp-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sp-webpart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--sp-border);
+}
+
+.sp-webpart-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--sp-text-primary);
+}
+
+.sp-webpart-title-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--sp-text-secondary);
+}
+
+.sp-webpart-action {
+  font-size: 12px;
+  color: var(--sp-theme-primary);
+  text-decoration: none;
+}
+
+.sp-webpart-action:hover {
+  text-decoration: underline;
+}
+
+.sp-webpart-body {
+  padding: 16px 20px;
+}
+
+/* ============================================================================
+   Welcome Banner (full-width, spans content grid)
+   ============================================================================ */
+
+.sp-welcome-banner {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, var(--bpl-green) 0%, var(--bpl-green-dark) 100%);
+  color: var(--sp-text-white);
+  border: none;
+  border-radius: 2px;
+}
+
+.sp-welcome-banner .sp-webpart-body {
+  padding: 24px;
+}
+
+.sp-welcome-title {
+  margin: 0 0 12px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--sp-text-white);
+}
+
+.sp-welcome-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sp-welcome-text strong {
+  color: var(--sp-text-white);
+}
+
+/* ============================================================================
+   Onboarding Checklist (Fluent-style checkboxes)
+   ============================================================================ */
+
+.sp-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sp-checklist-item {
+  border-bottom: 1px solid var(--sp-border);
+}
+
+.sp-checklist-item:last-child {
+  border-bottom: none;
+}
+
+.sp-checklist-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.sp-checklist-label:hover {
+  background-color: var(--sp-hover);
+  margin: 0 -20px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+/* Fluent UI style checkbox */
+.sp-checkbox {
+  position: relative;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+}
+
+.sp-checkbox input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.sp-checkbox-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--sp-text-secondary);
+  border-radius: 2px;
+  background-color: var(--sp-bg-card);
+  transition: all 0.15s ease;
+}
+
+.sp-checkbox input:hover + .sp-checkbox-box {
+  border-color: var(--sp-theme-primary);
+}
+
+.sp-checkbox input:checked + .sp-checkbox-box {
+  background-color: var(--sp-theme-primary);
+  border-color: var(--sp-theme-primary);
+}
+
+.sp-checkbox-check {
+  display: none;
+  width: 12px;
+  height: 12px;
+  color: var(--sp-text-white);
+}
+
+.sp-checkbox input:checked + .sp-checkbox-box .sp-checkbox-check {
+  display: block;
+}
+
+.sp-checklist-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sp-checklist-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sp-text-primary);
+}
+
+.sp-checklist-desc {
+  font-size: 12px;
+  color: var(--sp-text-secondary);
+  line-height: 1.5;
+}
+
+/* Checked state styling */
+.sp-checkbox input:checked ~ .sp-checklist-content .sp-checklist-title {
+  color: var(--sp-text-disabled);
+  text-decoration: line-through;
+}
+
+/* ============================================================================
+   Announcements / News
+   ============================================================================ */
+
+.sp-announcements {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sp-announcement-item {
+  display: flex;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sp-border);
+}
+
+.sp-announcement-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.sp-announcement-item:first-child {
+  padding-top: 0;
+}
+
+.sp-announcement-date {
+  flex-shrink: 0;
+  min-width: 56px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--sp-theme-primary);
+  background-color: rgba(0, 120, 212, 0.1);
+  border-radius: 2px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.sp-announcement-text {
+  font-size: 14px;
+  color: var(--sp-text-primary);
+  line-height: 1.4;
+}
+
+/* ============================================================================
+   Quick Links
+   ============================================================================ */
+
+.sp-quicklinks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sp-quicklink-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: var(--sp-bg-card);
+  border: 1px solid var(--sp-border);
+  border-radius: 2px;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.sp-quicklink-item:hover {
+  background-color: var(--sp-hover);
+  border-color: var(--sp-theme-primary);
+}
+
+.sp-quicklink-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: rgba(0, 120, 212, 0.1);
+  border-radius: 4px;
+  color: var(--sp-theme-primary);
+}
+
+.sp-quicklink-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sp-quicklink-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--sp-theme-primary);
+}
+
+/* ============================================================================
+   Ask BPL Promo Card
+   ============================================================================ */
+
+.sp-askbpl-promo {
+  border-left: 3px solid var(--bpl-green);
+}
+
+.sp-askbpl-promo .sp-webpart-title {
+  color: var(--bpl-green);
+}
+
+.sp-askbpl-promo .sp-webpart-title-icon {
+  color: var(--bpl-green);
+}
+
+.sp-askbpl-promo-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--sp-text-primary);
+  line-height: 1.5;
+}
+
+/* ============================================================================
+   Responsive Adjustments (Desktop-first for demo @ 1280px+)
+   ============================================================================ */
+
+@media (max-width: 1024px) {
+  .sp-site-content {
+    grid-template-columns: 1fr;
+  }
+
+  .sp-site-nav {
+    display: none;
+  }
+
+  .sp-content-grid {
+    grid-template-columns: 1fr;
+  }
+}

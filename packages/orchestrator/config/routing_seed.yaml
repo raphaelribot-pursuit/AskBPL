@@ -40,13 +40,15 @@ policy_types:
     display_name: Volunteer Manual and Policy
     description: Volunteer roles, expectations, and library policies.
 
+  # Added for demo day — pending formal TRD-RTG-4 sign-off
   - slug: technology_use
-    display_name: Technology Use Policy
-    description: Acceptable use and standards for BPL technology resources.
+    display_name: Technology Use (Public)
+    description: IV. Public 1 — covers patron computer access, CIPA filtering, Wi-Fi.
 
+  # Added for demo day — pending formal TRD-RTG-4 sign-off
   - slug: technology_usage_policy
     display_name: Technology Usage Policy
-    description: Staff technology usage rules and procedures.
+    description: HR12 — covers staff acceptable use of computers, email, internet, voicemail.
 
 teams:
   - name: Supervisor / General

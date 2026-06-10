@@ -23,12 +23,20 @@ policy_types:
   volunteer_manual:
     owners:
       - "Office of Volunteer Resources"
+  # Added for demo day — pending formal TRD-RTG-4 sign-off
+  # IV. Public 1 — covers patron computer access, CIPA filtering, Wi-Fi
   technology_use:
     owners:
-      - "Information Technology"
+      - "Office of Technology"
+    contact_hint: "Contact the Office of Technology"
+
+  # Added for demo day — pending formal TRD-RTG-4 sign-off
+  # HR12 — covers staff acceptable use of computers, email, internet, voicemail
   technology_usage_policy:
     owners:
-      - "Information Technology"
+      - "Office of Technology"
+      - "Human Resources"
+    contact_hint: "Contact the Office of Technology or your supervisor"
 
 # Fallback per TRD-RTG-5: if a question maps to no known policy_type,
 # route to the user's supervisor or the most appropriate general department.
