@@ -176,11 +176,11 @@ async def handle_ask(
     session_marker = str(sess.session_id) if attributed_session else "anonymous"
 
     q_hash = question_sha256(question_text)
-    texts_to_scan = [question_text]
-    if conversation_context:
-        texts_to_scan.extend(turn["content"] for turn in conversation_context)
-    combined_text = " ".join(texts_to_scan)
-    blocked, cats = rejects_input(combined_text)
+
+    # PII gate: scan ONLY the current question, not conversation history.
+    # Prior messages were already vetted when they arrived. Re-scanning them
+    # causes false positives if a prior PII-blocked message leaked into context.
+    blocked, cats = rejects_input(question_text)
     if blocked:
         pii_row = Question(
             request_id=request_id,
@@ -224,7 +224,8 @@ async def handle_ask(
     # Crisis gate — parallel to PII gate, runs BEFORE retrieval.
     # On match: bypass RAG pipeline entirely, return crisis resource response.
     # NEVER log message content (same privacy principle as PII gate).
-    if detect_crisis(combined_text):
+    # Same principle: only scan current question, not conversation history.
+    if detect_crisis(question_text):
         crisis_row = Question(
             request_id=request_id,
             session_id=sess.session_id,
