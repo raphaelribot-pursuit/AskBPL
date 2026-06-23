@@ -1,5 +1,11 @@
 import type { TranscriptRow } from './types'
 import { rowFromAskResponse } from './types'
+import {
+  apiSessionHeaders,
+  apiSessionHeadersReadOnly,
+  getStoredSessionId,
+  persistSessionIdFromResponse,
+} from './demoSession'
 
 /**
  * Network layer for the Ask BPL chat surface.
@@ -69,16 +75,13 @@ export function networkErrorMessage(err: unknown): string {
 async function postAsk(
   fetchImpl: typeof fetch,
   apiBase: string,
-  token: string,
+  sessionId: string | null,
   question: string,
   conversationContext?: ConversationTurn[],
 ): Promise<Response> {
-  return fetchImpl(`${apiBase}/v1/ask`, {
+  const res = await fetchImpl(`${apiBase}/v1/ask`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: apiSessionHeaders(sessionId),
     body: JSON.stringify({
       question,
       ...(conversationContext?.length
@@ -87,11 +90,14 @@ async function postAsk(
     }),
     signal: AbortSignal.timeout(ASK_FETCH_TIMEOUT_MS),
   })
+  persistSessionIdFromResponse(res)
+  return res
 }
 
 export type AskRequestArgs = {
   apiBase: string
-  token: string
+  /** Public demo session id (`X-Session-ID`); omit to let the API mint one. */
+  sessionId?: string | null
   question: string
   /** Stable id for the row the caller will append to the transcript. */
   rowId: string
@@ -126,7 +132,7 @@ export function buildConversationContext(
 
 export async function askQuestion({
   apiBase,
-  token,
+  sessionId,
   question,
   rowId,
   conversationContext,
@@ -138,11 +144,12 @@ export async function askQuestion({
   }
 
   const f = fetchImpl ?? fetch
+  const resolvedSessionId = sessionId ?? getStoredSessionId()
   let res: Response | undefined
   let lastError: unknown
   for (let attempt = 0; attempt < ASK_NETWORK_MAX_ATTEMPTS; attempt += 1) {
     try {
-      res = await postAsk(f, apiBase, token, question, conversationContext)
+      res = await postAsk(f, apiBase, resolvedSessionId, question, conversationContext)
       lastError = undefined
       break
     } catch (err) {
@@ -185,7 +192,7 @@ export async function askQuestion({
 
 export type FeedbackSubmitArgs = {
   apiBase: string
-  token: string
+  sessionId?: string | null
   requestId: string
   rating: FeedbackRating
   comment: string | null
@@ -197,7 +204,7 @@ export type FeedbackSubmitArgs = {
 export type FetchDocumentTextArgs = {
   apiBase: string
   documentId: string
-  token: string
+  sessionId?: string | null
   mock?: boolean
   fetchImpl?: typeof fetch
 }
@@ -205,7 +212,7 @@ export type FetchDocumentTextArgs = {
 export async function fetchDocumentText({
   apiBase,
   documentId,
-  token,
+  sessionId,
   mock,
   fetchImpl,
 }: FetchDocumentTextArgs): Promise<DocumentText> {
@@ -214,9 +221,11 @@ export async function fetchDocumentText({
   }
 
   const f = fetchImpl ?? fetch
+  const resolvedSessionId = sessionId ?? getStoredSessionId()
   const res = await f(`${apiBase}/v1/documents/${documentId}/text`, {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: apiSessionHeadersReadOnly(resolvedSessionId),
   })
+  persistSessionIdFromResponse(res)
   if (!res.ok) {
     throw new Error(`Failed to fetch document: ${res.status}`)
   }
@@ -225,7 +234,7 @@ export async function fetchDocumentText({
 
 export async function submitFeedback({
   apiBase,
-  token,
+  sessionId,
   requestId,
   rating,
   comment,
@@ -236,14 +245,12 @@ export async function submitFeedback({
   if (mock) return { ok: true }
 
   const f = fetchImpl ?? fetch
+  const resolvedSessionId = sessionId ?? getStoredSessionId()
   let res: Response
   try {
     res = await f(`${apiBase}/v1/feedback`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: apiSessionHeaders(resolvedSessionId),
       body: JSON.stringify({
         request_id: requestId,
         rating,
@@ -251,6 +258,7 @@ export async function submitFeedback({
         anonymous_override: !!anonymousOverride,
       }),
     })
+    persistSessionIdFromResponse(res)
   } catch {
     return { ok: false, error: 'Network error.' }
   }

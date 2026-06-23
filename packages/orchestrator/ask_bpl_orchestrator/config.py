@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     admin_basic_user: str = "vizion_build"
     admin_basic_password: str = ""
 
+    # Public demo: unauthenticated visitors get attributed sessions for this tester.
+    public_demo_tester_email: str = "pilot-demo@bklynlibrary.org"
+
     cors_origins: str = (
         "http://localhost:5173,http://localhost:3000,http://localhost:4173,"
         "https://askbpl-web-demo.vercel.app"

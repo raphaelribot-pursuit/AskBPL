@@ -19,7 +19,6 @@ export type DocumentViewerProps = {
   apiBase: string
   documentId: string
   highlightChunkIds: string[]
-  token: string
   onClose: () => void
 }
 
@@ -27,7 +26,6 @@ export function DocumentViewer({
   apiBase,
   documentId,
   highlightChunkIds,
-  token,
   onClose,
 }: DocumentViewerProps) {
   const [doc, setDoc] = useState<DocumentText | null>(null)
@@ -57,7 +55,6 @@ export function DocumentViewer({
     fetchDocumentText({
       apiBase,
       documentId,
-      token,
       mock: isMockEnabled(),
     })
       .then((payload) => {
@@ -75,7 +72,7 @@ export function DocumentViewer({
     return () => {
       cancelled = true
     }
-  }, [apiBase, documentId, token])
+  }, [apiBase, documentId])
 
   useEffect(() => {
     if (!doc || !firstHighlightChunkId) return

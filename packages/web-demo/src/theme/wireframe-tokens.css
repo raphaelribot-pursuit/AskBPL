@@ -1149,3 +1149,86 @@
   clip: rect(0, 0, 1px, 1px);
   overflow: hidden;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * First-visit welcome overlay (public demo — no sign-in).
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-welcome-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.72);
+  z-index: 1200;
+}
+
+.pilot-welcome {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100vw - 32px));
+  padding: 1.5rem 1.35rem 1.25rem;
+  background: var(--wf-surface);
+  border: 2px solid var(--wf-line-strong);
+  border-radius: var(--wf-radius-md);
+  box-shadow: var(--wf-shadow-lg);
+  z-index: 1201;
+  text-align: center;
+}
+
+.pilot-welcome-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 0.75rem;
+  display: grid;
+  place-items: center;
+  background: var(--wf-accent-soft);
+  border-radius: var(--wf-radius-sm);
+  color: var(--wf-accent);
+}
+
+.pilot-welcome-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.pilot-welcome-title {
+  margin: 0.35rem 0 0.75rem;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  color: var(--wf-ink);
+}
+
+.pilot-welcome-copy {
+  margin: 0 0 0.65rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--wf-muted);
+  text-align: left;
+}
+
+.pilot-welcome-cta {
+  margin-top: 0.85rem;
+  width: 100%;
+  appearance: none;
+  border: 2px solid var(--wf-ink);
+  border-radius: var(--wf-radius-sm);
+  background: var(--wf-accent);
+  color: var(--wf-ink);
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  box-shadow: var(--wf-shadow);
+}
+
+.pilot-welcome-cta:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--wf-ink);
+}
+
+.pilot-welcome-cta:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--wf-accent-soft);
+}
+

@@ -6,11 +6,13 @@ from datetime import datetime, timezone
 
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from ask_bpl_orchestrator.api.deps import JwtAuthClaims
+from ask_bpl_orchestrator.api.deps import SessionClaims
+from ask_bpl_orchestrator.api.response_session import attach_public_session_header
 from ask_bpl_orchestrator.api.session_dep import DbSessionDep
 from ask_bpl_orchestrator.db.models import Feedback as FeedbackORM
 from ask_bpl_orchestrator.db.models import FeedbackRating, Question
@@ -25,8 +27,7 @@ class FeedbackPayload(BaseModel):
     anonymous_override: bool = False
 
 
-@router.post("/")
-async def submit_feedback(claims: JwtAuthClaims, body: FeedbackPayload, db: DbSessionDep):
+async def submit_feedback(claims: dict, body: FeedbackPayload, db: DbSessionDep) -> dict:
     q = (
         (
             await db.execute(select(Question).where(Question.request_id == body.request_id))
@@ -60,3 +61,14 @@ async def submit_feedback(claims: JwtAuthClaims, body: FeedbackPayload, db: DbSe
     await db.commit()
 
     return {"status": "ok"}
+
+
+@router.post("/")
+async def submit_feedback_route(
+    request: Request,
+    claims: SessionClaims,
+    body: FeedbackPayload,
+    db: DbSessionDep,
+):
+    result = await submit_feedback(claims, body, db)
+    return attach_public_session_header(request, JSONResponse(content=result))

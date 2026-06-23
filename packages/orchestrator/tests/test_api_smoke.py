@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
-
 from fastapi.testclient import TestClient
 
 from ask_bpl_orchestrator.main import app
@@ -22,11 +20,3 @@ def test_health_alias_matches_healthz() -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-
-
-def test_feedback_requires_bearer_token() -> None:
-    response = client.post(
-        "/feedback/",
-        json={"request_id": str(uuid.uuid4()), "rating": "helpful"},
-    )
-    assert response.status_code == 401

@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 
 import { AdminSidebar } from './AdminSidebar'
 
@@ -30,8 +30,7 @@ export function ConsoleLayout() {
             <div className="console-topbar-meta">
               <h1 className="console-title">Build-team console</h1>
               <p className="muted small">
-                Basic-auth admin surface. Not the tester sign-in flow — sign tester
-                traffic in via <Link to="/login">/login</Link>.
+                Basic-auth admin surface for build-team corpus and session review.
               </p>
             </div>
           </header>

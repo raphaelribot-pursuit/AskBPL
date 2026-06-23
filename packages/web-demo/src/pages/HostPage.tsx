@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { AskPilotShell } from '../AskPilotShell'
-import { useAuth } from '../auth/useAuth'
 import { UiErrorBoundary } from '../UiErrorBoundary'
 
 import './HostPage.css'
@@ -22,9 +21,6 @@ import './HostPage.css'
 export function HostPage() {
   const apiBase = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
   const docsBase = (import.meta.env.VITE_DOCUMENTS_PUBLIC_BASE ?? '').replace(/\/$/, '')
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { session } = useAuth()
 
   const [checklist, setChecklist] = useState<Record<string, boolean>>({
     techUsage: false,
@@ -39,28 +35,13 @@ export function HostPage() {
     setChecklist(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
-  const pilotDemoEmail = (
-    import.meta.env.VITE_PILOT_DEMO_EMAIL ?? 'pilot-demo@bklynlibrary.org'
-  ).toLowerCase()
-  const emailLocal = session?.email?.split('@')[0]?.split('.')[0] ?? 'Team Member'
-  const displayName =
-    session?.email?.toLowerCase() === pilotDemoEmail
-      ? (import.meta.env.VITE_PILOT_DEMO_DISPLAY_NAME ?? 'Lee Aulder')
-      : emailLocal.charAt(0).toUpperCase() + emailLocal.slice(1)
-  
-  // User initials for avatar (e.g., "LA" for laulder@...)
-  const userInitials = session?.email
-    ? session.email.split('@')[0].slice(0, 2).toUpperCase()
-    : 'U'
-
-  useEffect(() => {
-    if (session) return
-    navigate('/login', { replace: true, state: { from: location.pathname } })
-  }, [session, location.pathname, navigate])
-
-  if (!session) {
-    return null
-  }
+  const displayName = import.meta.env.VITE_PILOT_DEMO_DISPLAY_NAME ?? 'Lee Aulder'
+  const userInitials = displayName
+    .split(/\s+/)
+    .map((part: string) => part.charAt(0))
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'LA'
 
   return (
     <div className="askbpl-pilot-surface sp-page">
@@ -127,7 +108,7 @@ export function HostPage() {
         </div>
         
         <div className="sp-suite-user">
-          <div className="sp-user-avatar" title={session.email}>
+          <div className="sp-user-avatar" title={displayName}>
             {userInitials}
           </div>
         </div>

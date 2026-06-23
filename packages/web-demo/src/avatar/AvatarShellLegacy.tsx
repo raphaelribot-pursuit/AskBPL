@@ -9,9 +9,13 @@ import {
   useRef,
   useState,
 } from 'react'
-import { useNavigate } from 'react-router-dom'
 
-import { useAuth } from '../auth/useAuth'
+import {
+  apiSessionHeaders,
+  clearStoredSessionId,
+  getStoredSessionId,
+  persistSessionIdFromResponse,
+} from '../conversation/demoSession'
 import { AvatarDebugPanel } from './AvatarDebugPanel'
 import { AvatarEventsProvider, useAvatarEvents } from './AvatarEventsContext'
 import {
@@ -373,9 +377,6 @@ export function AvatarShellLegacy({ apiBase, docsBase }: AvatarShellLegacyProps)
  */
 function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string }) {
   const emit = useAvatarEvents()
-  const navigate = useNavigate()
-  const { session, signOut } = useAuth()
-  const token = session?.token ?? null
 
   const [composer, setComposer] = useState('')
   const [rows, setRows] = useState<TranscriptRow[]>([])
@@ -394,23 +395,18 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
     el.scrollTop = el.scrollHeight
   }, [rows, sending])
 
-  const handleSignOut = useCallback(() => {
-    signOut()
+  const handleClearChat = useCallback(() => {
+    clearStoredSessionId()
     setRows([])
     setComposer('')
     setShowSamplePrompt(true)
     setFeedbackStatus('')
     clearAvatarSessionState()
-    navigate('/login', { replace: true })
-  }, [navigate, signOut])
+  }, [])
 
   async function sendQuestion(textRaw: string) {
     const text = textRaw.trim()
     if (!text || sending) return
-    if (!token) {
-      setFeedbackStatus('Session missing. Sign in again.')
-      return
-    }
 
     setSending(true)
     setFeedbackStatus('')
@@ -433,18 +429,16 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
       emit({ type: 'GENERATION_STARTED' })
     }
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    }
+    const sessionId = getStoredSessionId()
 
     let res: Response
     try {
       res = await fetch(`${apiBase}/questions/ask`, {
         method: 'POST',
-        headers,
+        headers: apiSessionHeaders(sessionId),
         body: JSON.stringify({ question: text }),
       })
+      persistSessionIdFromResponse(res)
     } catch {
       window.clearTimeout(retrievalTimer)
       window.clearTimeout(generationTimer)
@@ -473,7 +467,8 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
 
     if (res.status === 401 || res.status === 403) {
       emit({ type: 'RESPONSE_ERROR' })
-      handleSignOut()
+      clearStoredSessionId()
+      setFeedbackStatus('Session expired. Send your question again.')
       setSending(false)
       return
     }
@@ -488,16 +483,14 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
     setFeedbackStatus('')
     const res = await fetch(`${apiBase}/feedback/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: apiSessionHeaders(getStoredSessionId()),
       body: JSON.stringify({
         request_id: reqId,
         rating,
         anonymous_override: feedbackAnonymousGlobal,
       }),
     })
+    persistSessionIdFromResponse(res)
     const bodyText = await res.text()
     setFeedbackStatus(
       res.ok ? `Recorded ${rating.replace('_', ' ')}` : `${res.status}: ${bodyText}`,
@@ -523,16 +516,12 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
     }
   }
 
-  if (!token) {
-    return null
-  }
-
   return (
     <div className="chat-shell">
       <div className="modal-toolbar skinny">
         <span className="pill success">authenticated</span>
-        <button type="button" className="ghost" onClick={handleSignOut}>
-          Sign out
+        <button type="button" className="ghost" onClick={handleClearChat}>
+          Clear chat
         </button>
       </div>
 

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 
+import { clearStoredSessionId } from './demoSession'
 import {
   askQuestion,
   buildConversationContext,
@@ -18,16 +19,6 @@ import type { CitationPayload, TranscriptRow } from './types'
  * hook, which keeps the request lifecycle, transcript bookkeeping, and the
  * mock-ask dev path in one place. The hook is UI-agnostic — it exposes
  * primitives, never markup.
- *
- * Behaviors covered:
- *   - Append a user-message row optimistically.
- *   - POST `/questions/ask`, narrow the response to a typed row, append.
- *   - 401/403 → invoke the supplied `onSessionExpired` (host page redirect).
- *   - Network failure → restore the question text via `onRestoreInput` so
- *     the tester can retry (Wireframe §4.6).
- *   - `submitFeedback` for per-message ratings + comments.
- *   - `openCitation` silently no-ops when `VITE_DOCUMENTS_PUBLIC_BASE`
- *     is not configured (demo UI must not surface dev config hints).
  */
 
 let __rowSeq = 0
@@ -39,8 +30,6 @@ function nextRowId(): string {
 export type UseAskChatArgs = {
   apiBase: string
   docsBase: string
-  token: string | null
-  onSessionExpired: () => void
   /** Called when a 5xx/network error occurs so the parent can restore input. */
   onRestoreInput?: (text: string) => void
 }
@@ -50,7 +39,6 @@ export type UseAskChatResult = {
   pending: boolean
   status: string
   setStatus: (next: string) => void
-  /** Send `text` as a user message + dispatch the orchestrator request. */
   ask: (text: string) => Promise<void>
   submitFeedback: (args: {
     requestId: string
@@ -59,15 +47,12 @@ export type UseAskChatResult = {
   }) => Promise<FeedbackSubmitResult>
   openCitation: (citation: CitationPayload) => void
   reset: () => void
-  /** Live-region summary for the most recent assistant turn. */
   liveRegionMessage: string
 }
 
 export function useAskChat({
   apiBase,
   docsBase,
-  token,
-  onSessionExpired,
   onRestoreInput,
 }: UseAskChatArgs): UseAskChatResult {
   const [rows, setRows] = useState<TranscriptRow[]>([])
@@ -79,10 +64,6 @@ export function useAskChat({
     async (textRaw: string) => {
       const text = textRaw.trim()
       if (!text || pending) return
-      if (!token && !mockEnabled.current) {
-        setStatus('Session missing. Sign in again.')
-        return
-      }
 
       setStatus('')
       setPending(true)
@@ -97,7 +78,6 @@ export function useAskChat({
 
       const outcome = await askQuestion({
         apiBase,
-        token: token ?? '',
         question: text,
         rowId: nextRowId(),
         conversationContext,
@@ -105,8 +85,17 @@ export function useAskChat({
       })
 
       if (outcome.kind === 'session_expired') {
+        clearStoredSessionId()
+        setRows((history) => [
+          ...history,
+          {
+            kind: 'error_generic',
+            id: nextRowId(),
+            message: 'Your session expired. Please send your question again.',
+          },
+        ])
+        onRestoreInput?.(text)
         setPending(false)
-        onSessionExpired()
         return
       }
 
@@ -119,7 +108,6 @@ export function useAskChat({
             message: outcome.message,
           },
         ])
-        // Wireframe §4.6 — restore the question text so it isn’t lost.
         onRestoreInput?.(text)
         setPending(false)
         return
@@ -128,7 +116,7 @@ export function useAskChat({
       setRows((history) => [...history, outcome.row])
       setPending(false)
     },
-    [apiBase, onRestoreInput, onSessionExpired, pending, rows, token],
+    [apiBase, onRestoreInput, pending, rows],
   )
 
   const submitFeedback = useCallback(
@@ -137,19 +125,15 @@ export function useAskChat({
       rating: FeedbackRating
       comment: string | null
     }): Promise<FeedbackSubmitResult> => {
-      if (!token && !mockEnabled.current) {
-        return { ok: false, error: 'Session missing.' }
-      }
       return submitFeedbackApi({
         apiBase,
-        token: token ?? '',
         requestId: args.requestId,
         rating: args.rating,
         comment: args.comment,
         mock: mockEnabled.current,
       })
     },
-    [apiBase, token],
+    [apiBase],
   )
 
   const openCitation = useCallback(
@@ -165,6 +149,7 @@ export function useAskChat({
   )
 
   const reset = useCallback(() => {
+    clearStoredSessionId()
     setRows([])
     setPending(false)
     setStatus('')

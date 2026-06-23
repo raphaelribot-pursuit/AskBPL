@@ -72,6 +72,40 @@ def test_admin_summary_basic_auth_ok() -> None:
     assert "questions_total" in data
 
 
+def test_v1_ask_without_auth_creates_session_header() -> None:
+    r = client.post(
+        "/v1/ask",
+        json={"question": "What is the data retention policy?"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.headers.get("X-Session-ID")
+
+
+def test_v1_ask_reuses_x_session_id() -> None:
+    first = client.post(
+        "/v1/ask",
+        json={"question": "What is the data retention policy?"},
+    )
+    assert first.status_code == 200, first.text
+    session_id = first.headers.get("X-Session-ID")
+    assert session_id
+
+    second = client.post(
+        "/v1/ask",
+        headers={"X-Session-ID": session_id},
+        json={"question": "What is the gift acceptance policy timeline?"},
+    )
+    assert second.status_code == 200, second.text
+
+
+def test_feedback_without_auth_returns_not_found_for_unknown_request() -> None:
+    response = client.post(
+        "/feedback/",
+        json={"request_id": str(uuid.uuid4()), "rating": "helpful"},
+    )
+    assert response.status_code == 404
+
+
 def test_ask_pii_returns_400() -> None:
     token = _pilot_token()
     r = client.post(

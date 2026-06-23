@@ -1,24 +1,27 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 
-import { useAuth } from '../../auth/useAuth'
 import { useAskChat } from '../../conversation/useAskChat'
 import { AvatarTrigger } from './AvatarTrigger'
 import { DocumentViewer } from './DocumentViewer'
 import { Modal } from './Modal'
 import { PilotTranscript } from './PilotTranscript'
 import { InputField } from './InputField'
+import {
+  WelcomeOverlay,
+  isWelcomeDismissed,
+  markWelcomeDismissed,
+} from './WelcomeOverlay'
 
 /**
- * Wireframe v3 chat shell — the default post-login surface.
+ * Wireframe v3 chat shell — the default public demo surface.
  *
  * Closed: 56px book FAB anchored bottom-right (`<AvatarTrigger />`).
  * Open  : 380px modal anchored 92px above the FAB (`<Modal />`), with the
  *         pilot transcript renderer and an auto-grow input field.
  *
  * Conversation state survives close/reopen because `useAskChat` lives at
- * the shell level (Wireframe §4 transcript persistence). Sign-out does the
- * full reset.
+ * the shell level (Wireframe §4 transcript persistence). "Clear chat"
+ * resets transcript and mints a fresh public demo session on the next ask.
  *
  * The legacy draggable Spline avatar lives in `AvatarShellLegacy.tsx` and
  * is gated behind `VITE_ENABLE_AVATAR_SHELL`; the dispatcher in
@@ -36,10 +39,7 @@ type WireframeShellProps = {
 }
 
 export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
-  const navigate = useNavigate()
-  const { session, signOut } = useAuth()
-  const token = session?.token ?? null
-
+  const [showWelcome, setShowWelcome] = useState(() => !isWelcomeDismissed())
   const [open, setOpen] = useState(false)
   const [composer, setComposer] = useState('')
   const [showSampleChip, setShowSampleChip] = useState(true)
@@ -54,15 +54,8 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
   const bodyRef = useRef<HTMLDivElement | null>(null)
   const isNearBottomRef = useRef(true)
 
-  const handleSessionExpired = useCallback(() => {
-    signOut()
-    setOpen(false)
-    navigate('/login', { replace: true })
-  }, [navigate, signOut])
-
   const handleRestoreInput = useCallback(
     (text: string) => {
-      // Only restore if the tester hasn’t already started typing again.
       setComposer((current) => (current ? current : text))
     },
     [],
@@ -71,10 +64,23 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
   const chat = useAskChat({
     apiBase,
     docsBase,
-    token,
-    onSessionExpired: handleSessionExpired,
     onRestoreInput: handleRestoreInput,
   })
+
+  const handleWelcomeContinue = useCallback(() => {
+    markWelcomeDismissed()
+    setShowWelcome(false)
+    setOpen(true)
+    if (typeof window !== 'undefined') {
+      try {
+        const greeted = window.sessionStorage.getItem(FIRST_OPEN_KEY) === '1'
+        setShowFirstOpenHint(!greeted)
+        window.sessionStorage.setItem(FIRST_OPEN_KEY, '1')
+      } catch {
+        setShowFirstOpenHint(true)
+      }
+    }
+  }, [])
 
   const handleOpen = useCallback(() => {
     setOpen(true)
@@ -91,7 +97,6 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
 
   const handleClose = useCallback(() => {
     setOpen(false)
-    // History intentionally preserved (Wireframe §4 / TRD-UI-5).
   }, [])
 
   const handleMinimize = useCallback(() => {
@@ -116,8 +121,6 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
     void send(composer)
   }, [composer, send])
 
-  // Smart auto-scroll (Wireframe §4.8): only follow the bottom when the
-  // tester is already near the bottom; otherwise show a jump-down chip.
   useEffect(() => {
     const el = bodyRef.current
     if (!el) return
@@ -145,41 +148,35 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
     setShowJumpDown(false)
   }, [])
 
-  const handleSignOut = useCallback(() => {
+  const handleClearChat = useCallback(() => {
     chat.reset()
-    signOut()
-    setOpen(false)
     setComposer('')
     setShowSampleChip(true)
     setShowFirstOpenHint(false)
-    navigate('/login', { replace: true })
-  }, [chat, navigate, signOut])
+  }, [chat])
 
-  const inputDisabled = chat.pending || !token
+  const inputDisabled = chat.pending
 
-  const handleCitationOpen = useCallback(
-    (documentId: string, chunkIds: string[]) => {
-      if (!token) return
-      setViewerState({ documentId, chunkIds })
-    },
-    [token],
-  )
+  const handleCitationOpen = useCallback((documentId: string, chunkIds: string[]) => {
+    setViewerState({ documentId, chunkIds })
+  }, [])
 
   return (
     <>
-      {viewerState && token ? (
+      {showWelcome ? <WelcomeOverlay onContinue={handleWelcomeContinue} /> : null}
+
+      {viewerState ? (
         <DocumentViewer
           apiBase={apiBase}
           documentId={viewerState.documentId}
           highlightChunkIds={viewerState.chunkIds}
-          token={token}
           onClose={() => setViewerState(null)}
         />
       ) : null}
 
       <AvatarTrigger
         onClick={handleOpen}
-        hidden={open}
+        hidden={open || showWelcome}
         buttonRef={fabRef}
       />
 
@@ -187,7 +184,6 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
         open={open}
         onClose={handleClose}
         onMinimize={handleMinimize}
-        signedInLabel={session?.email}
         returnFocusRef={fabRef}
         liveRegion={chat.liveRegionMessage}
         footer={
@@ -214,10 +210,10 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
                   )}
                   <button
                     type="button"
-                    onClick={handleSignOut}
-                    title="Sign out and clear this session"
+                    onClick={handleClearChat}
+                    title="Clear this conversation"
                   >
-                    Sign out
+                    Clear chat
                   </button>
                 </>
               }
@@ -239,7 +235,7 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
         >
           {showFirstOpenHint && chat.rows.length === 0 ? (
             <p className="pilot-hint">
-              Ask anything about BPL policies — answers come from Selvon’s
+              Ask anything about BPL policies — answers come from Selvon&apos;s
               curated docs.
             </p>
           ) : null}

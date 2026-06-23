@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 
-from ask_bpl_orchestrator.api.deps import JwtAuthClaims
+from ask_bpl_orchestrator.api.deps import SessionClaims
+from ask_bpl_orchestrator.api.response_session import attach_public_session_header
 from ask_bpl_orchestrator.api.session_dep import DbSessionDep
 from ask_bpl_orchestrator.db.models import Chunk, Document
 
@@ -17,9 +19,10 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 @router.get("/{document_id}/text")
 async def get_document_text(
     document_id: str,
-    claims: JwtAuthClaims,  # noqa: ARG001 — auth gate
+    request: Request,
+    claims: SessionClaims,  # noqa: ARG001 — session gate for public demo
     db: DbSessionDep,
-) -> dict:
+) -> JSONResponse:
     try:
         doc_uuid = uuid.UUID(document_id)
     except ValueError as exc:
@@ -55,10 +58,11 @@ async def get_document_text(
         full_text_parts.append(text)
         current_offset = end + 2
 
-    return {
+    payload = {
         "document_id": str(doc.document_id),
         "title": doc.title,
         "policy_type": doc.policy_type,
         "full_text": "\n\n".join(full_text_parts),
         "chunks": chunk_data,
     }
+    return attach_public_session_header(request, JSONResponse(content=payload))

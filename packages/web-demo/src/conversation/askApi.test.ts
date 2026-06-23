@@ -38,7 +38,6 @@ describe('askQuestion network retry', () => {
 
     const outcomePromise = askQuestion({
       apiBase: 'https://api.example.com',
-      token: 'token',
       question: 'What is the gift policy?',
       rowId: 'row-1',
       fetchImpl,

@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from ask_bpl_orchestrator.api.deps import JwtAuthClaims
+from ask_bpl_orchestrator.api.deps import SessionClaims
+from ask_bpl_orchestrator.api.response_session import attach_public_session_header
 from ask_bpl_orchestrator.api.session_dep import DbSessionDep
 from ask_bpl_orchestrator.services import ask_service
 
@@ -33,7 +34,7 @@ class AskBody(BaseModel):
 
 
 @router.post("/ask")
-async def ask_question(body: AskBody, claims: JwtAuthClaims, db: DbSessionDep):
+async def ask_question(body: AskBody, request: Request, claims: SessionClaims, db: DbSessionDep):
     context_dicts = (
         [{"role": t.role, "content": t.content.strip()} for t in body.conversation_context]
         if body.conversation_context
@@ -48,4 +49,7 @@ async def ask_question(body: AskBody, claims: JwtAuthClaims, db: DbSessionDep):
     )
     rid = payload.get("request_id")
     headers = {"X-Request-ID": rid} if isinstance(rid, str) else None
-    return JSONResponse(content=payload, status_code=status_code, headers=headers or None)
+    return attach_public_session_header(
+        request,
+        JSONResponse(content=payload, status_code=status_code, headers=headers or None),
+    )

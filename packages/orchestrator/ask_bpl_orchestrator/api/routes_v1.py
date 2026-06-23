@@ -6,10 +6,11 @@ import asyncio
 import logging
 
 import anthropic
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from ask_bpl_orchestrator.api.deps import JwtAuthClaims
+from ask_bpl_orchestrator.api.deps import SessionClaims
+from ask_bpl_orchestrator.api.response_session import attach_public_session_header
 from ask_bpl_orchestrator.api.routes_feedback import FeedbackPayload, submit_feedback
 from ask_bpl_orchestrator.api.routes_questions import AskBody
 from ask_bpl_orchestrator.api.session_dep import DbSessionDep
@@ -22,7 +23,7 @@ ASK_PIPELINE_TIMEOUT_SECONDS = 120.0
 
 
 @router.post("/ask")
-async def ask_v1(body: AskBody, claims: JwtAuthClaims, db: DbSessionDep):
+async def ask_v1(body: AskBody, request: Request, claims: SessionClaims, db: DbSessionDep):
     context_dicts = (
         [{"role": t.role, "content": t.content.strip()} for t in body.conversation_context]
         if body.conversation_context
@@ -72,9 +73,13 @@ async def ask_v1(body: AskBody, claims: JwtAuthClaims, db: DbSessionDep):
 
     rid = payload.get("request_id")
     headers = {"X-Request-ID": rid} if isinstance(rid, str) else None
-    return JSONResponse(content=payload, status_code=status_code, headers=headers or None)
+    return attach_public_session_header(
+        request,
+        JSONResponse(content=payload, status_code=status_code, headers=headers or None),
+    )
 
 
 @router.post("/feedback")
-async def feedback_v1(claims: JwtAuthClaims, body: FeedbackPayload, db: DbSessionDep):
-    return await submit_feedback(claims, body, db)
+async def feedback_v1(request: Request, claims: SessionClaims, body: FeedbackPayload, db: DbSessionDep):
+    result = await submit_feedback(claims, body, db)
+    return attach_public_session_header(request, JSONResponse(content=result))
