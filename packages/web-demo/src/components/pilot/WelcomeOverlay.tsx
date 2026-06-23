@@ -43,8 +43,8 @@ export function WelcomeOverlay({ onContinue }: WelcomeOverlayProps) {
         </h2>
         <p className="pilot-welcome-copy">
           Use the chat modal to ask questions about Brooklyn Public Library policies
-          and procedures. Answers come only from Selvon&apos;s curated document corpus —
-          not the open web.
+          and procedures. Answers come only from the authorized documentation of BPL
+          policies — not the open web.
         </p>
         <p className="pilot-welcome-copy">
           Tap the book icon anytime to open or minimize the assistant while you browse
