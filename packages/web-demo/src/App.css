@@ -1041,11 +1041,25 @@ textarea:focus-visible {
 .console-global-topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   height: 48px;
   padding: 0 16px;
   background: var(--sp-topbar-bg);
   color: var(--sp-topbar-text);
   flex-shrink: 0;
+}
+
+.console-pilot-demo-link {
+  font-size: var(--sp-font-size-sm);
+  color: rgba(255, 255, 255, 0.92);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.console-pilot-demo-link:hover {
+  text-decoration: underline;
+  color: #fff;
 }
 
 .console-global-brand {
@@ -1111,6 +1125,16 @@ textarea:focus-visible {
   color: var(--sp-nav-active-text);
   background: var(--sp-blue-light);
   border-left-color: var(--sp-nav-active-border);
+  font-weight: var(--sp-font-weight-semibold);
+}
+
+.admin-sidebar-exit {
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--sp-border);
+}
+
+.admin-sidebar-pilot-link {
   font-weight: var(--sp-font-weight-semibold);
 }
 

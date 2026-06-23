@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 
 import { AdminSidebar } from './AdminSidebar'
 
@@ -22,6 +22,9 @@ export function ConsoleLayout() {
           <strong>Ask BPL</strong>
           <span>Internal console</span>
         </div>
+        <Link to="/" className="console-pilot-demo-link">
+          Back to pilot demo
+        </Link>
       </header>
       <div className="console-shell">
         <AdminSidebar currentPath={location.pathname} />

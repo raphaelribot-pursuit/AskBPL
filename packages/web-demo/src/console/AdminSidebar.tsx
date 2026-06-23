@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 
 /**
  * Wireframe §6.3 — six sections, Corpus is the default. The index route
@@ -26,6 +26,11 @@ export function AdminSidebar({ currentPath }: { currentPath: string }) {
   return (
     <nav className="admin-sidebar" aria-label="Console sections">
       <ul className="admin-sidebar-list">
+        <li className="admin-sidebar-exit">
+          <Link to="/" className="admin-sidebar-link admin-sidebar-pilot-link">
+            ← Pilot demo
+          </Link>
+        </li>
         {SECTIONS.map((section) => {
           const isRootDefault =
             section.defaultRoot && currentPath.replace(/\/$/, '') === '/internal/console'
