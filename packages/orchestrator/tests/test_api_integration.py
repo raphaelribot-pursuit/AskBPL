@@ -18,6 +18,20 @@ from ask_bpl_orchestrator.services.retrieval import RetrievedChunk, VectorRetrie
 
 client = TestClient(app)
 
+
+@pytest.fixture(autouse=True)
+def _no_live_vector_lookup():
+    """Keep these tests hermetic: no OpenAI embedding call and no Pinecone query.
+
+    conftest.py sets placeholder API keys, so without this stub the app would try a
+    real embedding request (and fail offline or with the placeholder key). An empty
+    score map means "no vectors", which is the "no corpus" case the tests describe.
+    Tests that need retrieved chunks patch ``VectorRetriever.query`` themselves, which
+    takes precedence over this stub.
+    """
+    with patch.object(VectorRetriever, "_pinecone_scores", new_callable=AsyncMock, return_value={}):
+        yield
+
 _SIGN_IN_JSON = {
     "email": "pilot-demo@bklynlibrary.org",
     "access_code": "DEMO2026",
@@ -120,7 +134,13 @@ def test_ask_pii_returns_400() -> None:
     assert "request_id" not in body
 
 
-def test_ask_pii_in_conversation_context_returns_400() -> None:
+def test_ask_pii_in_conversation_context_is_not_rescanned() -> None:
+    """The PII gate scans ONLY the current question (PRD SAF-1; commit e525f1c).
+
+    History is not re-scanned, otherwise one blocked message that leaked into the
+    context would reject every later turn. PII typed in the current question is
+    still rejected: see test_ask_pii_returns_400.
+    """
     token = _pilot_token()
     r = client.post(
         "/questions/ask",
@@ -136,10 +156,8 @@ def test_ask_pii_in_conversation_context_returns_400() -> None:
             ],
         },
     )
-    assert r.status_code == 400
-    body = r.json()
-    assert body.get("type") == "error_pii"
-    assert body.get("pii_categories")
+    assert r.status_code == 200, r.text
+    assert r.json().get("type") != "error_pii"
 
 
 def test_ask_conversation_context_max_four_turns() -> None:

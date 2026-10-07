@@ -1,5 +1,6 @@
 from collections.abc import AsyncGenerator
 
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from ask_bpl_orchestrator.config import get_settings
@@ -8,6 +9,8 @@ from ask_bpl_orchestrator.db.models import Base
 
 def _engine():
     settings = get_settings()
+    if settings.db_use_null_pool:
+        return create_async_engine(settings.database_url, echo=False, poolclass=NullPool)
     return create_async_engine(settings.database_url, echo=False, pool_pre_ping=True)
 
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 
 # Applied before test modules import `app` / `get_settings`.
+os.environ.setdefault("DB_USE_NULL_POOL", "true")
 os.environ.setdefault("ADMIN_BASIC_PASSWORD", "ci-integration-admin-secret")
 os.environ.setdefault("JWT_SECRET_KEY", "ci-test-jwt-secret-key-min-32-chars")
 os.environ.setdefault("OPENAI_API_KEY", "sk-ci-openai-placeholder-not-used-when-mocked")

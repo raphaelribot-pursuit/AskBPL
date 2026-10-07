@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     jwt_secret_key: str = ""
     jwt_algorithm: str = "HS256"
     session_ttl_hours: int = 8
+    # Tests set DB_USE_NULL_POOL=true so pooled asyncpg connections never outlive
+    # the event loop that created them (TestClient and asyncio.run use different loops).
+    db_use_null_pool: bool = False
 
     openai_api_key: str = ""
     openai_embedding_model: str = "text-embedding-3-small"
