@@ -27,6 +27,8 @@ from ask_bpl_orchestrator.db.models import (
     Session,
 )
 from ask_bpl_orchestrator.services import generation, routing_service
+from ask_bpl_orchestrator.services.routing_service import public_contact_hint
+from ask_bpl_orchestrator.services.citation_verifier import verify_citations
 from ask_bpl_orchestrator.services.crisis_gate import detect_crisis, format_crisis_response
 from ask_bpl_orchestrator.services.intent_guard import flagged_intents
 from ask_bpl_orchestrator.services.pii_gate import rejects_input
@@ -133,7 +135,8 @@ def _payload(
         "refusal_explanation": resp.refusal_explanation,
         "inferred_policy_type": resp.inferred_policy_type,
         "routing": [
-            {"team": t.name, "contact_hint": t.contact_hint, "team_id": str(t.team_id)} for t in teams
+            {"team": t.name, "contact_hint": public_contact_hint(t.contact_hint), "team_id": str(t.team_id)}
+            for t in teams
         ],
         "citations": citations,
     }
@@ -304,8 +307,10 @@ async def handle_ask(
         _emit_structured_ask_log(
             {
                 "event": "query_rewrite",
-                "original": question_text,
-                "rewritten": retrieval_query,
+                # Log lengths only. Question text must not reach logs (SAF-5, NFR-4, AC-15).
+                "original_chars": len(question_text),
+                "rewritten_chars": len(retrieval_query),
+                "rewritten_changed": retrieval_query != question_text,
                 "request_id": str(request_id),
             }
         )
@@ -390,11 +395,11 @@ async def handle_ask(
         conversation_context=conversation_context,
     )
     retrieval_ids = {c.chunk_id for c in retrieved}
-    ok = (
-        bool(cited)
-        and all(i in retrieval_ids for i in cited)
-        and not refusal_flag
-        and ans.strip() != ""
+    ok = verify_citations(
+        cited=cited,
+        retrieval_ids=retrieval_ids,
+        refusal_flag=refusal_flag,
+        answer=ans,
     )
     if not ok:
         rtype = (

@@ -75,7 +75,11 @@ async def seed_policies(rows: list[dict]) -> None:
 
 
 async def seed_rules(rows: list[dict]) -> None:
-    auto_approve = os.environ.get("SEED_AUTO_APPROVE_ROUTING", "1").strip() not in {"0", "false", "False"}
+    # Default is OFF: routing rules start unapproved and are approved by the designated BPL
+    # approver in the admin console (PRD RTG-3, RTG-5, D-04). Unapproved rules are never used,
+    # so staff get the neutral supervisor referral (RTG-7). Set SEED_AUTO_APPROVE_ROUTING=1
+    # for local development only.
+    auto_approve = os.environ.get("SEED_AUTO_APPROVE_ROUTING", "0").strip().lower() in {"1", "true", "yes"}
     async with async_session_factory() as session:
         for rule_payload in rows:
             policy_slug = rule_payload["policy_type_slug"]

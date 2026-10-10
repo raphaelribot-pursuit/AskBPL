@@ -12,6 +12,26 @@ from sqlalchemy.orm import selectinload
 from ask_bpl_orchestrator.db.models import OwningTeam, PolicyType, RoutingRule
 
 
+NEUTRAL_CONTACT_HINT = "Your supervisor can point you to the right contact."
+
+# Words that mark internal placeholder text. Staff must never see these (PRD RTG-7).
+_PLACEHOLDER_MARKERS = ("tbd", "pending", "todo", "selvon", "placeholder")
+
+
+def public_contact_hint(hint: Optional[str]) -> str:
+    """Return a contact hint that is safe to show staff.
+
+    Placeholder or internal-process wording (for example "TBD pending Selvon approval")
+    is replaced by a neutral supervisor referral. The system never invents a contact
+    (RTG-4, RTG-7).
+    """
+    text = (hint or "").strip()
+    lowered = text.lower()
+    if not text or any(m in lowered for m in _PLACEHOLDER_MARKERS):
+        return NEUTRAL_CONTACT_HINT
+    return text
+
+
 async def teams_for_policy(session: AsyncSession, policy_type: str) -> List[OwningTeam]:
     q = await session.execute(
         select(RoutingRule)

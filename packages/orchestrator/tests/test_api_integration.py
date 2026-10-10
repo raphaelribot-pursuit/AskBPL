@@ -135,7 +135,8 @@ def test_ask_pii_returns_400() -> None:
 
 
 def test_ask_pii_in_conversation_context_is_not_rescanned() -> None:
-    """The PII gate scans ONLY the current question (PRD SAF-1; commit e525f1c).
+    """The PII gate scans ONLY the current question (commit e525f1c). Whether earlier turns
+    must also be scanned is open decision OD-12 (PRD SAF-10); revisit this test when it closes.
 
     History is not re-scanned, otherwise one blocked message that leaked into the
     context would reject every later turn. PII typed in the current question is

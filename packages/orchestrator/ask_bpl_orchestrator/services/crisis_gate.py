@@ -128,22 +128,19 @@ def _is_safe_context(text: str) -> bool:
 def detect_crisis(text: str) -> bool:
     """Detect if the input expresses first-person suicidal ideation or self-harm intent.
 
-    Returns True if crisis detected and NOT in safe context.
-    Returns False if no crisis detected OR if in safe policy/training context.
+    Returns True when a first-person crisis pattern matches, even if the same message
+    also mentions a policy, procedure or training (for example "I want to die. Where is
+    the suicide prevention policy?"). Safe-context phrasing only decides messages that
+    have NO first-person crisis pattern, so it can never suppress a real expression of
+    intent. SAF-3 / AC-6; found fail-open on 2026-10-10.
 
     SAFETY: False positive (showing resources unnecessarily) is far less harmful
-    than a miss. Err on the side of showing resources when uncertain.
+    than a miss.
     """
     if not text or not text.strip():
         return False
 
     normalized = " ".join(text.split())  # collapse whitespace
-
-    # First check: is this safe policy/training context?
-    if _is_safe_context(normalized):
-        return False
-
-    # Second check: does it match crisis patterns?
     return _matches_crisis_pattern(normalized)
 
 

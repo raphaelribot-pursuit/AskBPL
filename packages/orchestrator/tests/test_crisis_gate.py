@@ -183,3 +183,32 @@ class TestCrisisResponse:
             assert "name" in resource
             assert "contact" in resource
             assert "description" in resource
+
+
+class TestCrisisWithPolicyWording:
+    """A first-person expression of intent must not be suppressed by policy words (SAF-3, AC-6)."""
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "I want to die. Is there a suicide prevention policy I can read?",
+            "I'm thinking about ending my life and need the crisis policy",
+            "I want to end it all, what should staff do if they feel this way",
+            "I want to kill myself. What does the crisis procedure say?",
+            "I don't want to live anymore, what is the EAP procedure",
+        ],
+    )
+    def test_first_person_intent_plus_policy_words_still_triggers(self, text: str) -> None:
+        assert detect_crisis(text) is True, f"Should detect crisis in: {text!r}"
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "What is the crisis management policy?",
+            "A patron said he is suicidal, what should I do?",
+            "What does the suicide prevention training cover?",
+            "What should staff do if a patron says they want to die?",
+        ],
+    )
+    def test_policy_and_third_person_questions_still_pass(self, text: str) -> None:
+        assert detect_crisis(text) is False, f"Should not trigger on: {text!r}"
