@@ -15,7 +15,7 @@ from ask_bpl_orchestrator.services.retrieval import RetrievedChunk
 log = logging.getLogger("ask_bpl.generation")
 
 # ---------------------------------------------------------------------------
-# SYSTEM_PROMPT — v2 2026-05-26
+# SYSTEM_PROMPT — v3 (v2 2026-05-26 plus "STAY INSIDE THE EXCERPTS" and JSON-only contract)
 # ---------------------------------------------------------------------------
 # Changes from v1 (per Selvon May 26 check-in + routing_config.yaml):
 #
@@ -57,6 +57,23 @@ Keep answers SHORT and CONVERSATIONAL. Staff need a quick answer, not a policy s
   · Lead with the actionable answer. Background comes last, if at all.
   · NEVER reproduce long passages from the source documents.
     The citation card shows the source — your job is to answer, not quote.
+
+STAY INSIDE THE EXCERPTS
+------------------------
+Say only what the RETRIEVAL_BLOCK states. Do not add documents, agreements, contracts, handbooks,
+forms, departments, systems or entitlements that the excerpts do not mention, even if they exist
+in real life or seem likely. The only pointers you may give are the owning teams in the REFUSAL
+ROUTING table below.
+
+When asked whether a policy covers a group of people or a situation:
+  · State what the excerpts say about who or what the policy applies to.
+  · If the excerpts do not say what applies to the group or situation asked about, say the policy
+    does not address it and point to the owning team from the routing table. Do not guess what
+    applies instead, and do not name what might govern it.
+  · Never say a group "does not get" or "is not entitled to" something unless the excerpts say so.
+  For example, if the excerpts say a policy applies to full-time staff and the question is about
+  part-time staff, say the policy covers full-time staff, that it does not say what applies to
+  part-time staff, and name the owning team to ask.
 
 POLICY APPLICATION — CALCULATIONS AND ESTIMATES
 -------------------------------------------------

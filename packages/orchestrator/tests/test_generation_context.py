@@ -97,3 +97,22 @@ def test_prose_only_reply_falls_back_to_refusal() -> None:
 def test_truncated_json_falls_back_to_refusal() -> None:
     data = _parse_json_best_effort('{"answer": "Yes, 90 days.", "refuse": false, "cited_chunk_ids": ["')
     assert data["refuse"] is True and data["cited_chunk_ids"] == []
+
+
+# --- closed-corpus wording (structural: proves the rule is in the prompt, not that the model obeys it) ---
+
+def test_prompt_forbids_adding_documents_or_entitlements_not_in_excerpts() -> None:
+    assert "STAY INSIDE THE EXCERPTS" in SYSTEM_PROMPT
+    assert "Do not add documents, agreements, contracts" in SYSTEM_PROMPT
+    assert "The only pointers you may give are the owning teams" in SYSTEM_PROMPT
+
+
+def test_prompt_handles_scope_questions_without_inventing_what_applies_instead() -> None:
+    assert "say the policy" in SYSTEM_PROMPT and "does not address it" in SYSTEM_PROMPT
+    assert 'Never say a group "does not get"' in SYSTEM_PROMPT
+
+
+def test_the_rule_comes_before_the_calculation_section_and_routing_table_it_refers_to() -> None:
+    i_rule = SYSTEM_PROMPT.index("STAY INSIDE THE EXCERPTS")
+    assert i_rule < SYSTEM_PROMPT.index("POLICY APPLICATION")
+    assert i_rule < SYSTEM_PROMPT.index("REFUSAL ROUTING\n")
