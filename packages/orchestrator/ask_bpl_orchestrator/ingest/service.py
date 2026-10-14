@@ -48,6 +48,14 @@ async def embed_snippet(snippet: str) -> List[float]:
     return await embed_query(snippet, settings=cfg)
 
 
+def _is_missing_namespace(exc: Exception) -> bool:
+    """Pinecone answers 404 "Namespace not found" when deleting from an index that has
+    never received an upsert (the default namespace is created by the first upsert)."""
+    status = getattr(exc, "status", None) or getattr(exc, "status_code", None)
+    text = str(exc).lower()
+    return "namespace not found" in text or (status == 404 and "namespace" in text)
+
+
 def pinecone_bulk_delete(identifiers: Sequence[str]) -> None:
     identifiers = list(identifiers)
     if not identifiers:
@@ -61,7 +69,14 @@ def pinecone_bulk_delete(identifiers: Sequence[str]) -> None:
 
     BATCH = 200
     for start in range(0, len(identifiers), BATCH):
-        index.delete(ids=identifiers[start : start + BATCH])
+        try:
+            index.delete(ids=identifiers[start : start + BATCH])
+        except Exception as exc:  # noqa: BLE001
+            if _is_missing_namespace(exc):
+                # Nothing was ever upserted, so there is nothing to delete. This happens on a
+                # brand-new index when an earlier ingest wrote Postgres rows but failed before upsert.
+                return
+            raise
 
 
 def pinecone_bulk_upsert(rows: List[Tuple[str, List[float], dict]]) -> None:

@@ -388,3 +388,37 @@ async def test_batch_ingest_refuses_blocked_and_excluded_and_passes_inventory_ro
     assert len(calls) == 7  # 8 manifest entries minus the blocked scan
     assert all(c["inventory_row"] is not None and c["inventory_row"].test_index_member for c in calls)
     assert not any("Conflict of Interest" in str(c["absolute_path"]) for c in calls)
+
+
+# ---------------------------------------------------------------- 0003a: fresh-index delete, empty DB
+
+def test_bulk_delete_tolerates_missing_namespace_on_new_index() -> None:
+    from unittest.mock import MagicMock
+
+    from ask_bpl_orchestrator.ingest import service
+
+    class NotFound(Exception):
+        pass
+
+    idx = MagicMock()
+    idx.delete.side_effect = NotFound("Namespace not found")
+    cfg = MagicMock(pinecone_api_key="k")
+    with patch.object(service, "get_pinecone_index", return_value=idx), patch.object(service, "get_settings", return_value=cfg):
+        service.pinecone_bulk_delete(["a", "b"])  # must not raise
+    idx.delete.side_effect = NotFound("Invalid API key")
+    with patch.object(service, "get_pinecone_index", return_value=idx), patch.object(service, "get_settings", return_value=cfg):
+        with pytest.raises(NotFound):  # other errors still surface
+            service.pinecone_bulk_delete(["a"])
+
+
+@pytest.mark.asyncio
+async def test_apply_inventory_reports_empty_database() -> None:
+    from unittest.mock import MagicMock
+
+    db = MagicMock()
+    result = MagicMock()
+    result.scalars.return_value.all.return_value = []
+    db.execute = AsyncMock(return_value=result)
+    lines = await apply_inventory_to_db(db, load_inventory(INVENTORY))
+    assert lines[0] == "found:0:stored documents"
+    assert any(l.startswith("error:no stored documents") for l in lines)

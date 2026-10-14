@@ -160,6 +160,10 @@ async def apply_inventory_to_db(
     """Match stored documents to inventory rows by file name and set their disposition."""
     lines: List[str] = []
     docs = (await db.execute(select(Document))).scalars().all()
+    lines.append(f"found:{len(docs)}:stored documents")
+    if not docs:
+        lines.append("error:no stored documents; run askbpl-ingest-batch first (and check DATABASE_URL)")
+        return lines
     seen: set[str] = set()
     to_purge: List[str] = []
     for doc in docs:
@@ -223,8 +227,11 @@ def main() -> None:
         async with async_session_factory() as db:
             return await apply_inventory_to_db(db, inv, purge_vectors=args.purge_vectors)
 
-    for line in asyncio.run(_run()):
+    out = asyncio.run(_run())
+    for line in out:
         print(line)  # noqa: T201
+    if any(line.startswith("error:") for line in out):
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
