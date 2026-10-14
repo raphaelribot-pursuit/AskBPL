@@ -399,10 +399,13 @@ async def handle_ask(
         )
         return out
 
+    # Owning teams the model may name: approved routing rules for the policy areas actually retrieved.
+    routing = await routing_service.routing_choices(db, [c.policy_type for c in retrieved])
     ans, refusal_flag, cited, _raw = await generation.generate_answer(
         question=question_text,
         chunks=retrieved,
         conversation_context=conversation_context,
+        routing=routing,
     )
     retrieval_ids = {c.chunk_id for c in retrieved}
     ok = verify_citations(

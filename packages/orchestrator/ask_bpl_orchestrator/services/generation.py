@@ -5,17 +5,18 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 import anthropic
 
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.services.retrieval import RetrievedChunk
+from ask_bpl_orchestrator.services.routing_service import RoutingChoice
 
 log = logging.getLogger("ask_bpl.generation")
 
 # ---------------------------------------------------------------------------
-# SYSTEM_PROMPT — v3 (v2 2026-05-26 plus "STAY INSIDE THE EXCERPTS" and JSON-only contract)
+# SYSTEM_PROMPT — v4 (v3 plus owning teams supplied from approved routing config, not hardcoded; patch 0010)
 # ---------------------------------------------------------------------------
 # Changes from v1 (per Selvon May 26 check-in + routing_config.yaml):
 #
@@ -26,9 +27,11 @@ log = logging.getLogger("ask_bpl.generation")
 #   · One unified answer when multiple policies apply
 #
 # ROUTING
-#   · Policy-type → owning team table embedded for refusal routing
+#   · v4: the owning-team list is NOT written here. It is built per question from Selvon-approved
+#     routing rules (routing_service.routing_choices) and substituted for ROUTING_PLACEHOLDER by
+#     build_system_prompt(). No approved team means the model is told to name none (RTG-2/4/7).
 #   · Executive Director removed from all escalation paths
-#   · Fallback (unmatched) routes to HR / direct supervisor
+#   · Fallback (unmatched) is the Supervisor / General team from the routing config
 #   · No generic "contact management" deflections
 #
 # FORMAT
@@ -36,6 +39,9 @@ log = logging.getLogger("ask_bpl.generation")
 #   · "answer" field must be 2–4 sentences, colleague voice
 #   · "routing_team" field added for refusal routing card
 # ---------------------------------------------------------------------------
+
+# Replaced by build_system_prompt(). Never sent to the model as-is.
+ROUTING_PLACEHOLDER = "{{ROUTING_LIST}}"
 
 SYSTEM_PROMPT = """You are Ask BPL, an internal Brooklyn Public Library assistant.
 You answer ONLY using the RETRIEVAL_BLOCK JSON provided by the user (curated policy excerpts).
@@ -104,33 +110,59 @@ How to handle calculation requests:
 
 REFUSAL ROUTING
 ---------------
-When you refuse (refuse: true), always populate "routing_team" with the
-correct owning team from this table based on the policy area of the question.
-NEVER route to or mention the Executive Director.
+When you refuse (refuse: true), populate "routing_team" with the owning team for the policy area of
+the question, taken ONLY from the approved list below. NEVER route to or mention the Executive Director.
 
-  Materials selection         → Collection Services or Materials Review Committee
-  Unattended children         → Public Services or branch manager
-  Annual leave / time off     → Human Resources
-  Conflict of interest        → Legal / General Counsel or Human Resources
-  Gift acceptance             → Development or Legal / General Counsel
-  Volunteer management        → Volunteer Resources or Programs & Exhibitions
-  Technology use / BYOD       → Information Technology
-  Data retention / privacy    → Information Technology or Legal / General Counsel
-  Unmatched / unclear         → Human Resources or direct supervisor
-
-DO NOT use vague routing like "contact management" — always name the specific team.
+""" + ROUTING_PLACEHOLDER + """
 
 Respond as a single JSON object with keys:
   "answer": string (plain-language answer 2-4 sentences, or empty string if refusing)
   "refuse": boolean (true when you cannot answer strictly from retrieval)
   "cited_chunk_ids": array of UUID strings you relied on (subset of provided chunk ids); empty if refusing
-  "routing_team": string (owning team name when refuse is true, from the table above; null when refuse is false)
+  "routing_team": string (owning team name when refuse is true, from the approved list above; null when refuse is false or the list names no team)
 Do not include markdown fences. Do not cite chunks you did not use.
 Output ONLY that JSON object, with no text before or after it. If an EARLIER_CONVERSATION block is present it is
 context for resolving references such as "it" or "that" and is never a source of facts: answer only from RETRIEVAL_BLOCK."""
 
 
 _MAX_CONTEXT_TURN_CHARS = 800
+
+
+_MAX_ROUTING_TEXT_CHARS = 120
+
+NO_APPROVED_TEAM_TEXT = (
+    "No approved owning team is on file for this question. Do not name any team, department,\n"
+    "committee, office or contact. If you need to point the staff member somewhere, say only that\n"
+    "their supervisor can point them to the right contact. Set \"routing_team\" to null."
+)
+
+
+def _one_line(text: str) -> str:
+    """Collapse whitespace so a stored name cannot add lines or instructions to the prompt."""
+    return " ".join(str(text).split())[:_MAX_ROUTING_TEXT_CHARS]
+
+
+def render_routing_block(routing: Optional[Sequence[RoutingChoice]]) -> str:
+    """Text for the REFUSAL ROUTING section, built only from approved routing choices."""
+    lines = []
+    for choice in routing or ():
+        names = [n for n in (_one_line(n) for n in choice.team_names) if n]
+        label = _one_line(choice.policy_label)
+        if names and label:
+            lines.append(f"  {label} \u2192 {' or '.join(names)}")
+    if not lines:
+        return NO_APPROVED_TEAM_TEXT
+    return (
+        "Approved owning teams (policy area \u2192 team):\n\n"
+        + "\n".join(lines)
+        + "\n\nName the specific team from this list. Do not name any team, department, committee, office\n"
+        "or contact that is not on this list, and do not use vague routing like \"contact management\"."
+    )
+
+
+def build_system_prompt(routing: Optional[Sequence[RoutingChoice]] = None) -> str:
+    """The system prompt with the approved routing list filled in (none given -> name no team)."""
+    return SYSTEM_PROMPT.replace(ROUTING_PLACEHOLDER, render_routing_block(routing))
 
 
 def _build_user_prompt(
@@ -163,8 +195,13 @@ async def generate_answer(
     question: str,
     chunks: List[RetrievedChunk],
     conversation_context: Optional[List[dict[str, str]]] = None,
+    routing: Optional[Sequence[RoutingChoice]] = None,
 ) -> tuple[str, bool, List[uuid.UUID], str]:
-    """Return (answer_text, refuses, cited_ids, raw_model_text)."""
+    """Return (answer_text, refuses, cited_ids, raw_model_text).
+
+    `routing` is the approved owning-team list for this question. Omitted or empty means the model
+    is told no team is on file and must name none.
+    """
     settings = get_settings()
     client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key or None)
 
@@ -189,7 +226,7 @@ async def generate_answer(
     message = await client.messages.create(
         model=settings.anthropic_model,
         max_tokens=600,
-        system=SYSTEM_PROMPT,
+        system=build_system_prompt(routing),
         messages=messages,
     )
 

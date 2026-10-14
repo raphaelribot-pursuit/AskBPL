@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from ask_bpl_orchestrator.services import generation
-from ask_bpl_orchestrator.services.generation import SYSTEM_PROMPT, _parse_json_best_effort
+from ask_bpl_orchestrator.services.generation import SYSTEM_PROMPT, _parse_json_best_effort, build_system_prompt
 from ask_bpl_orchestrator.services.retrieval import RetrievedChunk
 
 CID = uuid.uuid4()
@@ -63,7 +63,7 @@ async def test_no_context_means_no_earlier_block_and_one_message() -> None:
 @pytest.mark.asyncio
 async def test_system_prompt_demands_json_only_and_denies_history_as_a_source() -> None:
     _, kwargs = await _run(CONTEXT)
-    assert kwargs["system"] == SYSTEM_PROMPT
+    assert kwargs["system"] == build_system_prompt(None)  # no routing supplied -> names no team
     assert "Output ONLY that JSON object" in SYSTEM_PROMPT
     assert "never a source of facts" in SYSTEM_PROMPT
 

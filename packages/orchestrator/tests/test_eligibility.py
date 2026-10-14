@@ -210,7 +210,7 @@ def test_end_to_end_only_answerable_chunks_reach_model_and_citations() -> None:
     asyncio.run(_seed())
     seen: dict[str, list] = {}
 
-    async def fake_generate(*, question, chunks, conversation_context=None):
+    async def fake_generate(*, question, chunks, conversation_context=None, routing=None):
         seen["chunks"] = [c.chunk_id for c in chunks]
         return "Staff record gifts over $500.", False, list(seen["chunks"]), "{}"
 
