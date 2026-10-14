@@ -1,0 +1,104 @@
+{
+  "edited_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    8,
+    9
+  ],
+  "excluded_pages": [],
+  "finalized_at_utc": "2026-10-14T02:25:39+00:00",
+  "ocr_dpi": 300,
+  "pages": [
+    {
+      "edited": true,
+      "note": "",
+      "page": 1,
+      "similarity_to_machine_text": 1.0,
+      "text_sha256": "78f922966a8455420dd73c0138fd3dec2e56ca6047d1d4bf8bfe6d9e49c5ed80",
+      "verdict": "verified"
+    },
+    {
+      "edited": true,
+      "note": "",
+      "page": 2,
+      "similarity_to_machine_text": 0.998,
+      "text_sha256": "451b75e743f3e8f5ce910bab99a722a6f30825f089814514f0d1c0c5724c1e9b",
+      "verdict": "verified"
+    },
+    {
+      "edited": true,
+      "note": "",
+      "page": 3,
+      "similarity_to_machine_text": 0.998,
+      "text_sha256": "43dc1498f495f4f7b7f280e44429aaaab627da259838c41bbf6f9549814e4af6",
+      "verdict": "verified"
+    },
+    {
+      "edited": true,
+      "note": "",
+      "page": 4,
+      "similarity_to_machine_text": 0.999,
+      "text_sha256": "397eca6e3924f1d2eb322239f205aaf6f9c3654750a8ccf3d728a1c42c331ef2",
+      "verdict": "verified"
+    },
+    {
+      "edited": true,
+      "note": "",
+      "page": 5,
+      "similarity_to_machine_text": 0.999,
+      "text_sha256": "a5156b6d97fc23ef72ddd6d1d1df9415c5144cf9352353d8cb64a7438be2b206",
+      "verdict": "verified"
+    },
+    {
+      "edited": true,
+      "note": "",
+      "page": 6,
+      "similarity_to_machine_text": 0.996,
+      "text_sha256": "9c64f304da4606a2cfddd088f1afa28000282539f7c62cb00c86c9e6c67548c2",
+      "verdict": "verified"
+    },
+    {
+      "edited": false,
+      "note": "",
+      "page": 7,
+      "text_sha256": "361173d5d6edc59709e8488edc128736433b8866669db1d149daa67f52658c47",
+      "verdict": "verified"
+    },
+    {
+      "edited": true,
+      "note": "",
+      "page": 8,
+      "similarity_to_machine_text": 0.328,
+      "text_sha256": "7e3d7cf5fe3efd7ee0b9b8a12988e0efdc797f873a94f6480756e5f694f002be",
+      "verdict": "verified"
+    },
+    {
+      "edited": true,
+      "note": "",
+      "page": 9,
+      "similarity_to_machine_text": 1.0,
+      "text_sha256": "55b22abdb58213bb6830c02ac57e63a8037af339538c5df19d001b426fa8a435",
+      "verdict": "verified"
+    },
+    {
+      "edited": false,
+      "note": "",
+      "page": 10,
+      "text_sha256": "351e6690002e9e2119e8b4e14f026f38800d07e5ff5a033fa116df815713c136",
+      "verdict": "verified"
+    }
+  ],
+  "pdf_file_name": "06 - Conflict of Interest (06.14) (1) (1).pdf",
+  "pdf_sha256": "e4809e2eab733dba1d6ac4e4abd5c9973a6b0ddc9508d43975fa7950a94fe0a2",
+  "reviewed_on": "2026-10-13",
+  "reviewer": "Lee Alder",
+  "schema_version": 1,
+  "source_id": "SRC-13",
+  "tesseract_version": "5.5.3",
+  "validated_text_file": "validated_text.md",
+  "validated_text_sha256": "fce10049dbcee143307f39de5fe3990c0bbc342f0dbfa7278764ce3665e1e54e"
+}

@@ -1,0 +1,105 @@
+{
+  "created_at_utc": "2026-10-14T01:29:58+00:00",
+  "low_confidence_below": 70.0,
+  "ocr_dpi": 300,
+  "pages": [
+    {
+      "flags": [],
+      "machine_text_sha256": "0d90a5db9247ccce323faf8a5394cc7f6ac29d0ee8ce86ec46e2872bd5a7348a",
+      "mean_confidence": 94.8,
+      "page": 1,
+      "textlayer_chars": 2494,
+      "words": 379,
+      "working_text_from": "ocr"
+    },
+    {
+      "flags": [],
+      "machine_text_sha256": "063c936ac544dd445548dd7f44c6e4fe5bbefdf554e0c5a4826d4ba44be12e5a",
+      "mean_confidence": 94.8,
+      "page": 2,
+      "textlayer_chars": 0,
+      "words": 403,
+      "working_text_from": "ocr"
+    },
+    {
+      "flags": [],
+      "machine_text_sha256": "93f1961b09cc6360ba51c4202efa944d22687af9cf04d7afdab574b2669c8145",
+      "mean_confidence": 95.5,
+      "page": 3,
+      "textlayer_chars": 0,
+      "words": 387,
+      "working_text_from": "ocr"
+    },
+    {
+      "flags": [],
+      "machine_text_sha256": "45882e91ccdd1cfa5e46cd2761261654da08632a060c9609e9f6e530cb1179ca",
+      "mean_confidence": 94.9,
+      "page": 4,
+      "textlayer_chars": 0,
+      "words": 338,
+      "working_text_from": "ocr"
+    },
+    {
+      "flags": [],
+      "machine_text_sha256": "6c4d167451711fca73e80f594ec4725ad409a6d4b1b7240d78f826522ab8cd96",
+      "mean_confidence": 95.1,
+      "page": 5,
+      "textlayer_chars": 0,
+      "words": 348,
+      "working_text_from": "ocr"
+    },
+    {
+      "flags": [],
+      "machine_text_sha256": "964dcdb9a854cd932841a050bace3cdd6f367ce051c20ce8326513ddd3009ed8",
+      "mean_confidence": 94.3,
+      "page": 6,
+      "textlayer_chars": 0,
+      "words": 420,
+      "working_text_from": "ocr"
+    },
+    {
+      "flags": [],
+      "machine_text_sha256": "361173d5d6edc59709e8488edc128736433b8866669db1d149daa67f52658c47",
+      "mean_confidence": 95.6,
+      "page": 7,
+      "textlayer_chars": 0,
+      "words": 151,
+      "working_text_from": "ocr"
+    },
+    {
+      "flags": [],
+      "machine_text_sha256": "920ffc0847c0b80d2e62e8498fd1a6c5e95d4176e1d85b7b7881ba95bec3a3b2",
+      "mean_confidence": 94.1,
+      "page": 8,
+      "textlayer_chars": 0,
+      "words": 278,
+      "working_text_from": "ocr"
+    },
+    {
+      "flags": [],
+      "machine_text_sha256": "fd12e4b5f6513e9353380ed2a71f70b4810fbaff4b1de2b28e40f25271e85b45",
+      "mean_confidence": 95.6,
+      "page": 9,
+      "textlayer_chars": 0,
+      "words": 448,
+      "working_text_from": "ocr"
+    },
+    {
+      "flags": [
+        "thin"
+      ],
+      "machine_text_sha256": "351e6690002e9e2119e8b4e14f026f38800d07e5ff5a033fa116df815713c136",
+      "mean_confidence": 95.6,
+      "page": 10,
+      "textlayer_chars": 0,
+      "words": 33,
+      "working_text_from": "ocr"
+    }
+  ],
+  "pdf_file_name": "06 - Conflict of Interest (06.14) (1) (1).pdf",
+  "pdf_sha256": "e4809e2eab733dba1d6ac4e4abd5c9973a6b0ddc9508d43975fa7950a94fe0a2",
+  "schema_version": 1,
+  "source_id": "SRC-13",
+  "tesseract_version": "5.5.3",
+  "thin_below_words": 60
+}

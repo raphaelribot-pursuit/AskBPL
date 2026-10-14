@@ -1,0 +1,50 @@
+# Extraction review for SRC-13  (06 - Conflict of Interest (06.14) (1) (1).pdf)
+#
+# 1. Open report.html (or each pages/page-NN.png next to pages/page-NN.txt) and compare image and text.
+# 2. Correct any wrong word, number or missing line directly in pages/page-NN.txt. Never edit *.ocr.txt.
+# 3. For each page below set verdict to  verified  (text is a faithful copy of the page)
+#    or  excluded  (page is blank / unreadable / not policy text; give the reason in note).
+# 4. Fill in reviewer, reviewed_on (YYYY-MM-DD) and set confirmed: true.
+# 5. Run:  askbpl-extraction-review finalize --dir <this folder>
+#
+# Nothing here makes the policy answerable. Activation is a separate step (docs/EXTRACTION_REVIEW.md).
+
+source_id: SRC-13
+pdf_sha256: e4809e2eab733dba1d6ac4e4abd5c9973a6b0ddc9508d43975fa7950a94fe0a2
+
+reviewer: "Lee Alder"          # your full name
+reviewed_on: "2026-10-13"       # YYYY-MM-DD
+confirmed: true      # true = "I compared every page image with its text; the text is faithful"
+
+pages:
+  - page: 1
+    verdict: verified   # verified | excluded
+    note: ""      # required when excluded
+  - page: 2
+    verdict: verified   # verified | excluded
+    note: ""      # required when excluded
+  - page: 3
+    verdict: verified   # verified | excluded
+    note: ""      # required when excluded
+  - page: 4
+    verdict: verified   # verified | excluded
+    note: ""      # required when excluded
+  - page: 5
+    verdict: verified   # verified | excluded
+    note: ""      # required when excluded
+  - page: 6
+    verdict: verified   # verified | excluded
+    note: ""      # required when excluded
+  - page: 7
+    verdict: verified   # verified | excluded
+    note: ""      # required when excluded
+  - page: 8
+    verdict: verified   # verified | excluded
+    note: ""      # required when excluded
+  - page: 9
+    verdict: verified   # verified | excluded
+    note: ""      # required when excluded
+  - page: 10
+    verdict: verified   # verified | excluded
+    note: ""      # required when excluded
+    # flags: thin
