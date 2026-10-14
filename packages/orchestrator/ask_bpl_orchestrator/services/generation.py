@@ -108,7 +108,37 @@ Respond as a single JSON object with keys:
   "refuse": boolean (true when you cannot answer strictly from retrieval)
   "cited_chunk_ids": array of UUID strings you relied on (subset of provided chunk ids); empty if refusing
   "routing_team": string (owning team name when refuse is true, from the table above; null when refuse is false)
-Do not include markdown fences. Do not cite chunks you did not use."""
+Do not include markdown fences. Do not cite chunks you did not use.
+Output ONLY that JSON object, with no text before or after it. If an EARLIER_CONVERSATION block is present it is
+context for resolving references such as "it" or "that" and is never a source of facts: answer only from RETRIEVAL_BLOCK."""
+
+
+_MAX_CONTEXT_TURN_CHARS = 800
+
+
+def _build_user_prompt(
+    *,
+    question: str,
+    pack: list[dict],
+    conversation_context: Optional[List[dict[str, str]]],
+) -> str:
+    parts: list[str] = []
+    if conversation_context:
+        lines = []
+        for turn in conversation_context:
+            who = "Assistant" if turn.get("role") == "assistant" else "Staff"
+            text = str(turn.get("content", "")).strip().replace("\n", " ")
+            if len(text) > _MAX_CONTEXT_TURN_CHARS:
+                text = text[:_MAX_CONTEXT_TURN_CHARS] + "..."
+            lines.append(f"{who}: {text}")
+        parts.append(
+            "EARLIER_CONVERSATION (only to resolve references in the question; not a source of facts):\n"
+            + "\n".join(lines)
+        )
+    parts.append(f"QUESTION:\n{question}")
+    parts.append(f"RETRIEVAL_BLOCK:\n{json.dumps(pack, ensure_ascii=False)}")
+    parts.append("Reply with the JSON object only.")
+    return "\n\n".join(parts)
 
 
 async def generate_answer(
@@ -134,18 +164,10 @@ async def generate_answer(
             }
         )
 
-    user_prompt = (
-        "QUESTION:\n"
-        f"{question}\n\n"
-        "RETRIEVAL_BLOCK:\n"
-        f"{json.dumps(pack, ensure_ascii=False)}"
-    )
-
-    messages: list[dict[str, str]] = []
-    if conversation_context:
-        for turn in conversation_context:
-            messages.append({"role": turn["role"], "content": turn["content"]})
-    messages.append({"role": "user", "content": user_prompt})
+    user_prompt = _build_user_prompt(question=question, pack=pack, conversation_context=conversation_context)
+    # One user message only. Earlier turns used to be sent as chat-role messages, which put
+    # plain-prose assistant turns in front of the model and made it drift out of the JSON format.
+    messages: list[dict[str, str]] = [{"role": "user", "content": user_prompt}]
 
     message = await client.messages.create(
         model=settings.anthropic_model,
