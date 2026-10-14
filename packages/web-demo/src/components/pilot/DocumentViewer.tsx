@@ -7,6 +7,8 @@ import {
   isMockEnabled,
   type DocumentText,
 } from '../../conversation/askApi'
+import { DEFAULT_TEST_INDEX_LABEL } from '../../conversation/types'
+import { TestIndexNotice } from './TestIndexNotice'
 
 const CHUNK_MARKDOWN: Components = {
   p: ({ children }) => <p className="doc-chunk-p">{children}</p>,
@@ -96,6 +98,12 @@ export function DocumentViewer({
         </button>
       </div>
       <div className="doc-viewer-body">
+        {!loading && !error && doc?.test_index ? (
+          <TestIndexNotice
+            label={doc.index_label || DEFAULT_TEST_INDEX_LABEL}
+            variant="viewer"
+          />
+        ) : null}
         {loading ? <p className="doc-viewer-status">Loading document…</p> : null}
         {error ? (
           <p className="doc-viewer-status doc-viewer-error" role="alert">

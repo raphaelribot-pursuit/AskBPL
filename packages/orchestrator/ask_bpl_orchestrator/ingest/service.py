@@ -23,6 +23,7 @@ from ask_bpl_orchestrator.db.models import (
 )
 from ask_bpl_orchestrator.db.session import async_session_factory
 from ask_bpl_orchestrator.ingest.chunking import split_text_with_sections
+from ask_bpl_orchestrator.ingest.inventory import InventoryRow, apply_row
 from ask_bpl_orchestrator.ingest.loaders import load_bytes
 from ask_bpl_orchestrator.services.pinecone_client import get_pinecone_index
 
@@ -47,6 +48,14 @@ async def embed_snippet(snippet: str) -> List[float]:
     return await embed_query(snippet, settings=cfg)
 
 
+def _is_missing_namespace(exc: Exception) -> bool:
+    """Pinecone answers 404 "Namespace not found" when deleting from an index that has
+    never received an upsert (the default namespace is created by the first upsert)."""
+    status = getattr(exc, "status", None) or getattr(exc, "status_code", None)
+    text = str(exc).lower()
+    return "namespace not found" in text or (status == 404 and "namespace" in text)
+
+
 def pinecone_bulk_delete(identifiers: Sequence[str]) -> None:
     identifiers = list(identifiers)
     if not identifiers:
@@ -60,7 +69,14 @@ def pinecone_bulk_delete(identifiers: Sequence[str]) -> None:
 
     BATCH = 200
     for start in range(0, len(identifiers), BATCH):
-        index.delete(ids=identifiers[start : start + BATCH])
+        try:
+            index.delete(ids=identifiers[start : start + BATCH])
+        except Exception as exc:  # noqa: BLE001
+            if _is_missing_namespace(exc):
+                # Nothing was ever upserted, so there is nothing to delete. This happens on a
+                # brand-new index when an earlier ingest wrote Postgres rows but failed before upsert.
+                return
+            raise
 
 
 def pinecone_bulk_upsert(rows: List[Tuple[str, List[float], dict]]) -> None:
@@ -85,6 +101,7 @@ async def ingest_file(
     title: str,
     version_label: str,
     supersedes_document_id: Optional[uuid.UUID] = None,
+    inventory_row: Optional[InventoryRow] = None,
 ) -> None:
     cfg = get_settings()
 
@@ -185,19 +202,22 @@ async def ingest_file(
             await db_session.execute(delete(Citation).where(Citation.chunk_id.in_(legacy_ids_rows)))
             await db_session.execute(delete(Chunk).where(Chunk.document_id == doc_uuid))
 
-        document_row = Document(
-            document_id=doc_uuid,
-            title=title,
-            version=version_label,
-            policy_type=policy_slug,
-            source_format=source_format,
-            ingested_at=datetime.now(timezone.utc),
-            ingest_status=IngestStatus.indexed,
-            page_count=max(1, len(full_text) // 2000),
-            source_path=rel,
-        )
-
-        await db_session.merge(document_row)
+        # Re-ingest must NOT reset eligibility: update the existing row in place.
+        document_row = await db_session.get(Document, doc_uuid)
+        if document_row is None:
+            document_row = Document(document_id=doc_uuid)  # default-deny: authority_pending, not test-index
+            db_session.add(document_row)
+        document_row.title = title
+        document_row.version = version_label
+        document_row.policy_type = policy_slug
+        document_row.source_format = source_format
+        document_row.ingested_at = datetime.now(timezone.utc)
+        document_row.ingest_status = IngestStatus.indexed
+        document_row.page_count = max(1, len(full_text) // 2000)
+        document_row.source_path = rel
+        if inventory_row is not None:
+            apply_row(document_row, inventory_row)
+        await db_session.flush()
 
         for ordinal, segment in enumerate(segmented, start=1):
             snippet = segment.text

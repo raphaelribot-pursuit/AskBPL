@@ -15,7 +15,7 @@ from ask_bpl_orchestrator.services.retrieval import RetrievedChunk
 log = logging.getLogger("ask_bpl.generation")
 
 # ---------------------------------------------------------------------------
-# SYSTEM_PROMPT — v2 2026-05-26
+# SYSTEM_PROMPT — v3 (v2 2026-05-26 plus "STAY INSIDE THE EXCERPTS" and JSON-only contract)
 # ---------------------------------------------------------------------------
 # Changes from v1 (per Selvon May 26 check-in + routing_config.yaml):
 #
@@ -57,6 +57,23 @@ Keep answers SHORT and CONVERSATIONAL. Staff need a quick answer, not a policy s
   · Lead with the actionable answer. Background comes last, if at all.
   · NEVER reproduce long passages from the source documents.
     The citation card shows the source — your job is to answer, not quote.
+
+STAY INSIDE THE EXCERPTS
+------------------------
+Say only what the RETRIEVAL_BLOCK states. Do not add documents, agreements, contracts, handbooks,
+forms, departments, systems or entitlements that the excerpts do not mention, even if they exist
+in real life or seem likely. The only pointers you may give are the owning teams in the REFUSAL
+ROUTING table below.
+
+When asked whether a policy covers a group of people or a situation:
+  · State what the excerpts say about who or what the policy applies to.
+  · If the excerpts do not say what applies to the group or situation asked about, say the policy
+    does not address it and point to the owning team from the routing table. Do not guess what
+    applies instead, and do not name what might govern it.
+  · Never say a group "does not get" or "is not entitled to" something unless the excerpts say so.
+  For example, if the excerpts say a policy applies to full-time staff and the question is about
+  part-time staff, say the policy covers full-time staff, that it does not say what applies to
+  part-time staff, and name the owning team to ask.
 
 POLICY APPLICATION — CALCULATIONS AND ESTIMATES
 -------------------------------------------------
@@ -108,7 +125,37 @@ Respond as a single JSON object with keys:
   "refuse": boolean (true when you cannot answer strictly from retrieval)
   "cited_chunk_ids": array of UUID strings you relied on (subset of provided chunk ids); empty if refusing
   "routing_team": string (owning team name when refuse is true, from the table above; null when refuse is false)
-Do not include markdown fences. Do not cite chunks you did not use."""
+Do not include markdown fences. Do not cite chunks you did not use.
+Output ONLY that JSON object, with no text before or after it. If an EARLIER_CONVERSATION block is present it is
+context for resolving references such as "it" or "that" and is never a source of facts: answer only from RETRIEVAL_BLOCK."""
+
+
+_MAX_CONTEXT_TURN_CHARS = 800
+
+
+def _build_user_prompt(
+    *,
+    question: str,
+    pack: list[dict],
+    conversation_context: Optional[List[dict[str, str]]],
+) -> str:
+    parts: list[str] = []
+    if conversation_context:
+        lines = []
+        for turn in conversation_context:
+            who = "Assistant" if turn.get("role") == "assistant" else "Staff"
+            text = str(turn.get("content", "")).strip().replace("\n", " ")
+            if len(text) > _MAX_CONTEXT_TURN_CHARS:
+                text = text[:_MAX_CONTEXT_TURN_CHARS] + "..."
+            lines.append(f"{who}: {text}")
+        parts.append(
+            "EARLIER_CONVERSATION (only to resolve references in the question; not a source of facts):\n"
+            + "\n".join(lines)
+        )
+    parts.append(f"QUESTION:\n{question}")
+    parts.append(f"RETRIEVAL_BLOCK:\n{json.dumps(pack, ensure_ascii=False)}")
+    parts.append("Reply with the JSON object only.")
+    return "\n\n".join(parts)
 
 
 async def generate_answer(
@@ -134,18 +181,10 @@ async def generate_answer(
             }
         )
 
-    user_prompt = (
-        "QUESTION:\n"
-        f"{question}\n\n"
-        "RETRIEVAL_BLOCK:\n"
-        f"{json.dumps(pack, ensure_ascii=False)}"
-    )
-
-    messages: list[dict[str, str]] = []
-    if conversation_context:
-        for turn in conversation_context:
-            messages.append({"role": turn["role"], "content": turn["content"]})
-    messages.append({"role": "user", "content": user_prompt})
+    user_prompt = _build_user_prompt(question=question, pack=pack, conversation_context=conversation_context)
+    # One user message only. Earlier turns used to be sent as chat-role messages, which put
+    # plain-prose assistant turns in front of the model and made it drift out of the JSON format.
+    messages: list[dict[str, str]] = [{"role": "user", "content": user_prompt}]
 
     message = await client.messages.create(
         model=settings.anthropic_model,

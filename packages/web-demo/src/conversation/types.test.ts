@@ -65,3 +65,38 @@ describe('rowFromAskResponse refusal mapping', () => {
     }
   })
 })
+
+describe('test-index label (OD-11)', () => {
+  const answer = (extra: Record<string, unknown>, citations: unknown[] = []) =>
+    rowFromAskResponse({
+      status: 200,
+      id: 'a1',
+      payload: { type: 'answer', request_id: 'req-9', answer: 'Yes.', citations, routing: [], ...extra },
+    })
+
+  it('carries the server-provided label onto the answer row', () => {
+    const row = answer({ index_label: 'Test index: sources not yet confirmed current by BPL' })
+    expect(row.kind).toBe('assistant_answer')
+    if (row.kind === 'assistant_answer') {
+      expect(row.indexLabel).toBe('Test index: sources not yet confirmed current by BPL')
+    }
+  })
+
+  it('still labels the answer when only a citation is flagged (fail-safe)', () => {
+    const row = answer({}, [{ chunk_id: 'c1', document_id: 'd1', test_index: true }])
+    if (row.kind !== 'assistant_answer') throw new Error('expected answer')
+    expect(row.indexLabel).toMatch(/test index/i)
+  })
+
+  it('does not label an answer from confirmed sources', () => {
+    const row = answer({}, [{ chunk_id: 'c1', document_id: 'd1', test_index: false }])
+    if (row.kind !== 'assistant_answer') throw new Error('expected answer')
+    expect(row.indexLabel).toBeNull()
+  })
+
+  it('ignores a blank label string', () => {
+    const row = answer({ index_label: '   ' })
+    if (row.kind !== 'assistant_answer') throw new Error('expected answer')
+    expect(row.indexLabel).toBeNull()
+  })
+})

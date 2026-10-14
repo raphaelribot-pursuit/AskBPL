@@ -1,5 +1,5 @@
 import type { TranscriptRow } from './types'
-import { rowFromAskResponse } from './types'
+import { DEFAULT_TEST_INDEX_LABEL, rowFromAskResponse } from './types'
 import {
   apiSessionHeaders,
   apiSessionHeadersReadOnly,
@@ -30,6 +30,9 @@ export type DocumentText = {
   document_id: string
   title: string
   policy_type: string
+  /** True when this document is not yet BPL-confirmed (OD-11 test index). */
+  test_index?: boolean
+  index_label?: string | null
   full_text: string
   chunks: DocumentChunk[]
 }
@@ -342,16 +345,20 @@ function mockAsk(
               document_id: 'gift-acceptance.pdf',
               document_title: 'Gift Acceptance Policy',
               section_heading: '§3 Approval Thresholds',
+              test_index: true,
             },
             {
               chunk_id: 'mock-2',
               document_id: 'donor-records.pdf',
               document_title: 'Donor Record Procedure',
               section_heading: 'Filing & Review',
+              test_index: true,
             },
           ],
           routing: [],
           inferredPolicy: 'gift_acceptance',
+          // Mirrors the live pilot: every source is still in the marked test index.
+          indexLabel: DEFAULT_TEST_INDEX_LABEL,
         },
       })
     }, MOCK_LATENCY_MS)
@@ -383,6 +390,8 @@ function mockDocumentText(documentId: string): DocumentText {
     document_id: documentId,
     title: 'Gift Acceptance Policy',
     policy_type: 'gift_acceptance',
+    test_index: true,
+    index_label: DEFAULT_TEST_INDEX_LABEL,
     full_text: chunks.map((c) => c.text).join('\n\n'),
     chunks,
   }
