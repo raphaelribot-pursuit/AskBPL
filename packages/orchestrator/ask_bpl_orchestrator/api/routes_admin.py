@@ -165,6 +165,9 @@ async def list_documents(db: DbSessionDep, limit: int = 120) -> dict:
                 "reviewed_by": d.reviewed_by,
                 "reviewed_at": d.reviewed_at.isoformat() if d.reviewed_at else None,
                 "status_note": d.status_note,
+                "extraction_status": d.extraction_status,
+                "extraction_validated_by": d.extraction_validated_by,
+                "extraction_validated_at": d.extraction_validated_at.isoformat() if d.extraction_validated_at else None,
                 "superseded_by_document_id": str(d.superseded_by_document_id)
                 if d.superseded_by_document_id
                 else None,

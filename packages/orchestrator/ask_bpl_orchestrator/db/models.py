@@ -62,6 +62,14 @@ class Eligibility(str, enum.Enum):
     superseded = "superseded"
 
 
+class ExtractionStatus:
+    """Plain string constants (not a database enum) for Document.extraction_status."""
+
+    standard = "standard"
+    review_required = "review_required"
+    validated = "validated"
+
+
 class ResponseType(str, enum.Enum):
     answer = "answer"
     refusal_oo_corpus = "refusal_oo_corpus"
@@ -184,6 +192,15 @@ class Document(Base):
     reviewed_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     reviewed_at: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     status_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # --- Extraction review (patch 0009; PRD ING-3, ING-11, GATE-04) ---
+    # 'standard' = normal extraction; 'review_required' = scanned/OCR text a person has not validated yet
+    # (never answerable, whatever the eligibility says); 'validated' = indexed from a hash-bound review record.
+    extraction_status: Mapped[str] = mapped_column(
+        String(16), default=ExtractionStatus.standard, server_default=ExtractionStatus.standard
+    )
+    extraction_validated_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    extraction_validated_at: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    extraction_record_sha256: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
     policy_type_row: Mapped[PolicyType] = relationship(back_populates="documents")
     chunks: Mapped[list["Chunk"]] = relationship(back_populates="document", cascade="all, delete-orphan")

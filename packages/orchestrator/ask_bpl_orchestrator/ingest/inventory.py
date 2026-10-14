@@ -6,21 +6,23 @@ It is NOT BPL approval. This module is deliberately fail-closed:
   * an unrecognised lifecycle value raises, it is never guessed;
   * `Eligible` is only honoured when a reviewer AND review date are recorded,
     otherwise the row is downgraded to `authority_pending` with a warning;
-  * a failed parse check always yields `blocked`, whatever else the row says.
+  * a failed parse check always yields `blocked`, whatever else the row says;
+  * a parse check that says "Validated ..." is only a CLAIM: it is honoured when the stored document
+    carries a verified extraction-review record (patch 0009), otherwise the row stays `blocked`.
 """
 
 from __future__ import annotations
 
 import asyncio
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select
 
-from ask_bpl_orchestrator.db.models import Document, Eligibility
+from ask_bpl_orchestrator.db.models import Document, Eligibility, ExtractionStatus
 
 SHEET = "Source Inventory"
 _REQUIRED = {
@@ -48,6 +50,7 @@ class InventoryRow:
     reviewer: Optional[str] = None
     reviewed_at: Optional[date] = None
     note: Optional[str] = None
+    extraction_validated_claim: bool = False
     warnings: List[str] = field(default_factory=list)
 
     @property
@@ -134,6 +137,7 @@ def load_inventory(path: Path) -> Dict[str, InventoryRow]:
             reviewer=reviewer,
             reviewed_at=reviewed_at,
             note=get(r, "Notes (PRD v1.2 s19.3 / 19.4)"),
+            extraction_validated_claim=(get(r, "Parse check") or "").strip().lower().startswith("validated"),
             warnings=warnings,
         )
         if row.key in out:
@@ -199,6 +203,19 @@ async def apply_inventory_to_db(
             lines.append(f"unlisted:{doc.source_path}:not answerable until it has an inventory row")
             continue
         seen.add(key)
+        if row.extraction_validated_claim and doc.extraction_status != ExtractionStatus.validated:
+            # The workbook says the extraction was validated, but this stored document has no verified
+            # review record. Fail closed: the workbook alone cannot make scanned text answerable.
+            lines.append(
+                f"warning:{row.source_id}:inventory says extraction is validated but no verified review record "
+                "is stored for this document; kept blocked (ingest it with its validated_extraction record)"
+            )
+            row = replace(row, eligibility=Eligibility.blocked, test_index_member=False)
+        elif doc.extraction_status == ExtractionStatus.review_required:
+            lines.append(
+                f"warning:{row.source_id}:stored extraction is review_required; not answerable until a person's "
+                "validation record is ingested"
+            )
         apply_row(doc, row)
         lines.append(
             f"{row.source_id}:{row.eligibility.value}"

@@ -17,12 +17,14 @@ from ask_bpl_orchestrator.db.models import (
     Chunk,
     Citation,
     Document,
+    ExtractionStatus,
     IngestStatus,
     PolicyType,
     SourceFormat,
 )
 from ask_bpl_orchestrator.db.session import async_session_factory
 from ask_bpl_orchestrator.ingest.chunking import split_text_with_sections
+from ask_bpl_orchestrator.ingest.extraction_review import ValidatedExtraction
 from ask_bpl_orchestrator.ingest.inventory import InventoryRow, apply_row
 from ask_bpl_orchestrator.ingest.loaders import load_bytes
 from ask_bpl_orchestrator.services.pinecone_client import get_pinecone_index
@@ -102,6 +104,8 @@ async def ingest_file(
     version_label: str,
     supersedes_document_id: Optional[uuid.UUID] = None,
     inventory_row: Optional[InventoryRow] = None,
+    validated_extraction: Optional[ValidatedExtraction] = None,
+    extraction_review_required: bool = False,
 ) -> None:
     cfg = get_settings()
 
@@ -123,7 +127,8 @@ async def ingest_file(
     doc_uuid = _document_uuid(rel)
 
     try:
-        full_text = load_bytes(absolute_path)
+        # A verified review record replaces automatic extraction: the indexed text is the text a person signed off.
+        full_text = validated_extraction.text if validated_extraction is not None else load_bytes(absolute_path)
     except Exception:  # noqa: BLE001 ingestion must mark failure
         async with async_session_factory() as db_session:
             existing = (
@@ -215,6 +220,20 @@ async def ingest_file(
         document_row.ingest_status = IngestStatus.indexed
         document_row.page_count = max(1, len(full_text) // 2000)
         document_row.source_path = rel
+        # Set on EVERY ingest so a stale 'validated' can never stay attached to newly extracted text.
+        if validated_extraction is not None:
+            document_row.extraction_status = ExtractionStatus.validated
+            document_row.extraction_validated_by = validated_extraction.reviewer
+            document_row.extraction_validated_at = validated_extraction.reviewed_on
+            document_row.extraction_record_sha256 = validated_extraction.record_sha256
+            document_row.page_count = validated_extraction.page_count
+        else:
+            document_row.extraction_status = (
+                ExtractionStatus.review_required if extraction_review_required else ExtractionStatus.standard
+            )
+            document_row.extraction_validated_by = None
+            document_row.extraction_validated_at = None
+            document_row.extraction_record_sha256 = None
         if inventory_row is not None:
             apply_row(document_row, inventory_row)
         await db_session.flush()

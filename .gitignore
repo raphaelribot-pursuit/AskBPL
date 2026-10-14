@@ -24,3 +24,5 @@ alembic.ini.bak
 # Evaluation run output (evidence is committed deliberately, by name)
 packages/orchestrator/eval_data/results/*
 !packages/orchestrator/eval_data/results/.gitkeep
+packages/orchestrator/extraction_reviews/*/pages/*.png
+packages/orchestrator/extraction_reviews/*/report.html

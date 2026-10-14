@@ -9,6 +9,8 @@ Rule:
                                        test-index member (OD-11) AND ALLOW_TEST_INDEX is on.
   * `blocked`/`excluded`/`superseded` -> never answerable, regardless of any flag.
   * Documents that are superseded by another row, or not `indexed`, are never answerable.
+  * A document whose extraction is `review_required` (scanned/OCR text no person has validated)
+    is never answerable, whatever its eligibility says (GATE-04, patch 0009).
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.sql.elements import ColumnElement
 
 from ask_bpl_orchestrator.config import Settings, get_settings
-from ask_bpl_orchestrator.db.models import Document, Eligibility, IngestStatus
+from ask_bpl_orchestrator.db.models import Document, Eligibility, ExtractionStatus, IngestStatus
 
 TEST_INDEX_LABEL = "Test index: sources not yet confirmed current by BPL"
 
@@ -40,6 +42,7 @@ def retrievable_clause(settings: Optional[Settings] = None) -> ColumnElement[boo
         answerable,
         Document.ingest_status == IngestStatus.indexed,
         Document.superseded_by_document_id.is_(None),
+        Document.extraction_status != ExtractionStatus.review_required,
     )
 
 
@@ -49,6 +52,9 @@ def is_retrievable(doc: Any, settings: Optional[Settings] = None) -> bool:
     if doc is None:
         return False
     if doc.ingest_status != IngestStatus.indexed or doc.superseded_by_document_id is not None:
+        return False
+    # getattr default only for non-ORM stand-ins; a real Document row always carries the column.
+    if getattr(doc, "extraction_status", ExtractionStatus.standard) == ExtractionStatus.review_required:
         return False
     if doc.eligibility == Eligibility.eligible:
         return True

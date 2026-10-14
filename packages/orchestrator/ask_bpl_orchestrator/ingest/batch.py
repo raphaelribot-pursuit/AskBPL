@@ -10,6 +10,7 @@ import yaml
 
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.db.models import Eligibility
+from ask_bpl_orchestrator.ingest.extraction_review import ExtractionValidationError, verify_record
 from ask_bpl_orchestrator.ingest.inventory import load_inventory, normalize_name
 from ask_bpl_orchestrator.ingest.service import ingest_file
 
@@ -52,6 +53,23 @@ async def ingest_manifest(manifest_path: Path, inventory_path: Path | None = Non
         if inv_row is not None and inv_row.eligibility in (Eligibility.blocked, Eligibility.excluded):
             lines.append(f"refused:{rel}:{inv_row.eligibility.value}:{inv_row.source_id}")
             continue
+        # Scanned / OCR documents: a person's validation record is required before the text may be
+        # indexed as validated. Fail closed: a claim without a record, or a record that does not match
+        # the file, is a failure, never a silent fallback to automatic extraction.
+        validated = None
+        record_rel = entry.get("validated_extraction")
+        if record_rel:
+            try:
+                validated = verify_record((manifest_path.parent / record_rel).resolve(), target)
+            except ExtractionValidationError as exc:
+                lines.append(f"failed:{rel}:validation record rejected: {exc}")
+                continue
+        elif inv_row is not None and inv_row.extraction_validated_claim:
+            lines.append(
+                f"failed:{rel}:inventory says extraction is validated but the manifest entry has no validated_extraction record"
+            )
+            continue
+        review_required = validated is None and str(entry.get("extraction_review", "")).strip().lower() == "required"
         policy = entry.get("policy") or entry.get("policy_type") or "generic_policy"
         title = entry.get("title") or target.stem.replace("_", " ").title()
         version = entry.get("version") or raw.get("default_version") or "pilot-draft"
@@ -63,8 +81,10 @@ async def ingest_manifest(manifest_path: Path, inventory_path: Path | None = Non
                 title=title,
                 version_label=version,
                 inventory_row=inv_row,
+                validated_extraction=validated,
+                extraction_review_required=review_required,
             )
-            lines.append(f"indexed:{rel}")
+            lines.append(f"indexed:{rel}" + (":validated" if validated else ":review_required" if review_required else ""))
         except Exception as exc:  # noqa: BLE001 batch must continue
             lines.append(f"failed:{rel}:{exc}")
     return lines
