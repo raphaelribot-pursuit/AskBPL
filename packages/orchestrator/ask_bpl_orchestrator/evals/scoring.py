@@ -5,6 +5,7 @@ Statuses
   FAIL    a hard check failed (wrong outcome, missing/invalid citation, forbidden or missing text, missing label)
   REVIEW  needs a human: an out-of-scope question was answered, or a blocked policy's question was answered
   BLOCKED the question's own policy is not answerable (not ingested, blocked, excluded); NOT EVALUABLE
+  ERROR   the system itself errored (timeout, 5xx, upstream API failure). Not a judgement on the answer; rerun
 
 These are automated checks, NOT answer-correctness scores. The five 1-5 client dimensions are always left
 blank for human evaluators (Document 06 s.6).
@@ -17,7 +18,7 @@ from typing import Any, Dict, List, Optional
 
 from ask_bpl_orchestrator.evals.cases import Case
 
-SEVERITY = {"PASS": 1, "BLOCKED": 1, "REVIEW": 2, "FAIL": 3}
+SEVERITY = {"PASS": 1, "BLOCKED": 1, "REVIEW": 2, "FAIL": 3, "ERROR": 4}
 
 
 def outcome_of(http_status: int, payload: Dict[str, Any]) -> str:
@@ -97,7 +98,9 @@ def score_run(case: Case, rec: Dict[str, Any]) -> RunScore:
     )
 
     # --- status -----------------------------------------------------------------------------
-    if "citation_integrity" in failed:
+    if outcome == "error":
+        status = "ERROR"  # infrastructure problem: never scored as a wrong answer
+    elif "citation_integrity" in failed:
         status = "FAIL"  # a displayed citation to a non-answerable document is never acceptable
     elif blocked:
         why = "no stored document with this source_id (run askbpl-apply-inventory)" if not (group_state and group_state.get("found")) \
@@ -138,7 +141,7 @@ def aggregate(case: Case, runs: List[Dict[str, Any]]) -> Dict[str, Any]:
 def summarize(results: List[Dict[str, Any]], records: Dict[str, List[Dict[str, Any]]]) -> Dict[str, Any]:
     """Document 06 s.7 style metrics. Client and team-created results are reported separately."""
     def block(rs: List[Dict[str, Any]]) -> Dict[str, Any]:
-        by = {s: sum(1 for r in rs if r["status"] == s) for s in ("PASS", "FAIL", "REVIEW", "BLOCKED")}
+        by = {s: sum(1 for r in rs if r["status"] == s) for s in ("PASS", "FAIL", "REVIEW", "BLOCKED", "ERROR")}
         return {"cases": len(rs), **by}
 
     client = [r for r in results if r["cls"] in {"IN", "OUT"}]
@@ -149,8 +152,8 @@ def summarize(results: List[Dict[str, Any]], records: Dict[str, List[Dict[str, A
             for c in rec.get("citation_states") or []:
                 shown += 1
                 ver += 1 if c.get("retrievable") else 0
-    out_cases = [r for r in client if r["cls"] == "OUT" and r["status"] != "BLOCKED"]
-    in_cases = [r for r in client if r["cls"] == "IN" and r["status"] != "BLOCKED"]
+    out_cases = [r for r in client if r["cls"] == "OUT" and r["status"] not in {"BLOCKED", "ERROR"}]
+    in_cases = [r for r in client if r["cls"] == "IN" and r["status"] not in {"BLOCKED", "ERROR"}]
     def sec(prefix: str):
         rs = [r for r in team if r["test_id"].startswith(prefix)]
         return {"cases": len(rs), "passed": sum(1 for r in rs if r["status"] == "PASS")} if rs else None

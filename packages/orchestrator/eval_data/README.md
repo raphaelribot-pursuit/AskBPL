@@ -18,7 +18,8 @@ From `packages/orchestrator`, venv active, `.env` loaded:
 
 Needs the seeded demo tester (`askbpl-seed`) and documents ingested + `askbpl-apply-inventory` already run.
 Each question is asked on its own with no chat history. Each live question writes anonymous telemetry rows to the
-database, so run against a development database. Exit code is 1 if any case FAILS (REVIEW and BLOCKED do not fail the run).
+database, so run against a development database. Exit code is 1 if any case FAILS or ERRORS (REVIEW and BLOCKED do not).
+The app's own log, including tracebacks, goes to `eval_data/results/eval_<time>_app.log`; the console shows only the report.
 
 ## How to read the result
 | Status | Meaning |
@@ -27,6 +28,7 @@ database, so run against a development database. Exit code is 1 if any case FAIL
 | FAIL | Wrong outcome, missing or invalid citation, missing test-index label, a required fact absent, or forbidden text present. |
 | REVIEW | A human must look: an out-of-scope question was answered (Document 06 s.5), or a blocked policy's question was answered. |
 | BLOCKED | The question's own policy is not answerable (not stored, blocked, excluded). Reported as NOT EVALUABLE, never as a pass or a fail. |
+| ERROR | The system itself failed (timeout, 5xx, upstream API error). Not a judgement on the answer: look at the app log and rerun. Counts against the exit code. |
 
 **These are automated checks, not answer-correctness scores.** Correctness needs a BPL-validated reference answer and
 the five 1-5 human dimensions (Accuracy, Grounding, Completeness, Clarity, Boundary handling), which are left **blank**

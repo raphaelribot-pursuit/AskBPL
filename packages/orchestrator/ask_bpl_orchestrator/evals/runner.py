@@ -7,7 +7,7 @@
                                                        cannot detect model drift (nothing is re-asked)
 
 Each question is asked on its own (no conversation history), exactly as worded in the fixture.
-Exit status is 1 if any case FAILS, so it can gate a release; REVIEW and BLOCKED do not fail the run.
+Exit status is 1 if any case FAILS or ERRORS, so it can gate a release; REVIEW and BLOCKED do not.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ import asyncio
 import csv
 import hashlib
 import json
+import logging
 import os
 import platform
 import subprocess
@@ -65,35 +66,42 @@ def run_metadata(cases: List[Case], *, mode: str, env_label: str, repeat: int) -
 
 
 # ------------------------------------------------------------------------------------------ live
-def _ask_all(cases: List[Case], repeat: int, delay: float) -> Dict[str, List[Dict[str, Any]]]:
-    from fastapi.testclient import TestClient
+async def _ask_all(cases: List[Case], repeat: int, delay: float) -> Dict[str, List[Dict[str, Any]]]:
+    """Ask every question through the real app inside ONE event loop.
+
+    The app keeps long-lived database/OpenAI connections that are bound to the loop that created them, so every
+    request (and the later database lookups) must share a single loop. A per-request loop, as a synchronous test
+    client uses, breaks with "attached to a different loop" / "Event loop is closed".
+    """
+    import httpx
 
     from ask_bpl_orchestrator.main import app
 
     email = os.environ.get("PILOT_DEMO_EMAIL", "pilot-demo@bklynlibrary.org")
     code = os.environ.get("PILOT_DEMO_ACCESS_CODE", "DEMO2026")
-    client = TestClient(app)
-    signed = client.post("/auth/sign-in", json={"email": email, "access_code": code, "attribution_mode": "anonymous"})
-    if signed.status_code != 200:
-        raise SystemExit(f"sign-in failed ({signed.status_code}). Run askbpl-seed and check PILOT_DEMO_ACCESS_CODE in .env")
-    headers = {"Authorization": f"Bearer {signed.json()['token']}"}
-
+    transport = httpx.ASGITransport(app=app)
     records: Dict[str, List[Dict[str, Any]]] = {}
-    for case in cases:
-        records[case.test_id] = []
-        for _ in range(repeat):
-            t0 = time.perf_counter()
-            try:
-                resp = client.post("/v1/ask", headers=headers, json={"question": case.question})
-                payload = resp.json()
-                status = resp.status_code
-            except Exception as exc:  # noqa: BLE001
-                payload, status = {"type": "error_client", "message": str(exc)[:200]}, 0
-            records[case.test_id].append(
-                {"http_status": status, "payload": payload, "latency_s": round(time.perf_counter() - t0, 2)}
-            )
-            time.sleep(delay)
-        print(f"  asked {case.test_id}", flush=True)
+    async with httpx.AsyncClient(transport=transport, base_url="http://askbpl-eval", timeout=180.0) as client:
+        signed = await client.post("/auth/sign-in", json={"email": email, "access_code": code, "attribution_mode": "anonymous"})
+        if signed.status_code != 200:
+            raise SystemExit(f"sign-in failed ({signed.status_code}). Run askbpl-seed and check PILOT_DEMO_ACCESS_CODE in .env")
+        headers = {"Authorization": f"Bearer {signed.json()['token']}"}
+        for case in cases:
+            records[case.test_id] = []
+            for _ in range(repeat):
+                t0 = time.perf_counter()
+                try:
+                    resp = await client.post("/v1/ask", headers=headers, json={"question": case.question})
+                    payload = resp.json()
+                    status = resp.status_code
+                except Exception as exc:  # noqa: BLE001
+                    payload, status = {"type": "error_client", "message": f"{type(exc).__name__}: {str(exc)[:200]}"}, 0
+                records[case.test_id].append(
+                    {"http_status": status, "payload": payload, "latency_s": round(time.perf_counter() - t0, 2)}
+                )
+                await asyncio.sleep(delay)
+            print(f"  asked {case.test_id}", flush=True)
+        await _collect_states(cases, records)  # same loop as the asks
     return records
 
 
@@ -135,6 +143,24 @@ async def _collect_states(cases: List[Case], records: Dict[str, List[Dict[str, A
                     rec["citation_states"].append(st)
 
 
+async def _run_live(cases: List[Case], repeat: int, delay: float) -> Dict[str, List[Dict[str, Any]]]:
+    from ask_bpl_orchestrator.db.session import engine
+
+    try:
+        return await _ask_all(cases, repeat, delay)
+    finally:
+        await engine.dispose()  # close pooled connections inside the loop that owns them
+
+
+def _redirect_app_logs(out_dir: Path) -> Path:
+    """Send the app's own logging (including tracebacks) to a file so the console shows only the report."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"eval_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}_app.log"
+    logging.basicConfig(filename=path, level=logging.INFO, force=True,
+                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    return path
+
+
 # ----------------------------------------------------------------------------------------- output
 def _write(out_dir: Path, meta: Dict[str, Any], results: List[Dict[str, Any]], records, summary) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -159,7 +185,7 @@ def _write(out_dir: Path, meta: Dict[str, Any], results: List[Dict[str, Any]], r
     return base
 
 
-def _print_report(meta, results, summary, path: Path) -> None:
+def _print_report(meta, results, summary, path: Path, app_log: Optional[Path] = None) -> None:
     print(f"\n== RESULTS ({meta['mode']}, commit {meta['commit']}{'+dirty' if meta['working_tree_dirty'] else ''})")
     for r in results:
         flag = " (provisional)" if r["provisional"] and r["status"] == "PASS" else ""
@@ -171,6 +197,8 @@ def _print_report(meta, results, summary, path: Path) -> None:
     print("\n== SUMMARY")
     for k, v in summary.items():
         print(f"{k}: {v}")
+    if app_log is not None:
+        print(f"\napp log (server-side errors and tracebacks): {app_log}")
     print(f"\nwritten: {path.with_suffix('.json')}\n         {path.with_suffix('.csv')}  (human score columns left blank)")
 
 
@@ -201,6 +229,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--list", action="store_true", help="list the selected cases and exit")
     a = ap.parse_args(argv)
 
+    app_log: Optional[Path] = None
     cases = select_cases(a.set, a.only)
     if a.list:
         for c in cases:
@@ -213,17 +242,17 @@ def main(argv: Optional[List[str]] = None) -> int:
         cases = [c for c in cases if c.test_id in records]
         mode, repeat = "replay", recorded["meta"].get("repeat", 1)
     else:
+        app_log = _redirect_app_logs(Path(a.out_dir))
         print(f"asking {len(cases)} question(s) x{a.repeat} against the real pipeline...", flush=True)
-        records = _ask_all(cases, a.repeat, a.delay)
-        asyncio.run(_collect_states(cases, records))
+        records = asyncio.run(_run_live(cases, a.repeat, a.delay))
         mode, repeat = "live", a.repeat
 
     results = [aggregate(c, records[c.test_id]) for c in cases]
     summary = summarize(results, records)
     meta = run_metadata(cases, mode=mode, env_label=a.env_label, repeat=repeat)
     path = _write(Path(a.out_dir), meta, results, records, summary)
-    _print_report(meta, results, summary, path)
-    return 1 if any(r["status"] == "FAIL" for r in results) else 0
+    _print_report(meta, results, summary, path, app_log)
+    return 1 if any(r["status"] in {"FAIL", "ERROR"} for r in results) else 0
 
 
 if __name__ == "__main__":

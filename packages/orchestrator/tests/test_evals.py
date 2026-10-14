@@ -144,6 +144,35 @@ def test_blocked_policy_is_not_evaluable_and_answers_need_review() -> None:
     assert score_run(case(), {"http_status": 200, "payload": {"type": "refusal_oo_corpus"}, "group_state": None}).status == "BLOCKED"
 
 
+def test_infrastructure_errors_are_reported_as_error_not_as_wrong_answers() -> None:
+    err = {"http_status": 502, "payload": {"type": "error_upstream", "message": "AI generation service error."},
+           "citation_states": [], "group_state": GROUP_OK}
+    s = score_run(case(), err)
+    assert s.status == "ERROR" and s.outcome == "error"
+    assert score_run(case(cls="OUT", expect="refusal"), err).status == "ERROR"
+    client_side = {"http_status": 0, "payload": {"type": "error_client", "message": "RuntimeError: Event loop is closed"}}
+    assert score_run(case(), client_side).status == "ERROR"
+    # one errored repeat makes the case ERROR (worst status), and the summary counts it separately
+    r = aggregate(case(), [answer_rec(), err])
+    assert r["status"] == "ERROR"
+
+
+def test_summary_counts_error_cases_separately_and_excludes_them_from_rates() -> None:
+    cl = case(test_id="BPL-AL-01", cls="IN")
+    err = {"http_status": 502, "payload": {"type": "error_upstream"}, "citation_states": [], "group_state": GROUP_OK}
+    res = [aggregate(cl, [err])]
+    s = summarize(res, {"BPL-AL-01": [err]})
+    assert s["client_set"]["ERROR"] == 1 and s["client_set"]["FAIL"] == 0
+    assert s["in_scope_automated_pass"]["evaluable"] == 0
+
+
+def test_replay_exits_nonzero_when_a_case_errored(tmp_path: Path) -> None:
+    f = tmp_path / "recorded.json"
+    err = {"http_status": 502, "payload": {"type": "error_upstream"}}
+    f.write_text(json.dumps({"meta": {}, "records": {"REG-AL-02": [err]}}), encoding="utf-8")
+    assert runner.main(["--replay", str(f), "--only", "REG-AL-02", "--out-dir", str(tmp_path)]) == 1
+
+
 def test_pii_crisis_and_either_expectations() -> None:
     pii = {"http_status": 400, "payload": {"type": "error_pii", "message": "Personal information was detected."}}
     assert score_run(case(source_id="", cls="SEC", expect="pii_reject"), pii).status == "PASS"
@@ -181,7 +210,8 @@ def test_replay_rescoring_asks_nothing_and_leaves_human_columns_blank(tmp_path: 
     }
     f = tmp_path / "recorded.json"
     f.write_text(json.dumps(recorded), encoding="utf-8")
-    with patch.object(runner, "_ask_all", side_effect=AssertionError("must not ask")), \
+    with patch.object(runner, "_run_live", side_effect=AssertionError("must not ask")), \
+         patch.object(runner, "_ask_all", side_effect=AssertionError("must not ask")), \
          patch.object(runner, "_collect_states", side_effect=AssertionError("must not query")):
         code = runner.main(["--replay", str(f), "--set", "regression", "--out-dir", str(tmp_path)])
     assert code == 0
@@ -230,7 +260,10 @@ def test_live_run_records_eligibility_from_the_database() -> None:
     ok_chunk = ids["ok"][1]
     records: dict = {}
 
+    loops: list[int] = []
+
     async def fake_scores(self, question, top_k):
+        loops.append(id(asyncio.get_running_loop()))
         return {ok_chunk: 0.95} if "carry over" in question else {}
 
     async def fake_generate(*, question, chunks, conversation_context=None):
@@ -239,8 +272,10 @@ def test_live_run_records_eligibility_from_the_database() -> None:
     try:
         with patch.object(VectorRetriever, "_pinecone_scores", fake_scores), \
              patch("ask_bpl_orchestrator.services.ask_service.generation.generate_answer", side_effect=fake_generate):
-            records = runner._ask_all(cases, repeat=1, delay=0)
-        asyncio.run(runner._collect_states(cases, records))
+            records = asyncio.run(runner._run_live(cases, repeat=2, delay=0))
+        # Regression: every request must share ONE event loop, or pooled DB/OpenAI connections break
+        # ("attached to a different loop" / "Event loop is closed") on the second request.
+        assert len(loops) >= 2 and len(set(loops)) == 1
         res = {c.test_id: aggregate(c, records[c.test_id]) for c in cases}
         assert res["T-IN"]["status"] == "PASS" and res["T-IN"]["provisional"]
         assert records["T-IN"][0]["citation_states"][0]["eligibility"] == "authority_pending"
@@ -262,3 +297,18 @@ def test_live_run_records_eligibility_from_the_database() -> None:
                 await s.commit()
 
         asyncio.run(_clean())
+
+
+def test_app_logs_go_to_a_file_not_the_console(tmp_path: Path, capsys) -> None:
+    import logging
+
+    saved = logging.root.handlers[:]
+    try:
+        log = runner._redirect_app_logs(tmp_path)
+        logging.getLogger("ask_bpl_orchestrator.services.ask_service").error("ask_pipeline_error: boom")
+        for h in logging.root.handlers:
+            h.flush()
+        assert "ask_pipeline_error: boom" in log.read_text()
+        assert "boom" not in capsys.readouterr().err
+    finally:
+        logging.root.handlers[:] = saved
