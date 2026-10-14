@@ -422,3 +422,25 @@ async def test_apply_inventory_reports_empty_database() -> None:
     lines = await apply_inventory_to_db(db, load_inventory(INVENTORY))
     assert lines[0] == "found:0:stored documents"
     assert any(l.startswith("error:no stored documents") for l in lines)
+
+
+@pytest.mark.asyncio
+async def test_apply_inventory_refuses_duplicate_documents_and_changes_nothing() -> None:
+    """Same policy ingested under two source paths (e.g. 'x.pdf' and 'pilot/x.pdf')."""
+    inv = load_inventory(INVENTORY)
+    name = "04 - Annual Leave Policy (01.06) (1).pdf"
+    async with async_session_factory() as s:
+        a, _ = await _add_doc(s, eligibility=Eligibility.authority_pending, member=True, source_path=name)
+        b, _ = await _add_doc(s, eligibility=Eligibility.authority_pending, member=True, source_path=f"pilot/{name}")
+        await s.commit()
+    try:
+        async with async_session_factory() as s:
+            lines = await apply_inventory_to_db(s, inv)
+        assert any(l.startswith("error:duplicate:SRC-10:2 stored documents") for l in lines)
+        assert any("nothing was changed" in l for l in lines)
+        async with async_session_factory() as s:
+            for i in (a, b):
+                d = await s.get(Document, i)
+                assert d.source_id is None  # untouched, no constraint violation either
+    finally:
+        await _cleanup([a, b])

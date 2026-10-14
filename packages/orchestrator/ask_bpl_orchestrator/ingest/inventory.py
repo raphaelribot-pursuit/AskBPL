@@ -164,6 +164,22 @@ async def apply_inventory_to_db(
     if not docs:
         lines.append("error:no stored documents; run askbpl-ingest-batch first (and check DATABASE_URL)")
         return lines
+    # Two stored documents that resolve to the same inventory row are the same policy
+    # ingested under different paths. Refuse before changing anything.
+    by_key: Dict[str, List[Document]] = {}
+    for doc in docs:
+        key = normalize_name(doc.source_path or doc.title)
+        if key in inventory:
+            by_key.setdefault(key, []).append(doc)
+    dupes = {k: v for k, v in by_key.items() if len(v) > 1}
+    if dupes:
+        for key, group in dupes.items():
+            paths = " | ".join(sorted(d.source_path or d.title for d in group))
+            lines.append(f"error:duplicate:{inventory[key].source_id}:{len(group)} stored documents match: {paths}")
+        lines.append("error:nothing was changed; remove the duplicate documents (and their vectors) first")
+        await db.rollback()
+        return lines
+
     seen: set[str] = set()
     to_purge: List[str] = []
     for doc in docs:
