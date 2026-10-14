@@ -312,3 +312,88 @@ def test_app_logs_go_to_a_file_not_the_console(tmp_path: Path, capsys) -> None:
         assert "boom" not in capsys.readouterr().err
     finally:
         logging.root.handlers[:] = saved
+
+
+# ------------------------------------------------------------------ patch 0008: hygiene and numeric guards
+def test_split_keeps_alternation_inside_groups() -> None:
+    from ask_bpl_orchestrator.evals.cases import _split
+
+    assert _split("a | b") == ("a", "b")
+    assert _split(r"re:\b(days|weeks)\b | plain") == (r"re:\b(days|weeks)\b", "plain")
+    assert _split(r"re:[ab|c]x|y") == (r"re:[ab|c]x", "y")
+    assert _split("") == ()
+
+
+def test_token_matches_plain_and_regex() -> None:
+    from ask_bpl_orchestrator.evals.scoring import token_matches
+
+    assert token_matches("Seven Days", "you may carry over seven days")
+    assert not token_matches("eight days", "you may carry over seven days")
+    assert token_matches(r"re:\b\d+\s+days\b", "within 30 days")
+    assert token_matches(r"re:\b\d+\s+DAYS\b", "within 30 days")  # regexes ignore case
+    assert not token_matches(r"re:\b\d+\s+days\b", "no number of days is given")
+
+
+# What the live pipeline actually said for the two designated out-of-scope questions in the 2026-10-12 run
+# (limitation answers, no invented figure). They must not trip the guards.
+_MS05_LIMITATION = ("The policy doesn't specify a set timeframe - it just says the Materials Review Committee provides a "
+                    "\"timely, considered response\" to every reconsideration request.")
+_UC05_LIMITATION = ("The policy doesn't set a specific age - instead, it says children who are 'unable or unwilling to care "
+                    "for themselves' may not be left alone and must have adequate supervision.")
+
+
+def _guards(test_id: str) -> tuple[str, ...]:
+    return next(c for c in load_cases(CLIENT_CSV) if c.test_id == test_id).must_not_include
+
+
+@pytest.mark.parametrize("test_id,limitation", [("BPL-MS-05", _MS05_LIMITATION), ("BPL-UC-05", _UC05_LIMITATION)])
+def test_boundary_guards_accept_honest_limitation_answers(test_id: str, limitation: str) -> None:
+    from ask_bpl_orchestrator.evals.scoring import token_matches
+
+    guards = _guards(test_id)
+    assert guards, "guard missing"
+    assert not any(token_matches(g, limitation.lower()) for g in guards)
+
+
+@pytest.mark.parametrize("test_id,invented", [
+    ("BPL-MS-05", "The committee usually decides within 30 days."),
+    ("BPL-MS-05", "Expect a decision in about two weeks."),
+    ("BPL-MS-05", "It takes 6-8 weeks."),
+    ("BPL-UC-05", "Children 12 years or older may stay alone."),
+    ("BPL-UC-05", "Children aged 10 can be left alone."),
+    ("BPL-UC-05", "Twelve and older is acceptable."),
+    ("BPL-UC-05", "The age of twelve is the cutoff."),
+])
+def test_boundary_guards_catch_invented_figures(test_id: str, invented: str) -> None:
+    from ask_bpl_orchestrator.evals.scoring import token_matches
+
+    assert any(token_matches(g, invented.lower()) for g in _guards(test_id)), invented
+
+
+def test_run_metadata_dirty_flag_ignores_untracked_files() -> None:
+    seen: list[tuple[str, ...]] = []
+
+    def fake_git(*args: str):
+        seen.append(args)
+        return None
+
+    with patch.object(runner, "_git", fake_git):
+        meta = runner.run_metadata(load_cases(CLIENT_CSV)[:1], mode="live", env_label="t", repeat=1)
+    status_calls = [a for a in seen if a[:1] == ("status",)]
+    assert status_calls and all("--untracked-files=no" in a for a in status_calls)
+    assert meta["working_tree_dirty"] is False and meta["untracked_files_present"] is False
+
+
+def test_blocked_message_explains_deliberately_held_back_documents() -> None:
+    s = score_run(case(cls="IN", expect="answer"), refusal_rec(group={"found": False}))
+    assert s.status == "BLOCKED"
+    text = " ".join(s.warnings)
+    assert "NOT EVALUABLE" in text and "deliberately held back" in text and "only if it should be stored" in text
+
+
+def test_out_of_scope_answer_with_invented_figure_fails_but_honest_limitation_is_review() -> None:
+    guards = _guards("BPL-MS-05")
+    oos = case(cls="OUT", expect="refusal", must_not_include=guards)
+    assert score_run(oos, answer_rec(_MS05_LIMITATION)).status == "REVIEW"  # a human still looks (Document 06 s.5)
+    invented = score_run(oos, answer_rec("The committee usually decides within 30 days."))
+    assert invented.status == "FAIL" and "must_not_include" in invented.failed

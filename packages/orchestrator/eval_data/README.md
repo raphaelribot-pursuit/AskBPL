@@ -34,6 +34,15 @@ The app's own log, including tracebacks, goes to `eval_data/results/eval_<time>_
 the five 1-5 human dimensions (Accuracy, Grounding, Completeness, Clarity, Boundary handling), which are left **blank**
 in the CSV for evaluators. No BPL-approved answer key exists yet.
 
+## Keyword checks: plain and `re:` tokens
+`must_include` / `must_not_include` hold tokens separated by `|`. A plain token is a case-insensitive substring. A token
+starting with `re:` is a case-insensitive regular expression (use it to catch an invented number of days or an age, which
+substrings cannot). Alternation is allowed inside a group, e.g. `re:\b(\d+|two)\s+weeks\b`; a `|` outside any group or
+bracket separates tokens. Only the question text is frozen, not these columns.
+
+BPL-MS-05 and BPL-UC-05 carry such guards: the policies give no number of days and no age, so any figure in the answer
+is invented and the case FAILs. An honest "the policy does not specify" answer still shows as REVIEW for a human.
+
 ## Reference records
 `reference_status` is `PENDING` unless an engineer extracted a quote from the source PDF
 (`ENGINEER_PREPARED_PENDING_BPL`: Annual Leave AL-01..04 and the matching regression cases). `must_include` /

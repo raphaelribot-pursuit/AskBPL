@@ -38,7 +38,26 @@ class Case:
 
 
 def _split(value: str) -> Tuple[str, ...]:
-    return tuple(p.strip() for p in value.split("|") if p.strip())
+    """Split a CSV cell into tokens on ``|``, but not on a ``|`` inside parentheses or square brackets.
+
+    That lets a ``re:`` token use alternation inside a group, e.g. ``re:\\b\\d+\\s+(days|weeks)\\b``. A top-level
+    ``|`` always separates tokens, so wrap any alternation in a group.
+    """
+    parts: list[str] = []
+    depth = 0
+    cur: list[str] = []
+    for ch in value:
+        if ch in "([":
+            depth += 1
+        elif ch in ")]" and depth:
+            depth -= 1
+        if ch == "|" and depth == 0:
+            parts.append("".join(cur))
+            cur = []
+        else:
+            cur.append(ch)
+    parts.append("".join(cur))
+    return tuple(p.strip() for p in parts if p.strip())
 
 
 def load_cases(path: Path) -> List[Case]:

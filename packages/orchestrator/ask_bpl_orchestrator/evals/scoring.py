@@ -13,6 +13,8 @@ blank for human evaluators (Document 06 s.6).
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -20,6 +22,19 @@ from ask_bpl_orchestrator.evals.cases import Case
 
 SEVERITY = {"PASS": 1, "BLOCKED": 1, "REVIEW": 2, "FAIL": 3, "ERROR": 4}
 
+
+
+def token_matches(token: str, text: str) -> bool:
+    """Keyword check used by must_include / must_not_include.
+
+    A plain token is a case-insensitive substring. A token starting with ``re:`` is a case-insensitive regular
+    expression searched in the text. The CSV separates tokens with a top-level ``|``; alternation inside a group is
+    fine (see ``cases._split``). ``text`` is expected to be lower-cased already for plain tokens; regexes are matched
+    with IGNORECASE either way.
+    """
+    if token.startswith("re:"):
+        return re.search(token[3:], text, re.IGNORECASE) is not None
+    return token.lower() in text
 
 def outcome_of(http_status: int, payload: Dict[str, Any]) -> str:
     kind = payload.get("type")
@@ -87,9 +102,9 @@ def score_run(case: Case, rec: Dict[str, Any]) -> RunScore:
 
     # --- keyword checks against the reference record (pending BPL validation) ---------------
     if case.must_include and outcome == "answer":
-        checks["must_include"] = all(t.lower() in text for t in case.must_include)
+        checks["must_include"] = all(token_matches(t, text) for t in case.must_include)
     if case.must_not_include:
-        checks["must_not_include"] = not any(t.lower() in text for t in case.must_not_include)
+        checks["must_not_include"] = not any(token_matches(t, text) for t in case.must_not_include)
 
     failed = [k for k, v in checks.items() if v is False]
     blocked = bool(case.source_id) and not _group_answerable(group_state)
@@ -103,7 +118,8 @@ def score_run(case: Case, rec: Dict[str, Any]) -> RunScore:
     elif "citation_integrity" in failed:
         status = "FAIL"  # a displayed citation to a non-answerable document is never acceptable
     elif blocked:
-        why = "no stored document with this source_id (run askbpl-apply-inventory)" if not (group_state and group_state.get("found")) \
+        why = ("no stored document with this source_id (never ingested, or deliberately held back, e.g. extraction-blocked; "
+               "run askbpl-apply-inventory only if it should be stored)") if not (group_state and group_state.get("found")) \
             else f"policy is {group_state.get('eligibility')} and not answerable"
         warnings.append(f"NOT EVALUABLE: {why}")
         if outcome == "answer":

@@ -52,7 +52,8 @@ def run_metadata(cases: List[Case], *, mode: str, env_label: str, repeat: int) -
     return {
         "mode": mode, "run_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "env_label": env_label, "commit": _git("rev-parse", "--short", "HEAD"),
-        "working_tree_dirty": bool(_git("status", "--porcelain")),
+        "working_tree_dirty": bool(_git("status", "--porcelain", "--untracked-files=no")),  # tracked changes only
+        "untracked_files_present": bool(_git("ls-files", "--others", "--exclude-standard")),
         "python": platform.python_version(), "repeat": repeat,
         "anthropic_model": s.anthropic_model, "embedding_model": s.openai_embedding_model,
         "allow_test_index": s.allow_test_index, "top_k": s.pinecone_top_k,

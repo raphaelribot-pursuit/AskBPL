@@ -20,3 +20,7 @@ packages/orchestrator/.qa_venv/
 packages/orchestrator/.tvenv/
 alembic.ini.bak
 .pdf-venv/
+
+# Evaluation run output (evidence is committed deliberately, by name)
+packages/orchestrator/eval_data/results/*
+!packages/orchestrator/eval_data/results/.gitkeep
