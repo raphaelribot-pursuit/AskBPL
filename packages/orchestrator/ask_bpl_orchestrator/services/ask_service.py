@@ -33,6 +33,7 @@ from ask_bpl_orchestrator.services.crisis_gate import detect_crisis, format_cris
 from ask_bpl_orchestrator.services.intent_guard import flagged_intents
 from ask_bpl_orchestrator.services.pii_gate import rejects_input
 from ask_bpl_orchestrator.services.query_rewriter import rewrite_follow_up
+from ask_bpl_orchestrator.services.eligibility import TEST_INDEX_LABEL, is_retrievable, is_test_index_source
 from ask_bpl_orchestrator.services.retrieval import RetrievedChunk, VectorRetriever, max_score
 from ask_bpl_orchestrator.services.text_hash import question_sha256
 
@@ -140,6 +141,15 @@ def _payload(
         ],
         "citations": citations,
     }
+
+
+async def _cited_documents_answerable(db: AsyncSession, cited: List[uuid.UUID], settings) -> bool:
+    for cid in cited:
+        chunk = await db.get(Chunk, cid)
+        doc = await db.get(Document, chunk.document_id) if chunk else None
+        if not is_retrievable(doc, settings):
+            return False
+    return True
 
 
 async def _teams(db: AsyncSession, inferred_policy: Optional[str]) -> List[OwningTeam]:
@@ -401,6 +411,11 @@ async def handle_ask(
         refusal_flag=refusal_flag,
         answer=ans,
     )
+    if ok and not await _cited_documents_answerable(db, cited, settings):
+        # Defence in depth (GATE-03): retrieval already filters on eligibility, but a
+        # citation to a non-answerable document must never be emitted.
+        logger.error("citation_rejected_ineligible_document request=%s", request_id)
+        ok = False
     if not ok:
         rtype = (
             ResponseType.refusal_citation_invalid if cited else ResponseType.refusal_oo_corpus
@@ -458,6 +473,7 @@ async def handle_ask(
                 "document_id": str(chunk.document_id),
                 "document_title": doc.title if doc else "",
                 "section_heading": chunk.section_heading,
+                "test_index": is_test_index_source(doc),
             }
         )
 
@@ -481,4 +497,7 @@ async def handle_ask(
         )
     )
 
-    return _payload(request_id, ans_row, [], cites), 200
+    payload = _payload(request_id, ans_row, [], cites)
+    if any(c.get("test_index") for c in cites):
+        payload["index_label"] = TEST_INDEX_LABEL
+    return payload, 200

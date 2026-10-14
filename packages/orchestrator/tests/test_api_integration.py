@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import delete
 
-from ask_bpl_orchestrator.db.models import Chunk, Document, IngestStatus, Question, SourceFormat
+from ask_bpl_orchestrator.db.models import Chunk, Document, Eligibility, IngestStatus, Question, SourceFormat
 from ask_bpl_orchestrator.db.session import async_session_factory
 from ask_bpl_orchestrator.main import app
 from ask_bpl_orchestrator.services.retrieval import RetrievedChunk, VectorRetriever
@@ -257,6 +257,7 @@ def test_ask_answer_with_retrieval_and_generation_mocked() -> None:
                     policy_type="generic_policy",
                     source_format=SourceFormat.md,
                     ingest_status=IngestStatus.indexed,
+                    eligibility=Eligibility.eligible,
                 )
             )
             session.add(
@@ -336,6 +337,7 @@ async def test_hydrate_ordered_skips_chunks_on_superseded_documents() -> None:
                     policy_type="generic_policy",
                     source_format=SourceFormat.md,
                     ingest_status=IngestStatus.indexed,
+                    eligibility=Eligibility.eligible,
                 ),
                 Document(
                     document_id=doc_old,
@@ -344,6 +346,7 @@ async def test_hydrate_ordered_skips_chunks_on_superseded_documents() -> None:
                     policy_type="generic_policy",
                     source_format=SourceFormat.md,
                     ingest_status=IngestStatus.indexed,
+                    eligibility=Eligibility.eligible,
                     superseded_by_document_id=doc_new,
                 ),
                 Chunk(

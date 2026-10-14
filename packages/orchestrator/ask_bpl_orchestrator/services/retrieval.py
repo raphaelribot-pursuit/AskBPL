@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.db.models import Chunk, Document
+from ask_bpl_orchestrator.services.eligibility import is_test_index_source, retrievable_clause
 from ask_bpl_orchestrator.services.langchain_embeddings import embed_query
 from ask_bpl_orchestrator.services.pinecone_client import get_pinecone_index
 
@@ -54,6 +55,7 @@ class RetrievedChunk:
     version: str
     section_heading: Optional[str]
     text: str
+    test_index: bool = False
 
 
 class VectorRetriever:
@@ -105,7 +107,7 @@ class VectorRetriever:
             select(Chunk, Document)
             .join(Document, Chunk.document_id == Document.document_id)
             .where(Chunk.chunk_id.in_(identities))
-            .where(Document.superseded_by_document_id.is_(None))
+            .where(retrievable_clause(self.settings))
         )
         rows = (await db.execute(stmt)).all()
         mapper = {chunk.chunk_id: (chunk, document) for chunk, document in rows}
@@ -130,6 +132,7 @@ class VectorRetriever:
                     version=doc_row.version,
                     section_heading=chunk_row.section_heading,
                     text=chunk_row.text,
+                    test_index=is_test_index_source(doc_row),
                 )
             )
         return hydrated

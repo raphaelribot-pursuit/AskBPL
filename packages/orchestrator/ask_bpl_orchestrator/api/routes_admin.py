@@ -159,6 +159,12 @@ async def list_documents(db: DbSessionDep, limit: int = 120) -> dict:
                 "source_format": d.source_format.value,
                 "ingest_status": d.ingest_status.value,
                 "ingested_at": d.ingested_at.isoformat() if d.ingested_at else None,
+                "source_id": d.source_id,
+                "eligibility": d.eligibility.value,
+                "test_index_member": d.test_index_member,
+                "reviewed_by": d.reviewed_by,
+                "reviewed_at": d.reviewed_at.isoformat() if d.reviewed_at else None,
+                "status_note": d.status_note,
                 "superseded_by_document_id": str(d.superseded_by_document_id)
                 if d.superseded_by_document_id
                 else None,

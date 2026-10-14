@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     ingest_manifest_path: str = "sample_corpus/corpus_manifest_pilot.yaml"
     documents_public_base_url: str = ""
 
+    # Source inventory (ING-1/ING-2): per-document eligibility. Applied during ingest.
+    source_inventory_path: str = "sample_corpus/AskBPL_Source_Inventory_v0_1.xlsx"
+    # OD-11: while BPL has not confirmed authority, documents marked as test-index
+    # members stay answerable and every answer is labelled as a test index.
+    # MUST be false at go-live (only `eligible` documents are then answerable).
+    allow_test_index: bool = True
+
     chunk_size_tokens: int = 400
     chunk_overlap_tokens: int = 100
 

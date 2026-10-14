@@ -25,6 +25,7 @@ dependencies = [
     "pypdf>=5.1.0",
     "python-docx>=1.1.2",
     "pyyaml>=6.0.2",
+    "openpyxl>=3.1.5",
     "tiktoken>=0.8.0",
 ]
 
@@ -44,6 +45,7 @@ ocr = [
 askbpl-ingest = "ask_bpl_orchestrator.ingest.cli:main"
 askbpl-ingest-batch = "ask_bpl_orchestrator.ingest.batch:main"
 askbpl-seed = "ask_bpl_orchestrator.seed:main"
+askbpl-apply-inventory = "ask_bpl_orchestrator.ingest.inventory:main"
 askbpl-latency-smoke = "ask_bpl_orchestrator.latency_report:main"
 
 [build-system]

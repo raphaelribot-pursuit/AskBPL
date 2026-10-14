@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy import (
     Boolean,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -44,6 +45,21 @@ class IngestStatus(str, enum.Enum):
     indexed = "indexed"
     pending = "pending"
     failed = "failed"
+
+
+class Eligibility(str, enum.Enum):
+    """Lifecycle disposition of a source document (PRD ING-9).
+
+    Only `eligible` documents are answerable by default. `authority_pending` documents
+    are answerable ONLY as members of the marked test index (OD-11) and only while
+    ALLOW_TEST_INDEX is on. The other three are never retrieved or cited (GATE-03).
+    """
+
+    eligible = "eligible"
+    authority_pending = "authority_pending"
+    blocked = "blocked"
+    excluded = "excluded"
+    superseded = "superseded"
 
 
 class ResponseType(str, enum.Enum):
@@ -148,6 +164,26 @@ class Document(Base):
     superseded_by_document_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("documents.document_id", ondelete="SET NULL"), nullable=True
     )
+
+    # --- Eligibility and provenance (patch 0003; PRD R-14, ING-2, ING-9, GATE-03) ---
+    source_id: Mapped[Optional[str]] = mapped_column(String(32), unique=True, nullable=True)
+    policy_number: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    owner: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    issue_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    effective_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    revision_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    eligibility: Mapped[Eligibility] = mapped_column(
+        Enum(Eligibility, name="document_eligibility", native_enum=True),
+        default=Eligibility.authority_pending,
+        server_default=Eligibility.authority_pending.value,
+        index=True,
+    )
+    # OD-11: member of the marked test index (answerable while authority is pending).
+    test_index_member: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    approval_evidence: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    reviewed_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    reviewed_at: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    status_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     policy_type_row: Mapped[PolicyType] = relationship(back_populates="documents")
     chunks: Mapped[list["Chunk"]] = relationship(back_populates="document", cascade="all, delete-orphan")

@@ -75,6 +75,10 @@ services:
         value: "0.40"
       - key: SEED_AUTO_APPROVE_ROUTING
         value: "0"  # Disable auto-approve in production
+      # OD-11: pilot answers come from a marked test index while BPL authority is pending.
+      # Set to "false" at go-live so ONLY documents with eligibility=eligible are answerable.
+      - key: ALLOW_TEST_INDEX
+        value: "true"
 
       # CORS — include your Vercel frontend URL
       - key: CORS_ORIGINS
