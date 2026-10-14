@@ -1,0 +1,230 @@
+"""askbpl-eval: run the evaluation set against the real pipeline (default) or re-score a recorded run.
+
+  askbpl-eval                      client 30 + team regression/safety cases, live (uses your real API keys)
+  askbpl-eval --set client         only the client's 30 questions
+  askbpl-eval --only BPL-AL-03 --repeat 5
+  askbpl-eval --replay eval_data/results/<run>.json    re-score a recorded run offline: free, deterministic,
+                                                       cannot detect model drift (nothing is re-asked)
+
+Each question is asked on its own (no conversation history), exactly as worded in the fixture.
+Exit status is 1 if any case FAILS, so it can gate a release; REVIEW and BLOCKED do not fail the run.
+"""
+
+from __future__ import annotations
+
+import argparse
+import asyncio
+import csv
+import hashlib
+import json
+import os
+import platform
+import subprocess
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from ask_bpl_orchestrator.evals.cases import (
+    CLIENT_CSV, DATA_DIR, REGRESSION_CSV, Case, file_sha256, load_cases, questions_sha256,
+)
+from ask_bpl_orchestrator.evals.scoring import aggregate, summarize
+
+HUMAN_COLUMNS = ["Accuracy_1to5", "Grounding_1to5", "Completeness_1to5", "Clarity_1to5",
+                 "Boundary_handling_1to5", "evaluator_rationale", "evidence_reference"]
+
+
+def _git(*args: str) -> Optional[str]:
+    try:
+        return subprocess.run(["git", *args], capture_output=True, text=True, timeout=10,
+                              cwd=Path(__file__).resolve().parent).stdout.strip() or None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def run_metadata(cases: List[Case], *, mode: str, env_label: str, repeat: int) -> Dict[str, Any]:
+    from ask_bpl_orchestrator.config import get_settings
+    from ask_bpl_orchestrator.services.generation import SYSTEM_PROMPT
+
+    s = get_settings()
+    return {
+        "mode": mode, "run_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "env_label": env_label, "commit": _git("rev-parse", "--short", "HEAD"),
+        "working_tree_dirty": bool(_git("status", "--porcelain")),
+        "python": platform.python_version(), "repeat": repeat,
+        "anthropic_model": s.anthropic_model, "embedding_model": s.openai_embedding_model,
+        "allow_test_index": s.allow_test_index, "top_k": s.pinecone_top_k,
+        "grounding_floor": s.grounding_threshold, "grounding_strong": s.grounding_strong_threshold,
+        "system_prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:16],
+        "client_questions_file_sha256": file_sha256(CLIENT_CSV)[:16],
+        "client_question_wording_sha256": questions_sha256([c for c in cases if c.is_client])[:16]
+        if any(c.is_client for c in cases) else None,
+        "note": "Automated checks only. Sources marked provisional are not BPL-confirmed. No BPL-approved answer key exists.",
+    }
+
+
+# ------------------------------------------------------------------------------------------ live
+def _ask_all(cases: List[Case], repeat: int, delay: float) -> Dict[str, List[Dict[str, Any]]]:
+    from fastapi.testclient import TestClient
+
+    from ask_bpl_orchestrator.main import app
+
+    email = os.environ.get("PILOT_DEMO_EMAIL", "pilot-demo@bklynlibrary.org")
+    code = os.environ.get("PILOT_DEMO_ACCESS_CODE", "DEMO2026")
+    client = TestClient(app)
+    signed = client.post("/auth/sign-in", json={"email": email, "access_code": code, "attribution_mode": "anonymous"})
+    if signed.status_code != 200:
+        raise SystemExit(f"sign-in failed ({signed.status_code}). Run askbpl-seed and check PILOT_DEMO_ACCESS_CODE in .env")
+    headers = {"Authorization": f"Bearer {signed.json()['token']}"}
+
+    records: Dict[str, List[Dict[str, Any]]] = {}
+    for case in cases:
+        records[case.test_id] = []
+        for _ in range(repeat):
+            t0 = time.perf_counter()
+            try:
+                resp = client.post("/v1/ask", headers=headers, json={"question": case.question})
+                payload = resp.json()
+                status = resp.status_code
+            except Exception as exc:  # noqa: BLE001
+                payload, status = {"type": "error_client", "message": str(exc)[:200]}, 0
+            records[case.test_id].append(
+                {"http_status": status, "payload": payload, "latency_s": round(time.perf_counter() - t0, 2)}
+            )
+            time.sleep(delay)
+        print(f"  asked {case.test_id}", flush=True)
+    return records
+
+
+async def _collect_states(cases: List[Case], records: Dict[str, List[Dict[str, Any]]]) -> None:
+    """Attach, from the database, the eligibility of every cited document and of each case's own policy."""
+    import uuid
+
+    from sqlalchemy import select
+
+    from ask_bpl_orchestrator.config import get_settings
+    from ask_bpl_orchestrator.db.models import Document
+    from ask_bpl_orchestrator.db.session import async_session_factory
+    from ask_bpl_orchestrator.services.eligibility import is_retrievable
+
+    cfg = get_settings()
+    async with async_session_factory() as db:
+        def state(doc: Optional[Document]) -> Dict[str, Any]:
+            if doc is None:
+                return {"found": False, "retrievable": False, "eligibility": None}
+            return {"found": True, "retrievable": is_retrievable(doc, cfg), "eligibility": doc.eligibility.value,
+                    "test_index_member": doc.test_index_member, "source_id": doc.source_id, "title": doc.title}
+
+        by_source = {}
+        for sid in {c.source_id for c in cases if c.source_id}:
+            doc = (await db.execute(select(Document).where(Document.source_id == sid))).scalars().first()
+            by_source[sid] = state(doc)
+        by_case = {c.test_id: c for c in cases}
+        for tid, recs in records.items():
+            for rec in recs:
+                rec["group_state"] = by_source.get(by_case[tid].source_id) if by_case[tid].source_id else None
+                rec["citation_states"] = []
+                for cite in (rec["payload"].get("citations") or []):
+                    try:
+                        doc = await db.get(Document, uuid.UUID(str(cite.get("document_id"))))
+                    except ValueError:
+                        doc = None
+                    st = state(doc)
+                    st.update({"chunk_id": cite.get("chunk_id"), "document_id": cite.get("document_id")})
+                    rec["citation_states"].append(st)
+
+
+# ----------------------------------------------------------------------------------------- output
+def _write(out_dir: Path, meta: Dict[str, Any], results: List[Dict[str, Any]], records, summary) -> Path:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    base = out_dir / f"eval_{stamp}_{meta.get('commit') or 'nocommit'}_{meta['mode']}"
+    base.with_suffix(".json").write_text(
+        json.dumps({"meta": meta, "summary": summary, "results": results, "records": records}, indent=2, default=str),
+        encoding="utf-8")
+    with open(base.with_suffix(".csv"), "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh, lineterminator="\n")
+        w.writerow(["test_id", "group", "cls", "question", "status", "provisional", "outcomes", "pass_runs", "runs",
+                    "failed_checks", "warnings", "response_text", "cited_documents", "reference_status"] + HUMAN_COLUMNS)
+        for r in results:
+            recs = records[r["test_id"]]
+            last = recs[-1]
+            p = last["payload"]
+            cited = sorted({c.get("title") or "?" for c in (last.get("citation_states") or [])})
+            w.writerow([r["test_id"], r["group"], r["cls"], r["question"], r["status"], r["provisional"],
+                        "/".join(r["outcomes"]), r["pass_runs"], r["runs"], ";".join(r["failed_checks"]),
+                        " | ".join(r["warnings"]), (p.get("answer") or p.get("refusal_explanation") or p.get("message") or ""),
+                        "; ".join(cited), r["reference_status"]] + [""] * len(HUMAN_COLUMNS))
+    return base
+
+
+def _print_report(meta, results, summary, path: Path) -> None:
+    print(f"\n== RESULTS ({meta['mode']}, commit {meta['commit']}{'+dirty' if meta['working_tree_dirty'] else ''})")
+    for r in results:
+        flag = " (provisional)" if r["provisional"] and r["status"] == "PASS" else ""
+        extra = f"  failed: {','.join(r['failed_checks'])}" if r["failed_checks"] and r["status"] == "FAIL" else ""
+        print(f"{r['status']:<8} {r['test_id']:<14} {'/'.join(sorted(set(r['outcomes']))):<12} "
+              f"{r['pass_runs']}/{r['runs']}{flag}{extra}")
+        for w in r["warnings"]:
+            print(f"           ! {w}")
+    print("\n== SUMMARY")
+    for k, v in summary.items():
+        print(f"{k}: {v}")
+    print(f"\nwritten: {path.with_suffix('.json')}\n         {path.with_suffix('.csv')}  (human score columns left blank)")
+
+
+def select_cases(which: str, only: Optional[List[str]]) -> List[Case]:
+    cases: List[Case] = []
+    if which in {"client", "all"}:
+        cases += load_cases(CLIENT_CSV)
+    if which in {"regression", "all"}:
+        cases += load_cases(REGRESSION_CSV)
+    if only:
+        wanted = set(only)
+        cases = [c for c in cases if c.test_id in wanted]
+        unknown = wanted - {c.test_id for c in cases}
+        if unknown:
+            raise SystemExit(f"unknown test id(s): {sorted(unknown)}")
+    return cases
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    ap = argparse.ArgumentParser(description="Ask BPL evaluation runner")
+    ap.add_argument("--set", choices=["client", "regression", "all"], default="all")
+    ap.add_argument("--only", nargs="+", metavar="TEST_ID")
+    ap.add_argument("--repeat", type=int, default=1, help="ask each question N times (model output varies)")
+    ap.add_argument("--delay", type=float, default=0.5, help="seconds between questions")
+    ap.add_argument("--out-dir", default=str(DATA_DIR / "results"))
+    ap.add_argument("--env-label", default=os.environ.get("EVAL_ENV_LABEL", "local"))
+    ap.add_argument("--replay", metavar="RESULTS_JSON", help="re-score a recorded run; asks nothing")
+    ap.add_argument("--list", action="store_true", help="list the selected cases and exit")
+    a = ap.parse_args(argv)
+
+    cases = select_cases(a.set, a.only)
+    if a.list:
+        for c in cases:
+            print(f"{c.test_id:<14} {c.cls:<4} expect={c.expect:<10} {c.question}")
+        return 0
+
+    if a.replay:
+        recorded = json.loads(Path(a.replay).read_text(encoding="utf-8"))
+        records = {tid: recs for tid, recs in recorded["records"].items() if tid in {c.test_id for c in cases}}
+        cases = [c for c in cases if c.test_id in records]
+        mode, repeat = "replay", recorded["meta"].get("repeat", 1)
+    else:
+        print(f"asking {len(cases)} question(s) x{a.repeat} against the real pipeline...", flush=True)
+        records = _ask_all(cases, a.repeat, a.delay)
+        asyncio.run(_collect_states(cases, records))
+        mode, repeat = "live", a.repeat
+
+    results = [aggregate(c, records[c.test_id]) for c in cases]
+    summary = summarize(results, records)
+    meta = run_metadata(cases, mode=mode, env_label=a.env_label, repeat=repeat)
+    path = _write(Path(a.out_dir), meta, results, records, summary)
+    _print_report(meta, results, summary, path)
+    return 1 if any(r["status"] == "FAIL" for r in results) else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

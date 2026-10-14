@@ -1,0 +1,31 @@
+test_id,group,source_id,cls,question,expect,must_include,must_not_include,reference_status,reference_evidence,note
+BPL-MS-01,Materials Selection,SRC-05,IN,What is the main purpose of the Materials Selection Policy?,answer,,,PENDING,,
+BPL-MS-02,Materials Selection,SRC-05,IN,Who has the final authority over selecting and retaining library materials?,answer,,,PENDING,,
+BPL-MS-03,Materials Selection,SRC-05,IN,What criteria are used when deciding whether to add an item to the collection?,answer,,,PENDING,,
+BPL-MS-04,Materials Selection,SRC-05,IN,How does the organization handle requests to reconsider or challenge a specific item in the collection?,answer,,,PENDING,,
+BPL-MS-05,Materials Selection,SRC-05,OUT,How long does the Materials Review Committee usually take to issue a decision after a challenge is filed?,refusal,,,PENDING,,
+BPL-UC-01,Unattended Children,SRC-06,IN,What is considered an “unattended child” under this policy?,answer,,,PENDING,,
+BPL-UC-02,Unattended Children,SRC-06,IN,Is the organization responsible for supervising children left alone in the building?,answer,,,PENDING,,
+BPL-UC-03,Unattended Children,SRC-06,IN,What should staff do if an unattended child is disruptive or unsafe?,answer,,,PENDING,,
+BPL-UC-04,Unattended Children,SRC-06,IN,What steps should staff take if a child is left alone at closing time?,answer,,,PENDING,,
+BPL-UC-05,Unattended Children,SRC-06,OUT,What specific age is considered old enough for a child to be left alone in the Library?,refusal,,,PENDING,,
+BPL-AL-01,Annual Leave,SRC-10,IN,Who is eligible to earn annual leave under the Annual Leave Policy?,answer,full-time|non-union,,ENGINEER_PREPARED_PENDING_BPL,All full-time non-union employees are eligible for paid annual leave.,"Policy text, Eligibility Requirements."
+BPL-AL-02,Annual Leave,SRC-10,IN,How much annual leave does a non-union employee earn based on years of service?,answer,15|20|25|27,,ENGINEER_PREPARED_PENDING_BPL,Years of service table: First year up to 15 days earned in one year; beginning of 5th year up to 20; beginning of 8th year up to 25; beginning of 15th year up to 27.,Table figures cross-checked: hours per pay period x 26 / 7 hours = days.
+BPL-AL-03,Annual Leave,SRC-10,IN,When can a new hire start using their annual leave?,answer,90,,ENGINEER_PREPARED_PENDING_BPL,"For new hires, there is a 90 day waiting period before annual leave can be used.","Policy text, Using Annual Leave."
+BPL-AL-04,Annual Leave,SRC-10,IN,How much unused annual leave can be carried over to the next plan year?,answer,7|sick leave,,ENGINEER_PREPARED_PENDING_BPL,they can carry up to 7 days of annual leave over to the next plan year. Any accrued time that exceeds 7 days will automatically be transferred into the individual’s sick leave bank.,"Policy text, Carry-over."
+BPL-AL-05,Annual Leave,SRC-10,OUT,How do union employees’ vacation benefits compare to this policy?,refusal,,collective bargaining|union contract|union agreement,PENDING,,Designated out-of-scope. Policy says it covers non-union staff; it does not state what union staff receive.
+BPL-CI-01,Conflict of Interest,SRC-13,IN,Who is considered a “Covered Person” under the Conflict of Interest Policy?,answer,,,PENDING,,
+BPL-CI-02,Conflict of Interest,SRC-13,IN,What types of relationships or transactions might create a conflict of interest?,answer,,,PENDING,,
+BPL-CI-03,Conflict of Interest,SRC-13,IN,What is a Covered Person required to do if they think a conflict exists?,answer,,,PENDING,,
+BPL-CI-04,Conflict of Interest,SRC-13,IN,How are related-party transactions reviewed and approved?,answer,,,PENDING,,
+BPL-CI-05,Conflict of Interest,SRC-13,OUT,Has anyone ever been disciplined for violating this policy?,refusal,,,PENDING,,
+BPL-FR-01,Fundraising,SRC-14,IN,Which department is responsible for managing fundraising activities?,answer,,,PENDING,,
+BPL-FR-02,Fundraising,SRC-14,IN,When does a fundraising initiative require Board approval?,answer,,,PENDING,,
+BPL-FR-03,Fundraising,SRC-14,IN,How are private donations and government grants processed and acknowledged?,answer,,,PENDING,,
+BPL-FR-04,Fundraising,SRC-14,IN,What administrative fees apply to restricted private grants?,answer,,,PENDING,,
+BPL-FR-05,Fundraising,SRC-14,OUT,What fundraising priorities are planned for the upcoming fiscal year?,refusal,,,PENDING,,
+BPL-VM-01,Volunteer Manual,SRC-16,IN,What is the role of the Office of Volunteer Resources?,answer,,,PENDING,,
+BPL-VM-02,Volunteer Manual,SRC-16,IN,"Can employees serve as volunteers, and under what conditions?",answer,,,PENDING,,
+BPL-VM-03,Volunteer Manual,SRC-16,IN,Are volunteers allowed to replace paid staff positions?,answer,,,PENDING,,
+BPL-VM-04,Volunteer Manual,SRC-16,IN,What screening or background checks may be required for volunteers working with children?,answer,,,PENDING,,
+BPL-VM-05,Volunteer Manual,SRC-16,OUT,Can a volunteer transition into a paid position after their service ends?,refusal,,,PENDING,,

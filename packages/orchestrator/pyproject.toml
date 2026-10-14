@@ -46,6 +46,7 @@ askbpl-ingest = "ask_bpl_orchestrator.ingest.cli:main"
 askbpl-ingest-batch = "ask_bpl_orchestrator.ingest.batch:main"
 askbpl-seed = "ask_bpl_orchestrator.seed:main"
 askbpl-apply-inventory = "ask_bpl_orchestrator.ingest.inventory:main"
+askbpl-eval = "ask_bpl_orchestrator.evals.runner:main"
 askbpl-latency-smoke = "ask_bpl_orchestrator.latency_report:main"
 
 [build-system]
