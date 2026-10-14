@@ -155,11 +155,18 @@ def apply_row(doc: Document, row: InventoryRow) -> None:
 
 
 async def apply_inventory_to_db(
-    db, inventory: Dict[str, InventoryRow], *, purge_vectors: bool = False
+    db, inventory: Dict[str, InventoryRow], *, purge_vectors: bool = False, scope=None
 ) -> List[str]:
-    """Match stored documents to inventory rows by file name and set their disposition."""
+    """Match stored documents to inventory rows by file name and set their disposition.
+
+    `scope` optionally limits the run to those document IDs (used by tests so they never
+    touch real documents in a shared database). The CLI always runs unscoped.
+    """
     lines: List[str] = []
-    docs = (await db.execute(select(Document))).scalars().all()
+    query = select(Document)
+    if scope is not None:
+        query = query.where(Document.document_id.in_(list(scope)))
+    docs = (await db.execute(query)).scalars().all()
     lines.append(f"found:{len(docs)}:stored documents")
     if not docs:
         lines.append("error:no stored documents; run askbpl-ingest-batch first (and check DATABASE_URL)")

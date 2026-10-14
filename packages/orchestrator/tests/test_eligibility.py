@@ -26,6 +26,7 @@ from ask_bpl_orchestrator.db.models import (
 )
 from ask_bpl_orchestrator.db.session import async_session_factory
 from ask_bpl_orchestrator.ingest.inventory import (
+    InventoryRow,
     apply_inventory_to_db,
     derive_eligibility,
     load_inventory,
@@ -313,30 +314,45 @@ def test_document_viewer_hides_non_answerable_documents() -> None:
 
 # ---------------------------------------------------------------- applying the inventory
 
+def _synthetic_inventory(*rows: InventoryRow) -> dict:
+    """Test-only inventory with unique names/IDs so tests never collide with real documents."""
+    return {r.key: r for r in rows}
+
+
+def _row(source_id: str, file_name: str, elig: Eligibility, member: bool) -> InventoryRow:
+    return InventoryRow(source_id=source_id, file_name=file_name, eligibility=elig, test_index_member=member)
+
+
 @pytest.mark.asyncio
 async def test_apply_inventory_sets_dispositions_and_denies_unlisted() -> None:
-    inv = load_inventory(INVENTORY)
+    tag = uuid.uuid4().hex[:8]
+    inv = _synthetic_inventory(
+        _row(f"SRC-T{tag}-A", f"zz-{tag} Blocked Policy (99.01).pdf", Eligibility.blocked, False),
+        _row(f"SRC-T{tag}-B", f"zz-{tag} Pending Policy (99.02).pdf", Eligibility.authority_pending, True),
+    )
     async with async_session_factory() as s:
-        coi, _ = await _add_doc(s, eligibility=Eligibility.authority_pending, member=True,
-                                source_path="06 - Conflict of Interest (06.14) (1) (1).pdf")
-        leave, _ = await _add_doc(s, eligibility=Eligibility.authority_pending, member=False,
-                                  source_path="04 - Annual Leave Policy (01.06) (1).pdf")
-        stray, _ = await _add_doc(s, eligibility=Eligibility.eligible, member=True, source_path="notes/stray.md")
+        blocked, _ = await _add_doc(s, eligibility=Eligibility.authority_pending, member=True,
+                                    source_path=f"zz-{tag} Blocked Policy (99.01) (1).pdf")
+        pending, _ = await _add_doc(s, eligibility=Eligibility.authority_pending, member=False,
+                                    source_path=f"zz-{tag} Pending Policy (99.02).pdf")
+        stray, _ = await _add_doc(s, eligibility=Eligibility.eligible, member=True, source_path=f"notes/{tag}-stray.md")
         await s.commit()
+    ids = [blocked, pending, stray]
     try:
         async with async_session_factory() as s:
-            lines = await apply_inventory_to_db(s, inv)
+            lines = await apply_inventory_to_db(s, inv, scope=ids)
         async with async_session_factory() as s:
-            d_coi, d_leave, d_stray = [await s.get(Document, i) for i in (coi, leave, stray)]
-        assert (d_coi.eligibility, d_coi.source_id, d_coi.test_index_member) == (Eligibility.blocked, "SRC-13", False)
-        assert (d_leave.eligibility, d_leave.source_id, d_leave.test_index_member) == (
-            Eligibility.authority_pending, "SRC-10", True)
+            d_blocked, d_pending, d_stray = [await s.get(Document, i) for i in ids]
+        assert (d_blocked.eligibility, d_blocked.source_id, d_blocked.test_index_member) == (
+            Eligibility.blocked, f"SRC-T{tag}-A", False)
+        assert (d_pending.eligibility, d_pending.source_id, d_pending.test_index_member) == (
+            Eligibility.authority_pending, f"SRC-T{tag}-B", True)
         # a stored document that is not in the inventory is NOT answerable
         assert d_stray.eligibility == Eligibility.authority_pending and not d_stray.test_index_member
         assert not is_retrievable(d_stray, get_settings().model_copy(update={"allow_test_index": True}))
-        assert any(l.startswith("unlisted:notes/stray.md") for l in lines)
+        assert any(l.startswith(f"unlisted:notes/{tag}-stray.md") for l in lines)
     finally:
-        await _cleanup([coi, leave, stray])
+        await _cleanup(ids)
 
 
 @pytest.mark.asyncio
@@ -427,16 +443,18 @@ async def test_apply_inventory_reports_empty_database() -> None:
 @pytest.mark.asyncio
 async def test_apply_inventory_refuses_duplicate_documents_and_changes_nothing() -> None:
     """Same policy ingested under two source paths (e.g. 'x.pdf' and 'pilot/x.pdf')."""
-    inv = load_inventory(INVENTORY)
-    name = "04 - Annual Leave Policy (01.06) (1).pdf"
+    tag = uuid.uuid4().hex[:8]
+    name = f"zz-{tag} Annual Leave (99.03).pdf"
+    sid = f"SRC-T{tag}-D"
+    inv = _synthetic_inventory(_row(sid, name, Eligibility.authority_pending, True))
     async with async_session_factory() as s:
         a, _ = await _add_doc(s, eligibility=Eligibility.authority_pending, member=True, source_path=name)
         b, _ = await _add_doc(s, eligibility=Eligibility.authority_pending, member=True, source_path=f"pilot/{name}")
         await s.commit()
     try:
         async with async_session_factory() as s:
-            lines = await apply_inventory_to_db(s, inv)
-        assert any(l.startswith("error:duplicate:SRC-10:2 stored documents") for l in lines)
+            lines = await apply_inventory_to_db(s, inv, scope=[a, b])
+        assert any(l.startswith(f"error:duplicate:{sid}:2 stored documents") for l in lines)
         assert any("nothing was changed" in l for l in lines)
         async with async_session_factory() as s:
             for i in (a, b):
