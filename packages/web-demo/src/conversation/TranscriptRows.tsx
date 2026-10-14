@@ -10,6 +10,7 @@ import type {
   RoutingPayload,
   UserMessageRow,
 } from './types'
+import { TestIndexNotice } from '../components/pilot/TestIndexNotice'
 
 /**
  * Row-by-row renderers for the discriminated union in `./types.ts`.
@@ -63,6 +64,7 @@ export function AssistantAnswer({
         <span className="mono-muted">{row.requestId.slice(0, 13) || 'no-id'}</span>
       </div>
       <div className="answer-block">
+        {row.indexLabel ? <TestIndexNotice label={row.indexLabel} /> : null}
         <p className="answer-body">{row.body}</p>
         {row.citations.length > 0 ? (
           <ul className="citation-inset-stack" aria-label="Sources">

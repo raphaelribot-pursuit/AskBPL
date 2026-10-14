@@ -14,6 +14,24 @@ export type CitationPayload = {
   document_id: string
   document_title?: string
   section_heading?: string | null
+  /** True when the cited document is not yet BPL-confirmed (OD-11 test index). */
+  test_index?: boolean
+}
+
+/** Shown when a citation is flagged but the server sent no label text. */
+export const DEFAULT_TEST_INDEX_LABEL =
+  'Test index: sources not yet confirmed current by BPL'
+
+/**
+ * Fail-safe: the label shows if the server sent one OR any citation is flagged,
+ * so a missing field on one side cannot hide it from staff.
+ */
+export function testIndexLabelFor(
+  indexLabel: unknown,
+  citations: CitationPayload[],
+): string | null {
+  if (typeof indexLabel === 'string' && indexLabel.trim() !== '') return indexLabel
+  return citations.some((c) => c.test_index === true) ? DEFAULT_TEST_INDEX_LABEL : null
 }
 
 export type RoutingPayload = {
@@ -50,6 +68,8 @@ export type AssistantAnswerRow = {
   citations: CitationPayload[]
   routing: RoutingPayload[]
   inferredPolicy?: string | null
+  /** Non-null when any cited source is not yet confirmed by BPL (OD-11). */
+  indexLabel?: string | null
 }
 
 /** `type: "refusal"` (Wireframe §5.4–5.5). */
@@ -162,6 +182,7 @@ export function rowFromAskResponse(args: {
           typeof payload.inferred_policy_type === 'string'
             ? payload.inferred_policy_type
             : null,
+        indexLabel: testIndexLabelFor(payload.index_label, citations),
       }
     }
 

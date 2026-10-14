@@ -705,6 +705,49 @@
   color: var(--wf-ink-faint);
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+ * TestIndexNotice (PRD OD-11). Warning palette, never danger: the answer may be
+ * right, but its sources are not yet confirmed current by BPL.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+.pilot-test-index {
+  background: var(--wf-warn-bg);
+  border: 1px solid var(--wf-warn-border);
+  border-left-width: 4px;
+  border-radius: var(--wf-radius-sm);
+  padding: 0.5rem 0.65rem;
+  color: var(--wf-ink);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.pilot-test-index strong {
+  display: block;
+  font-weight: 700;
+}
+
+.pilot-test-index p {
+  margin: 0.15rem 0 0;
+  color: var(--wf-ink-muted);
+}
+
+.pilot-test-index-viewer {
+  margin-bottom: 0.75rem;
+}
+
+.pilot-citation-tag {
+  display: inline-block;
+  margin-top: 0.2rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--wf-warn-border);
+  border-radius: 999px;
+  background: var(--wf-warn-bg);
+  color: var(--wf-ink);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .pilot-answer-text {
   font-size: 0.92rem;
   line-height: 1.55;

@@ -16,6 +16,7 @@ type GroupedCitation = {
   sections: string[]
   chunkIds: string[]
   count: number
+  testIndex: boolean
 }
 
 type CitationCardListProps = {
@@ -32,6 +33,7 @@ function groupCitations(citations: CitationPayload[]): GroupedCitation[] {
     if (existing) {
       existing.count += 1
       existing.chunkIds.push(cite.chunk_id)
+      if (cite.test_index === true) existing.testIndex = true
       if (
         cite.section_heading &&
         !existing.sections.includes(cite.section_heading)
@@ -45,6 +47,7 @@ function groupCitations(citations: CitationPayload[]): GroupedCitation[] {
         sections: cite.section_heading ? [cite.section_heading] : [],
         chunkIds: [cite.chunk_id],
         count: 1,
+        testIndex: cite.test_index === true,
       })
     }
   }
@@ -82,9 +85,14 @@ export function CitationCardList({ citations, onOpen }: CitationCardListProps) {
               }}
               aria-label={`View source: ${doc.title}${
                 doc.sections.length > 0 ? ` — ${doc.sections.join(', ')}` : ''
-              }${doc.count > 1 ? ` — ${doc.count} sections referenced` : ''}`}
+              }${doc.count > 1 ? ` — ${doc.count} sections referenced` : ''}${
+                doc.testIndex ? ' — test index, not yet confirmed current' : ''
+              }`}
             >
               <strong>{doc.title}</strong>
+              {doc.testIndex ? (
+                <span className="pilot-citation-tag">Test index</span>
+              ) : null}
               {doc.sections.length > 0 ? (
                 <small>{doc.sections.join(' · ')}</small>
               ) : null}
