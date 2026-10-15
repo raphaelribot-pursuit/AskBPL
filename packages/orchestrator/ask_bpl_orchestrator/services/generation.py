@@ -250,10 +250,30 @@ async def generate_answer(
     return answer, refuse, cited_ids, raw_text
 
 
+def model_output_usable(raw: str) -> bool:
+    """True when the model's reply contains a JSON object we can read (same rule as the parser below)."""
+    text = (raw or "").strip()
+    try:
+        return isinstance(json.loads(text), dict)
+    except json.JSONDecodeError:
+        pass
+    start, end = text.find("{"), text.rfind("}")
+    if start >= 0 and end > start:
+        try:
+            return isinstance(json.loads(text[start : end + 1]), dict)
+        except json.JSONDecodeError:
+            return False
+    return False
+
+
 def _parse_json_best_effort(raw: str) -> dict:
     raw = raw.strip()
     try:
-        return json.loads(raw)
+        parsed = json.loads(raw)
+        # A JSON array or bare string is valid JSON but not the object the contract asks for;
+        # returning it would crash the caller's .get() instead of failing closed.
+        if isinstance(parsed, dict):
+            return parsed
     except json.JSONDecodeError:
         pass
 
@@ -261,7 +281,10 @@ def _parse_json_best_effort(raw: str) -> dict:
     end = raw.rfind("}")
     if start >= 0 and end > start:
         try:
-            return json.loads(raw[start : end + 1])
+            extracted = json.loads(raw[start : end + 1])
+            if isinstance(extracted, dict):
+                return extracted
+            log.warning("model JSON was not an object; refusing. raw_prefix=%s", raw[:200])
         except json.JSONDecodeError:
             log.warning("model JSON extract failed; refusing. raw_prefix=%s", raw[:200])
     else:

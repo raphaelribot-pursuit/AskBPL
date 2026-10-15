@@ -61,6 +61,11 @@ class RetrievedChunk:
 class VectorRetriever:
     def __init__(self) -> None:
         self.settings = get_settings()
+        # Set by the last `query` call so callers can tell "nothing relevant" from "search broke"
+        # and from "relevant text exists but may not be cited" (RTG-6).
+        self.search_failed: bool = False
+        self.excluded_count: int = 0
+        self.excluded_best_score: float = 0.0
 
     async def embed_question(self, question: str) -> List[float]:
         return await embed_query(question, settings=self.settings)
@@ -83,6 +88,7 @@ class VectorRetriever:
         except PineconeError as exc:
             # Quota / auth / index errors must not 500 the ask endpoint.
             logger.warning("pinecone_query_failed: %s", exc)
+            self.search_failed = True
             return {}
         scores: Dict[uuid.UUID, float] = {}
 
@@ -112,6 +118,14 @@ class VectorRetriever:
         rows = (await db.execute(stmt)).all()
         mapper = {chunk.chunk_id: (chunk, document) for chunk, document in rows}
 
+        # Vectors whose chunk exists but whose document is not citable (unconfirmed, blocked, superseded).
+        # Counted, never returned. A vector with no chunk row at all is stale, not an authority question.
+        missing = [cid for cid in identities if cid not in mapper]
+        if missing:
+            existing = (await db.execute(select(Chunk.chunk_id).where(Chunk.chunk_id.in_(missing)))).scalars().all()
+            self.excluded_count = len(existing)
+            self.excluded_best_score = max((ordered[cid] for cid in existing), default=0.0)
+
         hydrated: List[RetrievedChunk] = []
         # preserve descending Pinecone similarity order based on insertion dict order unreliable
         ranked = sorted(ordered.items(), key=lambda kv: kv[1], reverse=True)
@@ -138,6 +152,9 @@ class VectorRetriever:
         return hydrated
 
     async def query(self, db: AsyncSession, question: str, top_k: int) -> List[RetrievedChunk]:
+        self.search_failed = False
+        self.excluded_count = 0
+        self.excluded_best_score = 0.0
         scores = await self._pinecone_scores(question, top_k)
         return await self._hydrate_ordered(db, scores)
 

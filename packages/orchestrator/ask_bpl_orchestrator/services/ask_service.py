@@ -6,6 +6,7 @@ import json
 import logging
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -30,8 +31,17 @@ from ask_bpl_orchestrator.services import generation, routing_service
 from ask_bpl_orchestrator.services.routing_service import public_contact_hint
 from ask_bpl_orchestrator.services.citation_verifier import verify_citations
 from ask_bpl_orchestrator.services.crisis_gate import detect_crisis, format_crisis_response
-from ask_bpl_orchestrator.services.intent_guard import flagged_intents
+from ask_bpl_orchestrator.services.intent_guard import intent_causes
 from ask_bpl_orchestrator.services.pii_gate import rejects_input
+from ask_bpl_orchestrator.services.refusal import (
+    TECHNICAL_HTTP_STATUS,
+    RefusalCause,
+    classify_generation_failure,
+    classify_retrieval_gate_failure,
+    is_technical,
+    stage_for,
+    user_message,
+)
 from ask_bpl_orchestrator.services.query_rewriter import rewrite_follow_up
 from ask_bpl_orchestrator.services.eligibility import TEST_INDEX_LABEL, is_retrievable, is_test_index_source
 from ask_bpl_orchestrator.services.retrieval import RetrievedChunk, VectorRetriever, max_score
@@ -71,6 +81,8 @@ def _build_completion_log(
     routing_teams: Optional[List[str]],
     citation_verified: bool,
     pii_categories: Optional[List[str]] = None,
+    refusal_stage: Optional[str] = None,
+    technical_failure: Optional[str] = None,
 ) -> Dict[str, Any]:
     latency_ms = (time.perf_counter() - started) * 1000
     payload: Dict[str, Any] = {
@@ -89,6 +101,11 @@ def _build_completion_log(
         "citation_verified": citation_verified,
         "latency_ms": round(latency_ms, 3),
     }
+    # RTG-6: internal only. These never reach the API response or the screen.
+    if refusal_stage is not None:
+        payload["refusal_stage"] = refusal_stage
+    if technical_failure is not None:
+        payload["technical_failure"] = technical_failure
     if pii_categories is not None:
         payload["pii_categories"] = pii_categories
         # TODO: map pii_categories to formal SIEM / OTel fields when pipeline is ready
@@ -124,6 +141,108 @@ async def _finish_refusal(
     q_row.latency_ms = int((time.perf_counter() - start) * 1000)
     await db.commit()
     return _payload(request_id, resp, teams, []), 200
+
+
+@dataclass
+class _AskContext:
+    """What every outcome of one /ask call needs in order to log and persist itself."""
+
+    started: float
+    question_row: Question
+    request_id: uuid.UUID
+    session_marker: str
+
+
+async def _refuse(
+    db: AsyncSession,
+    ctx: _AskContext,
+    *,
+    cause: RefusalCause,
+    stage: str,
+    inferred_policy: Optional[str],
+    teams: List[OwningTeam],
+    retrieval_hit: bool,
+    n_chunks: int,
+    top_score: Optional[float],
+    grounding_passed: bool,
+    rtype: ResponseType = ResponseType.refusal_oo_corpus,
+) -> Tuple[Dict[str, Any], int]:
+    """A completed refusal (HTTP 200, RTG-1). The cause is logged; staff see only the plain message."""
+    out = await _finish_refusal(
+        db,
+        start=ctx.started,
+        q_row=ctx.question_row,
+        request_id=ctx.request_id,
+        rtype=rtype,
+        refusal_explanation=user_message(cause),
+        inferred_policy=inferred_policy,
+        teams=teams,
+    )
+    _emit_structured_ask_log(
+        _build_completion_log(
+            request_id=ctx.request_id,
+            session_marker=ctx.session_marker,
+            started=ctx.started,
+            retrieval_hit=retrieval_hit,
+            chunks_returned=n_chunks,
+            top_score=top_score,
+            grounding_passed=grounding_passed,
+            refusal=True,
+            refusal_reason=cause.value,
+            inferred_policy_type=inferred_policy,
+            routing_teams=_routing_team_names(teams),
+            citation_verified=False,
+            refusal_stage=stage,
+        )
+    )
+    return out
+
+
+async def _fail_technical(
+    db: AsyncSession,
+    ctx: _AskContext,
+    *,
+    cause: RefusalCause,
+    stage: str,
+    retrieval_hit: bool,
+    n_chunks: int,
+    top_score: Optional[float],
+    grounding_passed: bool,
+) -> Tuple[Dict[str, Any], int]:
+    """A system failure, not a policy conclusion: 5xx, never a refusal, so it cannot pass as a safe refusal.
+
+    The staff-facing message says what happened to the request. The cause label stays in the log.
+    """
+    assert is_technical(cause)
+    ctx.question_row.latency_ms = int((time.perf_counter() - ctx.started) * 1000)
+    await db.commit()
+    _emit_structured_ask_log(
+        _build_completion_log(
+            request_id=ctx.request_id,
+            session_marker=ctx.session_marker,
+            started=ctx.started,
+            retrieval_hit=retrieval_hit,
+            chunks_returned=n_chunks,
+            top_score=top_score,
+            grounding_passed=grounding_passed,
+            refusal=False,
+            refusal_reason=None,
+            inferred_policy_type=None,
+            routing_teams=None,
+            citation_verified=False,
+            refusal_stage=stage,
+            technical_failure=cause.value,
+        )
+    )
+    return (
+        {
+            "type": "error_unavailable",
+            "detail": "service_unavailable",
+            "message": user_message(cause),
+            "request_id": str(ctx.request_id),
+        },
+        TECHNICAL_HTTP_STATUS[cause],
+    )
 
 
 def _payload(
@@ -275,35 +394,24 @@ async def handle_ask(
     db.add(question_row)
     await db.flush()
 
-    if flagged_intents(question_text):
-        teams = await _teams(db, None)
-        out = await _finish_refusal(
+    ctx = _AskContext(
+        started=started, question_row=question_row, request_id=request_id, session_marker=session_marker
+    )
+
+    guard_causes = intent_causes(question_text)
+    if guard_causes:
+        return await _refuse(
             db,
-            start=started,
-            q_row=question_row,
-            request_id=request_id,
-            rtype=ResponseType.refusal_oo_corpus,
-            refusal_explanation="This request falls outside closed policy lookup. Speak with your supervisor or:",
+            ctx,
+            cause=guard_causes[0],
+            stage="intent_guard",
             inferred_policy=None,
-            teams=teams,
+            teams=await _teams(db, None),
+            retrieval_hit=False,
+            n_chunks=0,
+            top_score=None,
+            grounding_passed=False,
         )
-        _emit_structured_ask_log(
-            _build_completion_log(
-                request_id=request_id,
-                session_marker=session_marker,
-                started=started,
-                retrieval_hit=False,
-                chunks_returned=0,
-                top_score=None,
-                grounding_passed=False,
-                refusal=True,
-                refusal_reason="NO_GROUNDING",
-                inferred_policy_type=None,
-                routing_teams=_routing_team_names(teams),
-                citation_verified=False,
-            )
-        )
-        return out
 
     retrieval_query = question_text
     if conversation_context and settings.anthropic_api_key:
@@ -327,81 +435,62 @@ async def handle_ask(
 
     retriever = VectorRetriever()
     retrieved: List[RetrievedChunk] = await retriever.query(db, retrieval_query, settings.pinecone_top_k)
+    if retriever.search_failed:
+        # The search itself broke. That is not the same as "no policy covers this".
+        return await _fail_technical(
+            db,
+            ctx,
+            cause=RefusalCause.retrieval_unavailable,
+            stage="retrieval",
+            retrieval_hit=False,
+            n_chunks=0,
+            top_score=None,
+            grounding_passed=False,
+        )
     best = max_score(retrieved)
     inferred_policy = await routing_service.infer_policy_from_chunks(
         db, [c.policy_type for c in retrieved if c.policy_type]
     )
     route_targets = await _teams(db, inferred_policy)
-    team_names_for_log = _routing_team_names(route_targets)
 
     n_chunks = len(retrieved)
-    # Margin rule: ≥2 chunks above floor OR one chunk above strong threshold
+    # Margin rule: >=2 chunks above floor OR one chunk above strong threshold
     floor = settings.grounding_threshold
     strong = settings.grounding_strong_threshold
     n_above_floor = sum(1 for c in retrieved if c.score >= floor)
     grounding_passed = bool(retrieved) and (n_above_floor >= 2 or best >= strong)
 
     if not grounding_passed:
-        out = await _finish_refusal(
+        return await _refuse(
             db,
-            start=started,
-            q_row=question_row,
-            request_id=request_id,
-            rtype=ResponseType.refusal_oo_corpus,
-            refusal_explanation="I couldn't locate relevant policy excerpts.",
+            ctx,
+            cause=classify_retrieval_gate_failure(
+                best_score=best, floor=floor, excluded_best_score=retriever.excluded_best_score
+            ),
+            stage="retrieval_gate",
             inferred_policy=inferred_policy,
             teams=route_targets,
+            retrieval_hit=n_chunks > 0,
+            n_chunks=n_chunks,
+            top_score=best,
+            grounding_passed=grounding_passed,
         )
-        _emit_structured_ask_log(
-            _build_completion_log(
-                request_id=request_id,
-                session_marker=session_marker,
-                started=started,
-                retrieval_hit=n_chunks > 0,
-                chunks_returned=n_chunks,
-                top_score=best,
-                grounding_passed=grounding_passed,
-                refusal=True,
-                refusal_reason="NO_GROUNDING",
-                inferred_policy_type=inferred_policy,
-                routing_teams=team_names_for_log,
-                citation_verified=False,
-            )
-        )
-        return out
 
     if not settings.anthropic_api_key:
-        out = await _finish_refusal(
+        return await _fail_technical(
             db,
-            start=started,
-            q_row=question_row,
-            request_id=request_id,
-            rtype=ResponseType.refusal_oo_corpus,
-            refusal_explanation="Generation endpoint is unavailable in this build.",
-            inferred_policy=inferred_policy,
-            teams=route_targets,
+            ctx,
+            cause=RefusalCause.generation_unavailable,
+            stage="generation",
+            retrieval_hit=True,
+            n_chunks=n_chunks,
+            top_score=best,
+            grounding_passed=grounding_passed,
         )
-        _emit_structured_ask_log(
-            _build_completion_log(
-                request_id=request_id,
-                session_marker=session_marker,
-                started=started,
-                retrieval_hit=True,
-                chunks_returned=n_chunks,
-                top_score=best,
-                grounding_passed=grounding_passed,
-                refusal=True,
-                refusal_reason="NO_GROUNDING",
-                inferred_policy_type=inferred_policy,
-                routing_teams=team_names_for_log,
-                citation_verified=False,
-            )
-        )
-        return out
 
     # Owning teams the model may name: approved routing rules for the policy areas actually retrieved.
     routing = await routing_service.routing_choices(db, [c.policy_type for c in retrieved])
-    ans, refusal_flag, cited, _raw = await generation.generate_answer(
+    ans, refusal_flag, cited, raw_output = await generation.generate_answer(
         question=question_text,
         chunks=retrieved,
         conversation_context=conversation_context,
@@ -420,38 +509,41 @@ async def handle_ask(
         logger.error("citation_rejected_ineligible_document request=%s", request_id)
         ok = False
     if not ok:
-        rtype = (
-            ResponseType.refusal_citation_invalid if cited else ResponseType.refusal_oo_corpus
+        cause = classify_generation_failure(
+            output_usable=generation.model_output_usable(raw_output),
+            refuse_flag=refusal_flag,
+            answer=ans,
         )
-        reason = "CITATION_VERIFICATION_FAILED" if cited else "NO_GROUNDING"
-        refusal_expl = "I could not safely verify citations from retrieval."
-        out = await _finish_refusal(
-            db,
-            start=started,
-            q_row=question_row,
-            request_id=request_id,
-            rtype=rtype,
-            refusal_explanation=refusal_expl,
-            inferred_policy=inferred_policy,
-            teams=route_targets,
-        )
-        _emit_structured_ask_log(
-            _build_completion_log(
-                request_id=request_id,
-                session_marker=session_marker,
-                started=started,
+        if is_technical(cause):
+            return await _fail_technical(
+                db,
+                ctx,
+                cause=cause,
+                stage="generation",
                 retrieval_hit=True,
-                chunks_returned=n_chunks,
+                n_chunks=n_chunks,
                 top_score=best,
                 grounding_passed=grounding_passed,
-                refusal=True,
-                refusal_reason=reason,
-                inferred_policy_type=inferred_policy,
-                routing_teams=team_names_for_log,
-                citation_verified=False,
             )
+        # Only a real citation failure uses the citation-invalid response type.
+        rtype = (
+            ResponseType.refusal_citation_invalid
+            if cause == RefusalCause.citation_unverified and cited
+            else ResponseType.refusal_oo_corpus
         )
-        return out
+        return await _refuse(
+            db,
+            ctx,
+            cause=cause,
+            stage=stage_for(cause) or "generation",
+            inferred_policy=inferred_policy,
+            teams=route_targets,
+            retrieval_hit=True,
+            n_chunks=n_chunks,
+            top_score=best,
+            grounding_passed=grounding_passed,
+            rtype=rtype,
+        )
 
     ans_row = Response(
         request_id=request_id,
@@ -495,7 +587,7 @@ async def handle_ask(
             refusal=False,
             refusal_reason=None,
             inferred_policy_type=inferred_policy,
-            routing_teams=team_names_for_log,
+            routing_teams=_routing_team_names(route_targets),
             citation_verified=True,
         )
     )
