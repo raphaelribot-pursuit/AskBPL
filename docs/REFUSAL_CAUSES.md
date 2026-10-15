@@ -13,7 +13,7 @@ the UX specification says not to show "why the model refused" with technical ter
 | `legal_disciplinary_judgment` | Intent-guard legal patterns | "I cannot give legal advice or judge an individual..." | Detected, narrow patterns |
 | `human_decision_required` | Intent-guard bypass/decision patterns | "That is a decision for a person..." | Detected, narrow patterns |
 | `citation_unverified` | Answer drafted, but citations missing, not retrieved, or to an ineligible document | "I could not confirm an answer would match the approved policy text..." | Detected (not one of the eight) |
-| `private_employee_details` | **Not detected yet** | draft wording only | Next patch |
+| `private_employee_details` | Intent-guard patterns for questions about what happened to **other people** ("has anyone been disciplined", "how many staff were fired", "who was suspended", "is my manager being investigated") | "I cannot share or discuss disciplinary or personnel matters involving individual employees..." | Detected (patch 0012), narrow patterns |
 | `sensitive_content` | **Not detected yet** (PII and crisis gates have their own responses) | draft wording only | Next patch |
 | `unverified_current_operations` | **Not detected yet** | draft wording only | Next patch |
 
@@ -55,6 +55,8 @@ Neither field is in the API response or stored in the database (no migration).
 
 ## Known limits
 
-* Legal/human-decision detection reuses the existing intent-guard patterns only. Questions about named people or disciplinary history are not caught yet.
+* Legal, private-details and human-decision detection is wording-based. A paraphrase can slip through, and a policy question phrased like a history question can be refused (it then gets the supervisor referral). The private-details patterns need a past-event auxiliary (has/was/did...), so "what happens if I violate this?" and "can an employee be fired for...?" are still answered.
+* Order when several match: legal advice, then private details, then human decision. The first one chooses the wording.
+* The guard refuses before retrieval, so it cannot tell which policy the question meant. It does not fix the separate problem of a question about a policy that is not indexed being answered from a neighbouring policy.
 * `ambiguous_authority` only fires when the excluded vector still exists in Pinecone. A document that was never ingested (for example the scanned COI policy before activation) looks like `absent_source`.
 * The absent/weak boundary uses `GROUNDING_THRESHOLD` (the floor). It was tuned on 8 documents (GRD-2); the split is only as good as that threshold.

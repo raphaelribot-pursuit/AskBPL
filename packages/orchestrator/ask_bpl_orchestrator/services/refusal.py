@@ -28,12 +28,12 @@ class RefusalCause(str, enum.Enum):
     ambiguous_authority = (
         "ambiguous_authority"  # relevant text exists but is not citable as current
     )
-    private_employee_details = "private_employee_details"  # not detected yet
-    sensitive_content = "sensitive_content"  # not detected yet
+    private_employee_details = "private_employee_details"  # asked what happened to other people
+    sensitive_content = "sensitive_content"  # NOT DETECTED YET
     legal_disciplinary_judgment = (
         "legal_disciplinary_judgment"  # asked for legal advice or a case judgment
     )
-    unverified_current_operations = "unverified_current_operations"  # not detected yet
+    unverified_current_operations = "unverified_current_operations"  # NOT DETECTED YET
     human_decision_required = "human_decision_required"  # asked the system to decide or approve
 
     # A refusal that is not one of the eight: an answer was drafted but could not be tied to the excerpts.
@@ -82,7 +82,8 @@ USER_MESSAGES: Dict[RefusalCause, str] = {
         + NEUTRAL_NEXT_STEP
     ),
     RefusalCause.private_employee_details: (
-        "I cannot share or discuss information about individual employees. " + NEUTRAL_NEXT_STEP
+        "I cannot share or discuss disciplinary or personnel matters involving individual employees. "
+        + NEUTRAL_NEXT_STEP
     ),
     RefusalCause.sensitive_content: "I cannot help with that here. " + NEUTRAL_NEXT_STEP,
     RefusalCause.unverified_current_operations: (
