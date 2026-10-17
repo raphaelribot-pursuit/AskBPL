@@ -10,6 +10,7 @@ import type {
   RoutingPayload,
   UserMessageRow,
 } from './types'
+import { formatPageLabel } from './types'
 import { TestIndexNotice } from '../components/pilot/TestIndexNotice'
 
 /**
@@ -81,6 +82,11 @@ export function AssistantAnswer({
                   </span>
                   {citation.section_heading ? (
                     <span className="citation-card-section">{citation.section_heading}</span>
+                  ) : null}
+                  {formatPageLabel(citation.page_start, citation.page_end) ? (
+                    <span className="citation-card-page">
+                      {formatPageLabel(citation.page_start, citation.page_end)}
+                    </span>
                   ) : null}
                 </button>
               </li>

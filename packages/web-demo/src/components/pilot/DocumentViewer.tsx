@@ -7,7 +7,7 @@ import {
   isMockEnabled,
   type DocumentText,
 } from '../../conversation/askApi'
-import { DEFAULT_TEST_INDEX_LABEL } from '../../conversation/types'
+import { DEFAULT_TEST_INDEX_LABEL, formatPageLabel } from '../../conversation/types'
 import { TestIndexNotice } from './TestIndexNotice'
 
 const CHUNK_MARKDOWN: Components = {
@@ -123,6 +123,11 @@ export function DocumentViewer({
                 >
                   {chunk.section_heading ? (
                     <h4 className="doc-chunk-heading">{chunk.section_heading}</h4>
+                  ) : null}
+                  {formatPageLabel(chunk.page_start, chunk.page_end) ? (
+                    <p className="doc-chunk-page">
+                      {formatPageLabel(chunk.page_start, chunk.page_end)}
+                    </p>
                   ) : null}
                   <ReactMarkdown components={CHUNK_MARKDOWN}>{chunk.text}</ReactMarkdown>
                 </div>

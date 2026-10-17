@@ -22,6 +22,9 @@ export type DocumentChunk = {
   ordinal: number
   text: string
   section_heading: string | null
+  /** Absent or null for chunks ingested before patch 0013. */
+  page_start?: number | null
+  page_end?: number | null
   start_offset: number
   end_offset: number
 }
@@ -345,6 +348,8 @@ function mockAsk(
               document_id: 'gift-acceptance.pdf',
               document_title: 'Gift Acceptance Policy',
               section_heading: '§3 Approval Thresholds',
+              page_start: 2,
+              page_end: 3,
               test_index: true,
             },
             {
@@ -373,6 +378,8 @@ function mockDocumentText(documentId: string): DocumentText {
       text:
         '**Approval thresholds.** Routine gifts at or below $5,000 follow the standard intake form. Gifts above $5,000 require Director-level approval.',
       section_heading: '§3 Approval Thresholds',
+      page_start: 2,
+      page_end: 3,
       start_offset: 0,
       end_offset: 142,
     },
