@@ -52,6 +52,8 @@ async def get_document_text(
                 "ordinal": chunk.ordinal,
                 "text": text,
                 "section_heading": chunk.section_heading,
+                "page_start": chunk.page_start,
+                "page_end": chunk.page_end,
                 "start_offset": start,
                 "end_offset": end,
             }

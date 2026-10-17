@@ -23,12 +23,20 @@ def _merge_pages(fragments: list[str]) -> str:
 
 def extract_pdf_text_with_ocr(pdf_path: Path) -> str:
     """Extract text from a PDF, using OCR when a page has too little selectable text."""
+    return _merge_pages(extract_pdf_pages(pdf_path))
+
+
+def extract_pdf_pages(pdf_path: Path) -> list[str]:
+    """One string per source page (empty for a page with no text), so page numbers stay true to the PDF.
+
+    ``extract_pdf_text_with_ocr`` is these pages merged; nothing about extraction itself changed in 0013.
+    """
     cfg = get_settings()
     reader = PdfReader(str(pdf_path))
     total_pages = len(reader.pages)
 
     if total_pages == 0:
-        return ""
+        return []
 
     if not cfg.ocr_enabled:
         fragments = [_pypdf_page_text(p) for p in reader.pages]
@@ -37,7 +45,7 @@ def extract_pdf_text_with_ocr(pdf_path: Path) -> str:
             pdf_path.name,
             total_pages,
         )
-        return _merge_pages(fragments)
+        return list(fragments)
 
     page_texts: list[str | None] = [None] * total_pages
     ocr_pages: list[int] = []
@@ -57,7 +65,7 @@ def extract_pdf_text_with_ocr(pdf_path: Path) -> str:
             total_pages,
             pdf_path.name,
         )
-        return _merge_pages([t for t in page_texts if t is not None])
+        return [t or "" for t in page_texts]
 
     try:
         import pytesseract
@@ -73,7 +81,7 @@ def extract_pdf_text_with_ocr(pdf_path: Path) -> str:
         for i in range(total_pages):
             if page_texts[i] is None:
                 page_texts[i] = ""
-        return _merge_pages([t for t in page_texts if t is not None])
+        return [t or "" for t in page_texts]
 
     logger.info(
         "OCR fallback for %s: %d/%d pages need OCR (pages %s)",
@@ -113,4 +121,4 @@ def extract_pdf_text_with_ocr(pdf_path: Path) -> str:
             if page_texts[i] is None:
                 page_texts[i] = ""
 
-    return _merge_pages([t for t in page_texts if t is not None])
+    return [t or "" for t in page_texts]

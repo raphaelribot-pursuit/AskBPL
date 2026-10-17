@@ -214,6 +214,9 @@ class Chunk(Base):
         UUID(as_uuid=True), ForeignKey("documents.document_id", ondelete="CASCADE"), index=True
     )
     section_heading: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    # Source page range of the chunk (patch 0013). NULL = unknown, e.g. a document ingested before 0013.
+    page_start: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    page_end: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     ordinal: Mapped[int] = mapped_column(Integer, default=0)
     text: Mapped[str] = mapped_column(Text)
     token_count: Mapped[int] = mapped_column(Integer, default=0)

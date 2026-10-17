@@ -27,6 +27,13 @@ from ask_bpl_orchestrator.ingest.chunking import split_text_with_sections
 from ask_bpl_orchestrator.ingest.extraction_review import ValidatedExtraction
 from ask_bpl_orchestrator.ingest.inventory import InventoryRow, apply_row
 from ask_bpl_orchestrator.ingest.loaders import load_bytes
+from ask_bpl_orchestrator.ingest.provenance import (
+    MAX_HEADING_CHARS,
+    find_headings,
+    heading_at,
+    page_from_heading,
+    page_range,
+)
 from ask_bpl_orchestrator.services.pinecone_client import get_pinecone_index
 
 DOC_NS = uuid.UUID("6fa459ea-ee8a-3ca4-894e-db77e160355e")
@@ -181,6 +188,11 @@ async def ingest_file(
 
     staging: List[Tuple[str, str, int]] = []
 
+    # Location labels (0013). They describe each chunk; they never alter its text or boundaries.
+    # Page spans exist only for PDFs read here. A validated scan carries its own "## Page N" markers.
+    page_spans = getattr(full_text, "pages", None)
+    confident_headings = [] if validated_extraction is not None else find_headings(full_text.strip())
+
     async with async_session_factory() as db_session:
         registered_policy = (
             (
@@ -243,11 +255,30 @@ async def ingest_file(
             chunk_uuid = _chunk_uuid(doc_uuid, ordinal, snippet)
             staging.append((str(chunk_uuid), snippet, ordinal))
 
+            heading = segment.section_heading
+            start_char = getattr(segment, "start_char", None)
+            end_char = getattr(segment, "end_char", None)
+            page_start = page_end = None
+            marker_page = page_from_heading(heading)
+            if marker_page is not None:
+                # "Page 3" from a validated scan is a page, not a section name.
+                page_start = page_end = marker_page
+                heading = None
+            else:
+                if page_spans and start_char is not None and end_char is not None:
+                    page_start, page_end = page_range(page_spans, start_char, end_char)
+                if heading is None and start_char is not None:
+                    heading = heading_at(confident_headings, start_char)  # None unless the strict rule fired
+            if heading:
+                heading = heading[:MAX_HEADING_CHARS]
+
             db_session.add(
                 Chunk(
                     chunk_id=chunk_uuid,
                     document_id=doc_uuid,
-                    section_heading=segment.section_heading,
+                    section_heading=heading,
+                    page_start=page_start,
+                    page_end=page_end,
                     ordinal=ordinal,
                     text=snippet,
                     token_count=approx_word_tokens(snippet),
