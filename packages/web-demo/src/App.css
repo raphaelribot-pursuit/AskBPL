@@ -1356,3 +1356,11 @@ textarea:focus-visible {
     padding: 16px;
   }
 }
+
+.citation-card-page {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}

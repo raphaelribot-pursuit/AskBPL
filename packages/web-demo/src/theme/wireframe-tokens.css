@@ -1275,3 +1275,17 @@
   box-shadow: 0 0 0 3px var(--wf-accent-soft);
 }
 
+
+/* Page range under a source (patch 0013; PRD GRD-4). Shown only when the page is known. */
+.pilot-citation-pages {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--wf-ink-muted);
+}
+
+.doc-chunk-page {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  color: var(--wf-ink-faint);
+}

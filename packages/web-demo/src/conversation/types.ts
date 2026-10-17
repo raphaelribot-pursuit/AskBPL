@@ -14,8 +14,28 @@ export type CitationPayload = {
   document_id: string
   document_title?: string
   section_heading?: string | null
+  /** 1-based page range of the cited chunk; null/absent for rows ingested before patch 0013. */
+  page_start?: number | null
+  page_end?: number | null
   /** True when the cited document is not yet BPL-confirmed (OD-11 test index). */
   test_index?: boolean
+}
+
+function asPage(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 ? value : null
+}
+
+/**
+ * "p. 2" or "pp. 2–3" for a chunk's page range (PRD GRD-4). Returns null when the
+ * start page is unknown, so staff never see a guessed or half-formed location.
+ * A missing or inverted end collapses to the single start page.
+ */
+export function formatPageLabel(start: unknown, end?: unknown): string | null {
+  const first = asPage(start)
+  if (first === null) return null
+  const last = asPage(end)
+  if (last === null || last <= first) return `p. ${first}`
+  return `pp. ${first}\u2013${last}`
 }
 
 /** Shown when a citation is flagged but the server sent no label text. */
