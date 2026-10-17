@@ -427,3 +427,93 @@ def test_answer_citations_and_viewer_carry_page_fields(pages) -> None:
         assert (chunk["page_start"], chunk["page_end"]) == pages  # None stays None: nothing is invented for old rows
     finally:
         asyncio.run(_drop_ask(req or uuid.uuid4(), chunk_id, doc_id))
+
+
+# ----------------------------------------------------------------------------- 0013b: wrapped sentence tails
+# Real case (Policy on Unattended Children): a sentence wrapped, and its tail "Behavior in the Library Policy:"
+# looked like a colon heading. A wrong heading shown as a verified location is worse than none.
+_WRAPPED_TAIL = (
+    "Disruptive Children:\n"
+    "All company users, regardless of age, are expected to follow the Public \n"
+    "Behavior in the Library Policy:\n"
+    "Staff should take a positive approach with unattended children \n"
+)
+
+
+def test_wrapped_sentence_tail_is_not_a_heading() -> None:
+    assert [h.text for h in find_headings(_WRAPPED_TAIL)] == ["Disruptive Children"]
+
+
+def test_chunk_under_the_wrapped_tail_is_labelled_with_the_real_heading() -> None:
+    headings = find_headings(_WRAPPED_TAIL)
+    assert heading_at(headings, _WRAPPED_TAIL.index("Staff should")) == "Disruptive Children"
+
+
+def test_headings_after_a_rejected_tail_keep_correct_offsets() -> None:
+    text = _WRAPPED_TAIL + "More body text.\nHealth & Safety:\nBody."
+    found = find_headings(text)
+    assert [h.text for h in found] == ["Disruptive Children", "Health & Safety"]
+    assert text[found[1].offset : found[1].offset + 6] == "Health"
+
+
+@pytest.mark.parametrize(
+    "before",
+    [
+        "Staff are expected to follow the Public",  # ends in a capitalised word (the real case)
+        "Staff are expected to follow the public library",  # ends in a lower-case word
+        "Staff are expected to follow the policy of the Library,",  # ends in a comma
+    ],
+)
+def test_colon_line_after_an_unfinished_sentence_is_rejected(before: str) -> None:
+    assert find_headings(f"{before}\nBehavior in the Library Policy:\nBody text.") == []
+
+
+@pytest.mark.parametrize(
+    "before",
+    [
+        "Staff are expected to follow the Public.",  # sentence finished
+        "Which staff are expected to follow:",  # a lead-in ends in a colon
+        "Staff are expected to follow it (see below)",  # closing bracket
+        "Effective date of this policy is 10/1/2006",  # ends in a digit
+        "Annual Leave",  # short line (a label), 2 words
+        "Four word line here",  # one under the 5-word threshold
+        "",  # blank line: a paragraph break
+        "•    Staff must return all checked out library materials in a timely way",  # bullet
+        "-    Staff must return all checked out library materials in a timely way",
+        "1.   Staff must return all checked out library materials in a timely way",
+        "a)   Staff must return all checked out library materials in a timely way",
+        "Overview:",  # the line above is itself a heading
+    ],
+)
+def test_colon_heading_is_kept_when_the_line_above_is_not_an_unfinished_sentence(before: str) -> None:
+    found = find_headings(f"{before}\nBehavior in the Library Policy:\nBody text.")
+    assert [h.text for h in found if h.text == "Behavior in the Library Policy"] == ["Behavior in the Library Policy"]
+
+
+def test_five_words_is_the_threshold() -> None:
+    four = "Staff follow the Public"
+    five = "All staff follow the Public"
+    assert [h.text for h in find_headings(f"{four}\nHolds:\nBody.")] == ["Holds"]
+    assert find_headings(f"{five}\nHolds:\nBody.") == []
+
+
+def test_roman_numeral_heading_is_kept_after_an_unfinished_sentence() -> None:
+    text = "Staff are expected to follow the Public\nIV. Responsibilities:\nBody."
+    assert [h.text for h in find_headings(text)] == ["IV. Responsibilities"]
+
+
+def test_all_caps_heading_is_kept_after_an_unfinished_sentence() -> None:
+    # The guard is for colon lines only: the wrapped-tail failure was only ever seen there.
+    text = "Staff are expected to follow the Public\nGENERAL POLICY STATEMENT\nBody."
+    assert [h.text for h in find_headings(text)] == ["GENERAL POLICY STATEMENT"]
+
+
+def test_first_line_colon_heading_is_kept_whatever_the_last_line_is() -> None:
+    text = "Eligibility Requirements:\nBody text.\nStaff are expected to follow the Public"
+    assert [h.text for h in find_headings(text)] == ["Eligibility Requirements"]
+
+
+def test_colon_heading_straight_after_a_long_heading_is_kept() -> None:
+    # The line above has 6 words and ends in a letter, so only "it is itself a heading" exempts it.
+    text = "Body.\nGENERAL STATEMENT OF LIBRARY COLLECTION POLICY\nOverview:\nBody text."
+    assert [h.text for h in find_headings(text)] == ["GENERAL STATEMENT OF LIBRARY COLLECTION POLICY", "Overview"]
