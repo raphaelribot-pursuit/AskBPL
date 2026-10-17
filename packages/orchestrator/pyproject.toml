@@ -49,6 +49,7 @@ askbpl-apply-inventory = "ask_bpl_orchestrator.ingest.inventory:main"
 askbpl-eval = "ask_bpl_orchestrator.evals.runner:main"
 askbpl-extraction-review = "ask_bpl_orchestrator.ingest.extraction_review:main"
 askbpl-latency-smoke = "ask_bpl_orchestrator.latency_report:main"
+askbpl-provenance-report = "ask_bpl_orchestrator.ingest.provenance_report:main"
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]

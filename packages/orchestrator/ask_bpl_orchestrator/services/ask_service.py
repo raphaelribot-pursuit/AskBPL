@@ -568,6 +568,8 @@ async def handle_ask(
                 "document_id": str(chunk.document_id),
                 "document_title": doc.title if doc else "",
                 "section_heading": chunk.section_heading,
+                "page_start": chunk.page_start,
+                "page_end": chunk.page_end,
                 "test_index": is_test_index_source(doc),
             }
         )
