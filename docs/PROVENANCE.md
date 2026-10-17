@@ -11,12 +11,14 @@ no heading. Rows ingested before 0013 show neither until the document is re-inge
 Accepted: short capitalised lines ending in a colon (6 words or fewer, Title Case), short ALL-CAPS lines,
 Roman-numeral headings ("I. Policy Statement"). Rejected: list lead-ins, lower-case fragments, metadata labels
 ("Revision Date:", "Supersedes policies:"), conjunction-led continuation lines. A wrapped ALL-CAPS heading is rejoined.
+A colon line that follows an unfinished sentence (five or more words, no closing punctuation) is the wrapped tail of that sentence, not a heading (patch 0013b). Bullets, numbered items, short lines, blank lines and other headings above it do not trigger this.
 Bold or large type cannot be seen in extracted text and is never inferred.
 
 Known limits
 - The label is the heading where the chunk **starts**. About 60% of chunks on the seven indexed PDFs run across a heading.
 - If a real heading is missed, chunks under it show the previous heading.
 - Page footers such as "8 of 11" are part of the extracted text.
+- Form-field and date lines can still pass as headings ("Work Address: Work Phone", "February 1999 Related Policy" were seen in policies outside the seven indexed). Not yet addressed.
 - Tables are not handled (the Annual Leave accrual table is still flattened).
 
 ## Before re-ingesting (needs the real tokenizer; no keys needed)

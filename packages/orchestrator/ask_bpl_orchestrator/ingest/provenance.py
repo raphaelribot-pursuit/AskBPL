@@ -20,6 +20,7 @@ from typing import List, Optional, Sequence, Tuple
 MAX_HEADING_CHARS = 120  # the column is String(255); anything this long is not a heading anyway
 MAX_COLON_HEADING_WORDS = 6
 MAX_CAPS_HEADING_WORDS = 10
+MIN_SENTENCE_WORDS = 5  # a line this long that stops without punctuation is a sentence that wrapped (0013b)
 
 # Words allowed to be lower case inside a Title Case heading ("Carry-over of Annual Leave").
 _SMALL_WORDS = frozenset(
@@ -138,6 +139,22 @@ def _is_heading_line(line: str) -> bool:
     return _is_roman_heading(line) or _is_colon_heading(line) or _is_caps_heading(line)
 
 
+def _is_unfinished_sentence(prev_raw: str) -> bool:
+    """The line above is a long line of prose that stops mid-sentence (no closing punctuation).
+
+    A colon line that follows one is the wrapped tail of that sentence, not a heading:
+    "...are expected to follow the Public" / "Behavior in the Library Policy:" (patch 0013b).
+    A blank line above (a paragraph break), a short line, or a bullet or numbered item is never
+    treated as unfinished, and neither is a line that is itself a heading.
+    """
+    prev = _normalise(prev_raw)
+    if len(_words(prev)) < MIN_SENTENCE_WORDS or _is_heading_line(prev):
+        return False
+    if not prev[0].isalnum() or _LIST_PREFIX.match(prev):
+        return False  # a bullet or numbered item ends a list; it is not a sentence that wrapped
+    return prev[-1].isalpha() or prev[-1] == ","
+
+
 def find_headings(text: str) -> List[Heading]:
     """Headings the strict rule is confident about, with the offset of each in ``text``.
 
@@ -151,7 +168,9 @@ def find_headings(text: str) -> List[Heading]:
     while i < len(lines):
         raw = lines[i]
         line = _normalise(raw)
-        if _is_heading_line(line):
+        if _is_heading_line(line) and not (
+            line.endswith(":") and not _is_roman_heading(line) and i > 0 and _is_unfinished_sentence(lines[i - 1])
+        ):
             heading = line
             consumed = 1
             # A heading that wrapped onto a second ALL-CAPS line beginning with a conjunction.
