@@ -179,19 +179,23 @@ async def ingest_file(
         chunk_size = min(chunk_size, 280)
         chunk_overlap = min(chunk_overlap, 50)
 
+    # Confident headings (0013). Under the sentence strategy (0014) they are also where chunks are cut, so a
+    # chunk's heading label covers all of it. A validated scan carries its own "## Page N" markers instead.
+    confident_headings = [] if validated_extraction is not None else find_headings(full_text.strip())
+
     segmented = split_text_with_sections(
         full_text,
         model_name=cfg.openai_embedding_model,
         chunk_size=chunk_size,
         overlap=chunk_overlap,
+        strategy=cfg.chunk_strategy,
+        boundaries=[h.offset for h in confident_headings],
     )
 
     staging: List[Tuple[str, str, int]] = []
 
-    # Location labels (0013). They describe each chunk; they never alter its text or boundaries.
-    # Page spans exist only for PDFs read here. A validated scan carries its own "## Page N" markers.
+    # Page spans exist only for PDFs read here. Labels describe each chunk; they never alter its text.
     page_spans = getattr(full_text, "pages", None)
-    confident_headings = [] if validated_extraction is not None else find_headings(full_text.strip())
 
     async with async_session_factory() as db_session:
         registered_policy = (

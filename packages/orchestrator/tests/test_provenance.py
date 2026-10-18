@@ -54,7 +54,9 @@ ENC = toy_encoding()
 
 
 def split(text: str, size: int = 120, overlap: int = 20):
-    return split_text_with_sections(text, model_name="x", chunk_size=size, overlap=overlap, encoder=ENC)
+    # The 0013 tests pin the labelling and the fixed-window chunker, so they name that strategy (0014 made
+    # "sentence" the default). The sentence strategy has its own tests in test_sentence_chunking.py.
+    return split_text_with_sections(text, model_name="x", chunk_size=size, overlap=overlap, encoder=ENC, strategy="token")
 
 
 # ----------------------------------------------------------------------------- heading rule
@@ -273,13 +275,15 @@ def test_encoder_without_offsets_still_chunks_and_just_loses_the_labels() -> Non
         def decode_with_offsets(self, tokens):
             raise NotImplementedError
 
-    got = split_text_with_sections(SAMPLE_PLAIN, model_name="x", chunk_size=120, overlap=20, encoder=NoOffsets())
+    got = split_text_with_sections(
+        SAMPLE_PLAIN, model_name="x", chunk_size=120, overlap=20, encoder=NoOffsets(), strategy="token"
+    )
     assert [(s.section_heading, s.text) for s in got] == _legacy_chunks(SAMPLE_PLAIN, 120, 20)
     assert all(s.start_char is None and s.end_char is None for s in got)
 
 
 # ----------------------------------------------------------------------------- ingest writes the labels
-async def _ingest(text, *, validated=None):
+async def _ingest(text, *, validated=None, strategy="token"):
     """Run the real ingest + real chunker (toy vocabulary) with embeddings and Pinecone mocked."""
     path_name = f"zz-prov-{uuid.uuid4().hex[:8]}.pdf"
     root = __import__("pathlib").Path("/tmp/prov-corpus")
@@ -295,7 +299,8 @@ async def _ingest(text, *, validated=None):
         patch.object(service, "pinecone_bulk_delete"),
         patch.object(service, "load_bytes", return_value=text),
         patch.object(service, "get_settings", return_value=SimpleNamespace(
-            chunk_size_tokens=150, chunk_overlap_tokens=25, openai_embedding_model="x", pinecone_api_key="")),
+            chunk_size_tokens=150, chunk_overlap_tokens=25, openai_embedding_model="x", pinecone_api_key="",
+            chunk_strategy=strategy)),
     ):
         await service.ingest_file(
             absolute_path=p, corpus_root=root, policy_slug="generic_policy", title="Prov Test",

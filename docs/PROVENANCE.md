@@ -15,7 +15,7 @@ A colon line that follows an unfinished sentence (five or more words, no closing
 Bold or large type cannot be seen in extracted text and is never inferred.
 
 Known limits
-- The label is the heading where the chunk **starts**. About 60% of chunks on the seven indexed PDFs run across a heading.
+- The label is the heading where the chunk **starts**. Under the old fixed-size chunker about 60% of chunks on the seven indexed PDFs ran across a heading; the sentence-aware chunker (0014, `docs/CHUNKING.md`) cuts at headings, so about 7% do.
 - If a real heading is missed, chunks under it show the previous heading.
 - Page footers such as "8 of 11" are part of the extracted text.
 - Form-field and date lines can still pass as headings ("Work Address: Work Phone", "February 1999 Related Policy" were seen in policies outside the seven indexed). Not yet addressed.

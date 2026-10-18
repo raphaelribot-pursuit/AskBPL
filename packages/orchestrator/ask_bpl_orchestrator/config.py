@@ -61,6 +61,9 @@ class Settings(BaseSettings):
 
     chunk_size_tokens: int = 400
     chunk_overlap_tokens: int = 100
+    # "sentence" (patch 0014): cut at sentence ends and at confident headings. "token": the pre-0014 fixed windows.
+    # Takes effect only when a document is (re-)ingested.
+    chunk_strategy: str = "sentence"
 
     # Scanned PDF fallback (ingest-time only). Requires optional pip extra `[ocr]`
     # plus system `tesseract-ocr` and `poppler-utils` when enabled.
