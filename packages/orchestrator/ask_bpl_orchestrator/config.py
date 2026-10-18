@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     # "sentence" (patch 0014): cut at sentence ends and at confident headings. "token": the pre-0014 fixed windows.
     # Takes effect only when a document is (re-)ingested.
     chunk_strategy: str = "sentence"
+    # Reader for selectable PDF text (patch 0015): "pypdf" (default, unchanged) or "pdfium" (pypdfium2). Compare with
+    # askbpl-provenance-report --reader pdfium before switching. Takes effect only when a document is (re-)ingested.
+    pdf_reader: str = "pypdf"
 
     # Scanned PDF fallback (ingest-time only). Requires optional pip extra `[ocr]`
     # plus system `tesseract-ocr` and `poppler-utils` when enabled.

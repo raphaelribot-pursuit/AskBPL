@@ -23,6 +23,7 @@ dependencies = [
     "langchain-openai>=0.2.14",
     "langchain-core>=0.3.28",
     "pypdf>=5.1.0",
+    "pypdfium2>=5.0.0",
     "python-docx>=1.1.2",
     "pyyaml>=6.0.2",
     "openpyxl>=3.1.5",
@@ -50,6 +51,7 @@ askbpl-eval = "ask_bpl_orchestrator.evals.runner:main"
 askbpl-extraction-review = "ask_bpl_orchestrator.ingest.extraction_review:main"
 askbpl-latency-smoke = "ask_bpl_orchestrator.latency_report:main"
 askbpl-provenance-report = "ask_bpl_orchestrator.ingest.provenance_report:main"
+askbpl-reader-compare = "ask_bpl_orchestrator.ingest.reader_compare:main"
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]

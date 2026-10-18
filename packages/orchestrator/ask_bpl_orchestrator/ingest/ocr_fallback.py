@@ -17,6 +17,40 @@ def _pypdf_page_text(page) -> str:
     return ((page.extract_text() or "").replace("\uf0b7", "")).strip()
 
 
+def _pdfium_page_text(page) -> str:
+    """Direct text from one PDFium page, normalised like the pypdf path (patch 0015, opt-in reader)."""
+    textpage = page.get_textpage()
+    try:
+        raw = textpage.get_text_range() or ""
+    finally:
+        textpage.close()
+    # PDFium writes U+FFFE where the page has a hyphen at a line end ("Anti-" / "Harassment"); pypdf writes "-".
+    # Keeping U+FFFE would store a non-character inside policy words, so it is mapped to the hyphen pypdf produces.
+    cleaned = raw.replace("\ufffe", "-")
+    return cleaned.replace("\r\n", "\n").replace("\r", "\n").replace("\uf0b7", "").strip()
+
+
+def _direct_page_texts(pdf_path: Path, reader_name: str) -> list[str]:
+    """Selectable text per page from the configured reader. ``pypdf`` is the default and is unchanged.
+
+    ``pdfium`` (patch 0015) needs the ``pypdfium2`` package. A missing package or an unknown name raises: it never
+    falls back to pypdf quietly, because that would store different text from the one the operator asked for.
+    """
+    if reader_name == "pypdf":
+        return [_pypdf_page_text(p) for p in PdfReader(str(pdf_path)).pages]
+    if reader_name == "pdfium":
+        try:
+            import pypdfium2 as pdfium
+        except ImportError as exc:  # pragma: no cover - exercised through a patched import in tests
+            raise RuntimeError("PDF_READER=pdfium needs the pypdfium2 package (pip install pypdfium2).") from exc
+        document = pdfium.PdfDocument(str(pdf_path))
+        try:
+            return [_pdfium_page_text(document[i]) for i in range(len(document))]
+        finally:
+            document.close()
+    raise ValueError(f"Unknown PDF reader {reader_name!r}; use 'pypdf' or 'pdfium'.")
+
+
 def _merge_pages(fragments: list[str]) -> str:
     return "\n\n".join(f for f in fragments if f)
 
@@ -26,33 +60,32 @@ def extract_pdf_text_with_ocr(pdf_path: Path) -> str:
     return _merge_pages(extract_pdf_pages(pdf_path))
 
 
-def extract_pdf_pages(pdf_path: Path) -> list[str]:
+def extract_pdf_pages(pdf_path: Path, *, reader: str | None = None) -> list[str]:
     """One string per source page (empty for a page with no text), so page numbers stay true to the PDF.
 
     ``extract_pdf_text_with_ocr`` is these pages merged; nothing about extraction itself changed in 0013.
+    ``reader`` overrides the ``PDF_READER`` setting for one call (used by the comparison tools; ingest uses the setting).
     """
     cfg = get_settings()
-    reader = PdfReader(str(pdf_path))
-    total_pages = len(reader.pages)
+    direct = _direct_page_texts(pdf_path, reader or getattr(cfg, "pdf_reader", "pypdf"))
+    total_pages = len(direct)
 
     if total_pages == 0:
         return []
 
     if not cfg.ocr_enabled:
-        fragments = [_pypdf_page_text(p) for p in reader.pages]
         logger.info(
-            "OCR disabled via settings: %s — using pypdf only (%d pages)",
+            "OCR disabled via settings: %s — using direct text only (%d pages)",
             pdf_path.name,
             total_pages,
         )
-        return list(fragments)
+        return list(direct)
 
     page_texts: list[str | None] = [None] * total_pages
     ocr_pages: list[int] = []
     pypdf_pages: list[int] = []
 
-    for i, page in enumerate(reader.pages):
-        text = _pypdf_page_text(page)
+    for i, text in enumerate(direct):
         if len(text) >= cfg.ocr_min_chars_per_page:
             page_texts[i] = text
             pypdf_pages.append(i + 1)

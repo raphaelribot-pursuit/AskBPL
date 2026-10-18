@@ -1,6 +1,6 @@
 """Read-only report of the page and heading labels patch 0013 would store for given PDFs.
 
-    askbpl-provenance-report "path/to/Policy.pdf" [more.pdf ...] [--strategy token|sentence]
+    askbpl-provenance-report "path/to/Policy.pdf" [more.pdf ...] [--strategy token|sentence] [--reader pypdf|pdfium]
 
 No database, no Pinecone, no embeddings, no API keys. It uses the real extractor and the real chunker, so run
 it with the real tokenizer before re-ingesting. Use it to see what staff would be shown, and to spot a wrong
@@ -42,9 +42,9 @@ def starts_a_sentence(stripped: str, offset: int | None, heading_offsets: frozen
     return not before or before[-1] in '.!?:;)"\u201d\u2019'
 
 
-def report(path: Path, *, stand_in: bool, strategy: str = "sentence") -> str:
+def report(path: Path, *, stand_in: bool, strategy: str = "sentence", reader: str | None = None) -> str:
     cfg = get_settings()
-    text = load_bytes(path)
+    text = load_bytes(path, pdf_reader=reader) if reader else load_bytes(path)
     stripped = text.strip()
     scale = 4 if stand_in else 1
     headings = find_headings(stripped)
@@ -80,6 +80,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Show the page and heading labels 0013 would store (read-only).")
     parser.add_argument("pdfs", nargs="+", type=Path)
     parser.add_argument("--stand-in-tokenizer", action="store_true", help="byte-level stand-in when the tokenizer cannot be downloaded")
+    parser.add_argument(
+        "--reader", choices=("pypdf", "pdfium"), default=None, help="PDF text reader (default: the PDF_READER setting)"
+    )
     parser.add_argument("--strategy", choices=("sentence", "token"), default=None, help="default: the CHUNK_STRATEGY setting")
     args = parser.parse_args(argv)
     strategy = args.strategy or get_settings().chunk_strategy
@@ -87,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
         if not pdf.is_file():
             print(f"not a file: {pdf}", file=sys.stderr)
             return 2
-        print(report(pdf, stand_in=args.stand_in_tokenizer, strategy=strategy))
+        print(report(pdf, stand_in=args.stand_in_tokenizer, strategy=strategy, reader=args.reader))
         print()
     return 0
 

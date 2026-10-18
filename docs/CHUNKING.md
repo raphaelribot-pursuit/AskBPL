@@ -55,9 +55,7 @@ chunks it lists: each should start at a sentence or heading, and each heading sh
 ## Rollback
 Set `CHUNK_STRATEGY=token` and re-ingest. Nothing else needs to change.
 
-## Broken words (decision for the team)
-On Materials Selection, `pypdf` produced 12 split-word artefacts; `pypdfium2` (PDFium) produced 0 and `pdfplumber`
-3. A text-repair rule was tried and rejected: a document-local rule turns the real phrase "voice mail" into
-"voicemail" and misses one-letter splits ("o n", "t o"), and a wrong repair in policy text is worse than a visible
-split. Switching reader changes the text of every policy (line breaks, heading detection), so it needs its own
-patch and its own provenance-report comparison.
+## Broken words
+Chunk boundaries do not fix words that the PDF reader breaks ("overal l", "T o p r o m o t e"). A text-repair rule was
+tried and rejected (it turned the real phrase "voice mail" into "voicemail"). Patch 0015 adds an opt-in second reader
+instead, with a read-only comparison tool: see `docs/PDF_READER.md`. The default reader is unchanged.

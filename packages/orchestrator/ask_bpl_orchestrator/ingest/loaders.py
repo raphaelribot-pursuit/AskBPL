@@ -24,13 +24,13 @@ class LoadedText(str):
         return obj
 
 
-def load_bytes(path: Path) -> str:
+def load_bytes(path: Path, *, pdf_reader: str | None = None) -> str:
     suffix = path.suffix.lower()
 
     if suffix == ".pdf":
         from ask_bpl_orchestrator.ingest.ocr_fallback import _merge_pages, extract_pdf_pages
 
-        fragments = extract_pdf_pages(path)
+        fragments = extract_pdf_pages(path, reader=pdf_reader)
         merged = _merge_pages(fragments)
         lead = len(merged) - len(merged.lstrip())
         return LoadedText(merged, build_page_spans(fragments, lead=lead))
