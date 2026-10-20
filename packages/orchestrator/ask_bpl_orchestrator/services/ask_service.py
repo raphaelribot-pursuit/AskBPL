@@ -42,6 +42,7 @@ from ask_bpl_orchestrator.services.refusal import (
     stage_for,
     user_message,
 )
+from ask_bpl_orchestrator.services.glossary import acronyms_missing_from, get_glossary
 from ask_bpl_orchestrator.services.query_rewriter import rewrite_follow_up
 from ask_bpl_orchestrator.services.eligibility import TEST_INDEX_LABEL, is_retrievable, is_test_index_source
 from ask_bpl_orchestrator.services.retrieval import RetrievedChunk, VectorRetriever, max_score
@@ -433,6 +434,12 @@ async def handle_ask(
             }
         )
 
+    # Approved glossary terms add their expansion to the SEARCH query only (patch 0016, GLO-6). The model below still
+    # receives question_text as the staff member wrote it, and nothing here can become evidence or a citation.
+    glossary = get_glossary()
+    expanded = glossary.expand_query(retrieval_query)
+    retrieval_query = expanded.text
+
     retriever = VectorRetriever()
     retrieved: List[RetrievedChunk] = await retriever.query(db, retrieval_query, settings.pinecone_top_k)
     if retriever.search_failed:
@@ -446,6 +453,18 @@ async def handle_ask(
             n_chunks=0,
             top_score=None,
             grounding_passed=False,
+        )
+    unlisted = glossary.unlisted_acronyms(question_text)
+    if expanded.matches or unlisted:
+        # Counts only: question text and the acronyms themselves must not reach logs (SAF-5, NFR-4, AC-15).
+        _emit_structured_ask_log(
+            {
+                "event": "glossary",
+                "matched_terms": len(expanded.matches),
+                "unlisted_acronyms": len(unlisted),
+                "unlisted_not_in_evidence": len(acronyms_missing_from(unlisted, [c.text for c in retrieved])),
+                "request_id": str(request_id),
+            }
         )
     best = max_score(retrieved)
     inferred_policy = await routing_service.infer_policy_from_chunks(
