@@ -67,6 +67,8 @@ class Settings(BaseSettings):
     # Reader for selectable PDF text (patch 0015): "pypdf" (default, unchanged) or "pdfium" (pypdfium2). Compare with
     # askbpl-provenance-report --reader pdfium before switching. Takes effect only when a document is (re-)ingested.
     pdf_reader: str = "pypdf"
+    # Approved glossary file (patch 0016). Empty means config/glossary.yaml. Only entries with status "approved" are used.
+    glossary_path: str = ""
 
     # Scanned PDF fallback (ingest-time only). Requires optional pip extra `[ocr]`
     # plus system `tesseract-ocr` and `poppler-utils` when enabled.

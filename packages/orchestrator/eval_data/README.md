@@ -5,6 +5,7 @@
 |---|---|
 | `client_questions.csv` | The client's 30 questions, **verbatim and in original order**, IDs `BPL-MS/UC/AL/CI/FR/VM-01..05`. Wording is frozen: a test fails if any question text changes. Do not edit it. |
 | `regression_cases.csv` | Team-created cases (`REG-*`, `SEC-*`). Kept separate; never blended into the client 30 results. |
+| `glossary_cases.csv` | Glossary probes (patch 0016): GLO-01..04. Run with `askbpl-eval --set glossary` (or `--only GLO-01`). **Never part of `--set all`**, so the client-30 and team-set baselines stay comparable. GLO-02 and GLO-03 are baseline probes for the unlisted-acronym decision: a FAIL there is evidence, not a regression. |
 | `results/` | Run output (JSON + CSV). Git-ignored by default; commit a run only deliberately, as BASE-8 / AC-10 evidence. |
 
 ## Run it

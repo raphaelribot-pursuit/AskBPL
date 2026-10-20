@@ -1,0 +1,37 @@
+# Approved BPL glossary (patch 0016; PRD GLO-1 to GLO-6). Reviewable data file: edit here, check with
+#   askbpl-glossary-check
+# and see docs/GLOSSARY.md for the owner and the update process.
+#
+# Only entries with  status: approved  are ever used. "draft" and "conflict" entries are kept for review and never
+# match. An approved entry must have an expansion, a source, approved_by and approved_on, or the file is rejected.
+# An approved term adds its expansion to the SEARCH query only. It is never shown to staff, never given to the model
+# and never cited. No definition in this file can answer a question: only policy text can.
+#
+# Fields:
+#   term         the acronym or term as staff write it. Short ALL-CAPS terms match only in capitals.
+#   expansion    the BPL-approved long form (what is added to the search query)
+#   aliases      other ways staff write it (list; each matched exactly like a term)
+#   context      one line of BPL context for reviewers (never used by the system)
+#   source       where BPL confirmed it (document, page, or person and date)
+#   status       approved | draft | conflict
+#   owner        who at BPL owns this definition
+#   approved_by  who approved it
+#   approved_on  date, like 2026-10-18
+#
+# Example (commented out: no BPL approval exists yet):
+# entries:
+#   - term: CBH
+#     expansion: Center for Brooklyn History
+#     aliases: [cbh]
+#     context: Research and archives branch
+#     source: BPL glossary workbook, confirmed by <name> on <date>
+#     status: approved
+#     owner: <BPL owner>
+#     approved_by: <name>
+#     approved_on: 2026-01-01
+
+entries: []
+
+# All-capital words that are NOT BPL acronyms, so they are never counted as "unlisted acronyms" in the log. The
+# built-in list already has US, NYC, PDF, FAQ, ID, OK, AM, PM, roman numerals I to XII and a few more.
+common_words_allowlist: []

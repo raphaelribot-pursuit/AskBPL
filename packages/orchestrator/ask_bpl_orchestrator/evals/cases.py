@@ -11,6 +11,9 @@ from typing import List, Tuple
 DATA_DIR = Path(__file__).resolve().parents[2] / "eval_data"
 CLIENT_CSV = DATA_DIR / "client_questions.csv"
 REGRESSION_CSV = DATA_DIR / "regression_cases.csv"
+# Glossary probes (patch 0016). Run only with `askbpl-eval --set glossary`; never part of `--set all`, so the client-30 and
+# team-set baselines stay comparable from run to run.
+GLOSSARY_CSV = DATA_DIR / "glossary_cases.csv"
 
 _CLS = {"IN", "OUT", "REG", "SEC"}
 _EXPECT = {"answer", "refusal", "either", "pii_reject", "crisis"}

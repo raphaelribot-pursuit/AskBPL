@@ -2,6 +2,7 @@
 
   askbpl-eval                      client 30 + team regression/safety cases, live (uses your real API keys)
   askbpl-eval --set client         only the client's 30 questions
+  askbpl-eval --set glossary       the glossary probes (patch 0016); not part of --set all
   askbpl-eval --only BPL-AL-03 --repeat 5
   askbpl-eval --replay eval_data/results/<run>.json    re-score a recorded run offline: free, deterministic,
                                                        cannot detect model drift (nothing is re-asked)
@@ -28,7 +29,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ask_bpl_orchestrator.evals.cases import (
-    CLIENT_CSV, DATA_DIR, REGRESSION_CSV, Case, file_sha256, load_cases, questions_sha256,
+    CLIENT_CSV, DATA_DIR, GLOSSARY_CSV, REGRESSION_CSV, Case, file_sha256, load_cases, questions_sha256,
 )
 from ask_bpl_orchestrator.evals.scoring import aggregate, summarize
 
@@ -209,6 +210,8 @@ def select_cases(which: str, only: Optional[List[str]]) -> List[Case]:
         cases += load_cases(CLIENT_CSV)
     if which in {"regression", "all"}:
         cases += load_cases(REGRESSION_CSV)
+    if which == "glossary" or (which == "all" and only):  # --only may name a glossary probe; a plain "all" never does
+        cases += load_cases(GLOSSARY_CSV)
     if only:
         wanted = set(only)
         cases = [c for c in cases if c.test_id in wanted]
@@ -220,7 +223,7 @@ def select_cases(which: str, only: Optional[List[str]]) -> List[Case]:
 
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="Ask BPL evaluation runner")
-    ap.add_argument("--set", choices=["client", "regression", "all"], default="all")
+    ap.add_argument("--set", choices=["client", "regression", "glossary", "all"], default="all")
     ap.add_argument("--only", nargs="+", metavar="TEST_ID")
     ap.add_argument("--repeat", type=int, default=1, help="ask each question N times (model output varies)")
     ap.add_argument("--delay", type=float, default=0.5, help="seconds between questions")

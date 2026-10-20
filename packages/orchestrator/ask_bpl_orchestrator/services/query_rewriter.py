@@ -16,6 +16,7 @@ history. The rewritten question should:
 - Include the specific policy topic or subject being discussed
 - Be a natural question a staff member would ask about a policy
 - Be concise (one sentence)
+- Keep every acronym and abbreviation exactly as the user wrote it. Never expand, define or guess what one stands for
 Respond with ONLY the rewritten question. No explanation, no preamble."""
 
 
