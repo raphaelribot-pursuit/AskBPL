@@ -6,6 +6,7 @@
 | `client_questions.csv` | The client's 30 questions, **verbatim and in original order**, IDs `BPL-MS/UC/AL/CI/FR/VM-01..05`. Wording is frozen: a test fails if any question text changes. Do not edit it. |
 | `regression_cases.csv` | Team-created cases (`REG-*`, `SEC-*`). Kept separate; never blended into the client 30 results. |
 | `glossary_cases.csv` | Glossary probes (patch 0016): GLO-01..04. Run with `askbpl-eval --set glossary` (or `--only GLO-01`). **Never part of `--set all`**, so the client-30 and team-set baselines stay comparable. GLO-02 and GLO-03 are baseline probes for the unlisted-acronym decision: a FAIL there is evidence, not a regression. |
+| `robustness_cases.csv` | GRD-12 robustness probes (patch 0017): `ROB-ST` similar titles and `ROB-ST-04` version drift (the two technology policies), `ROB-CF` and `ROB-MD` conflicting audiences and multi-document, `ROB-LD` long document, `ROB-MS` silent policy (no figure may be invented), `ROB-EX` and `ROB-TH` exceptions and thresholds, `ROB-UI` policies supplied but not indexed (wrong-policy substitution), `ROB-AC` acronyms. Run with `askbpl-eval --set robustness --repeat 3`. **Never part of `--set all`.** Every reference quote is checked verbatim against the supplied PDFs by a test. A FAIL here is evidence about the system, not automatically a defect: read the `note` column first. |
 | `results/` | Run output (JSON + CSV). Git-ignored by default; commit a run only deliberately, as BASE-8 / AC-10 evidence. |
 
 ## Run it
@@ -43,6 +44,12 @@ bracket separates tokens. Only the question text is frozen, not these columns.
 
 BPL-MS-05 and BPL-UC-05 carry such guards: the policies give no number of days and no age, so any figure in the answer
 is invented and the case FAILs. An honest "the policy does not specify" answer still shows as REVIEW for a human.
+
+## `must_cite_source` (optional column, patch 0017)
+`SRC-nn` ids, `|`-separated. For an **answer**, the set of cited sources must equal this set. A citation to the neighbouring policy
+(for example Technology Use cited for an employee question) fails, and so does a multi-document answer that cites only one of its
+two sources. Refusals are not checked. The warning names what was cited and what was expected. A citation with no source id
+cannot satisfy the rule. Older files without the column load unchanged. The client 30 do not use it.
 
 ## Reference records
 `reference_status` is `PENDING` unless an engineer extracted a quote from the source PDF

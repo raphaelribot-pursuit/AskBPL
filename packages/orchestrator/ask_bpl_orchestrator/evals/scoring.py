@@ -100,6 +100,15 @@ def score_run(case: Case, rec: Dict[str, Any]) -> RunScore:
         checks["citations_present"] = checks["citation_integrity"] = checks["test_index_label"] = None
         checks["no_citations_on_refusal"] = not payload.get("citations")
 
+    # --- which policy was cited (optional per case; patch 0017) -----------------------------
+    if case.must_cite_source and outcome == "answer":
+        cited_ids = {c.get("source_id") for c in cites}
+        expected_ids = set(case.must_cite_source)
+        checks["cited_source"] = cited_ids == expected_ids
+        if cited_ids != expected_ids:
+            shown = sorted(str(i) if i else "unknown" for i in cited_ids) or ["none"]
+            warnings.append(f"cited source(s) {', '.join(shown)}; expected exactly {', '.join(sorted(expected_ids))}")
+
     # --- keyword checks against the reference record (pending BPL validation) ---------------
     if case.must_include and outcome == "answer":
         checks["must_include"] = all(token_matches(t, text) for t in case.must_include)

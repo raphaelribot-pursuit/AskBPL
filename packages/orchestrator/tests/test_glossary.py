@@ -681,7 +681,7 @@ def test_glossary_cases_are_valid_separate_from_baselines_and_pass_the_intent_gu
     from ask_bpl_orchestrator.services.intent_guard import intent_causes
 
     glo = load_cases(GLOSSARY_CSV)
-    assert [c.test_id for c in glo] == ["GLO-01", "GLO-02", "GLO-03", "GLO-04"]
+    assert [c.test_id for c in glo] == ["GLO-01", "GLO-02", "GLO-03", "GLO-04", "GLO-05"]
     assert all(c.cls == "REG" and c.reference_status == "PENDING" for c in glo)
     assert [c for c in glo if intent_causes(c.question)] == [], (
         "a probe must reach retrieval, not an early refusal"
