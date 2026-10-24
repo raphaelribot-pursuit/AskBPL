@@ -54,6 +54,7 @@ askbpl-provenance-report = "ask_bpl_orchestrator.ingest.provenance_report:main"
 askbpl-reader-compare = "ask_bpl_orchestrator.ingest.reader_compare:main"
 askbpl-glossary-check = "ask_bpl_orchestrator.glossary_tools:check_main"
 askbpl-glossary-candidates = "ask_bpl_orchestrator.glossary_tools:candidates_main"
+askbpl-score-report = "ask_bpl_orchestrator.score_report:main"
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]

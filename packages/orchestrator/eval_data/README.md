@@ -51,6 +51,10 @@ is invented and the case FAILs. An honest "the policy does not specify" answer s
 two sources. Refusals are not checked. The warning names what was cited and what was expected. A citation with no source id
 cannot satisfy the rule. Older files without the column load unchanged. The client 30 do not use it.
 
+## Score report (patch 0018)
+`askbpl-score-report <run>_live.json --log <run>_app.log` joins a recorded run to its app log by `request_id` and shows each
+ask's retrieval-gate scores next to its expected class. Read-only. See `docs/SCORE_REPORT.md`.
+
 ## Reference records
 `reference_status` is `PENDING` unless an engineer extracted a quote from the source PDF
 (`ENGINEER_PREPARED_PENDING_BPL`: Annual Leave AL-01..04 and the matching regression cases). `must_include` /

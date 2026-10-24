@@ -39,6 +39,8 @@ Each completed ask logs one JSON line (`event: ask_completed`):
 * `refusal_stage`: `intent_guard`, `retrieval_gate`, `model`, `citation_check`, `retrieval`, `generation`.
 * `technical_failure`: set only for the three technical causes; `refusal` is then `false`.
 
+Since patch 0018 a question that reaches the retrieval gate also logs a separate `event: retrieval_gate` line with the gate's scores (best, second, chunks at the floor). It is log-only and shares the `request_id`. See `docs/SCORE_REPORT.md` and `askbpl-score-report`.
+
 ```bash
 grep '"event": "ask_completed"' app.log | grep '"refusal_reason"'
 ```

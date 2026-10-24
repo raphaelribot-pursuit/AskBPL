@@ -479,6 +479,24 @@ async def handle_ask(
     n_above_floor = sum(1 for c in retrieved if c.score >= floor)
     grounding_passed = bool(retrieved) and (n_above_floor >= 2 or best >= strong)
 
+    # Gate scores for `askbpl-score-report` (patch 0018, GRD-2). LOG ONLY: it reads the numbers above and decides nothing.
+    # Numbers and flags only: no question text, no chunk text, no title. Emitted for refusals and passes alike.
+    ranked = sorted((c.score for c in retrieved), reverse=True)
+    _emit_structured_ask_log(
+        {
+            "event": "retrieval_gate",
+            "request_id": str(request_id),
+            "chunks_returned": n_chunks,
+            "top_score": best,
+            "second_score": ranked[1] if len(ranked) > 1 else None,
+            "chunks_at_floor": n_above_floor,
+            "floor": floor,
+            "strong": strong,
+            "passed": grounding_passed,
+            "passed_by": ("strong" if best >= strong else "two_at_floor") if grounding_passed else None,
+        }
+    )
+
     if not grounding_passed:
         return await _refuse(
             db,
