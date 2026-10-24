@@ -45,7 +45,7 @@ PII must **never** be pasted into corpus files for ingestion; the **input gate**
 
 ## 3. Environment checklist (orchestrator)
 
-From repo root `.env` (see `.env.example`):
+From the `.env` in `packages/orchestrator` (a copy of the repo-root `.env.example`; the app reads `.env` from the folder it runs in):
 
 | Variable | Purpose |
 |----------|---------|

@@ -8,12 +8,13 @@ Internal AI assistant for Brooklyn Public Library policy Q&A. Scope and requirem
 |-----|---------|
 | [**Pinecone corpus ingestion**](docs/PINECONE_CORPUS_INGEST.md) | Index setup (1536 / cosine), env vars, `askbpl-ingest` CLI, supersede flow, verification, troubleshooting — **pilot corpus → Postgres + Pinecone**. |
 | [**Wireframe ↔ code parity**](docs/pilot/WIREFRAME_PARITY.md) | Maps clickable wireframe v3 screens 1–4 to `AskPilotShell` / `App` and notes UI gaps. |
+| [**Tester setup guide**](docs/TESTER_SETUP.md) | Plain-language setup for the test version, with `askbpl-doctor`, a read-only preflight check (patch 0019). |
 | [Requirements matrix](docs/requirements-matrix.md) | TRD IDs → modules. |
 | [Demo acceptance](docs/demo_acceptance.md) | Scripted rehearsal. |
 
 ## Quick start (local)
 
-1. Copy [`.env.example`](.env.example) to `.env` and set API keys (OpenAI, Pinecone, Anthropic) plus `admin_basic_password` for the `/admin/*` routes.
+1. Copy [`.env.example`](.env.example) to `packages/orchestrator/.env` (the app reads `.env` from the folder it runs in, so a copy left at the repo root is not found). Set the API keys (OpenAI, Pinecone, Anthropic), `JWT_SECRET_KEY` (the app will not start without it) and `admin_basic_password` for the `/admin/*` routes.
 2. Start Postgres: `docker compose -f infra/docker-compose.yml up -d`
 3. `cd packages/orchestrator && python3 -m venv .venv && source .venv/bin/activate`
 4. `pip install -e '.[dev]'`
