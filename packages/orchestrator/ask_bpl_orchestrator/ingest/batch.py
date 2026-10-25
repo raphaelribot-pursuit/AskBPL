@@ -50,7 +50,7 @@ async def ingest_manifest(manifest_path: Path, inventory_path: Path | None = Non
             lines.append(f"failed:{rel}:file_missing")
             continue
         inv_row = inventory.get(normalize_name(rel))
-        if inv_row is not None and inv_row.eligibility in (Eligibility.blocked, Eligibility.excluded):
+        if inv_row is not None and inv_row.eligibility in (Eligibility.blocked, Eligibility.excluded, Eligibility.superseded):
             lines.append(f"refused:{rel}:{inv_row.eligibility.value}:{inv_row.source_id}")
             continue
         # Scanned / OCR documents: a person's validation record is required before the text may be

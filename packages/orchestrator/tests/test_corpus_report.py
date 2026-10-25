@@ -705,8 +705,8 @@ def test_guide_claim_a_superseded_document_is_not_opened_by_the_citation_viewer(
 
 
 @pytest.mark.asyncio
-async def test_guide_known_gap_batch_ingest_does_not_refuse_a_superseded_row(tmp_path: Path) -> None:
-    """If someone fixes this gap, update docs/CURATOR_WORKFLOW.md recipe C step 3 and section 9, then change this test."""
+async def test_batch_ingest_refuses_blocked_excluded_and_superseded_rows(tmp_path: Path) -> None:
+    """Patch 0021 closed the gap where a Superseded row was uploaded again; the curator guide says so."""
     from ask_bpl_orchestrator.ingest import batch
 
     corpus = tmp_path / "corpus"
@@ -725,5 +725,6 @@ async def test_guide_known_gap_batch_ingest_does_not_refuse_a_superseded_row(tmp
 
     with patch.object(batch, "ingest_file", side_effect=fake):
         lines = await batch.ingest_manifest(tmp_path / "m.yaml", inv)
-    assert "old.md" in called, "batch ingest now refuses superseded rows: update the curator guide"
-    assert "blocked.md" not in called and any(ln.startswith("refused:blocked.md") for ln in lines)
+    assert called == ["new.md"]
+    assert any(ln.startswith("refused:old.md:superseded:S1") for ln in lines)
+    assert any(ln.startswith("refused:blocked.md:blocked:S2") for ln in lines)

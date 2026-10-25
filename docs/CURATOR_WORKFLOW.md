@@ -86,7 +86,7 @@ change log (BASE-8, BASE-9). If `askbpl-doctor` shows a **[FIX]** line, solve th
    ```
    askbpl-ingest-batch --manifest sample_corpus/corpus_manifest_pilot.yaml
    ```
-   Read every output line. `indexed:` is good. `refused:` means the workbook says blocked or excluded. `failed:` names
+   Read every output line. `indexed:` is good. `refused:` means the workbook says blocked, excluded or superseded. `failed:` names
    the reason.
 7. **Tell the database what the workbook says.** This writes to the database.
    ```
@@ -132,8 +132,9 @@ the newer version is clearly identified.
 
 1. Add the new file and its **own new** workbook row (new Source ID, `Authority pending`).
 2. On the **old** row set Lifecycle status to `Superseded` and say in the notes column which Source ID replaces it.
-3. **Remove the old file from the manifest.** `askbpl-ingest-batch` refuses blocked and excluded rows but **does not
-   refuse superseded ones**, so a superseded file left in the manifest would be uploaded again.
+3. **Leave or remove the old file in the manifest, as you prefer.** `askbpl-ingest-batch` refuses blocked, excluded and
+   superseded rows (patch 0021), so a superseded file left in the manifest is reported as `refused:` and is not uploaded
+   again. Removing it keeps the manifest tidy.
 4. Find the old document's id. The report prints every stored document's full id:
    ```
    askbpl-corpus-report
@@ -204,7 +205,7 @@ example and is blocked.
 
 | What you see | What it means | What to do |
 |---|---|---|
-| `refused:<file>:blocked` or `:excluded` | The workbook says the document may not be ingested. | Correct the workbook only if the decision was wrong, and record why. |
+| `refused:<file>:blocked`, `:excluded` or `:superseded` | The workbook says the document may not be ingested. | Correct the workbook only if the decision was wrong, and record why. |
 | `failed:<file>:file_missing` | The manifest names a file that is not in the corpus folder. | Fix the path or the file name. |
 | `Policy <slug> missing — run routing seed` | The `policy` slug is not in `config/routing_seed.yaml`, or `askbpl-seed` was not run. | Add the slug, run `askbpl-seed`. |
 | `Unrecognised lifecycle status` | A Lifecycle cell holds a value the system does not know. It never guesses. | Use `Authority pending`, `Eligible`, `Excluded`, `Superseded` or `Blocked`. |
@@ -229,7 +230,6 @@ example and is blocked.
 ## 9. Known gaps (so you are not surprised)
 
 - **No remove command.** Retire documents with `Excluded` or `Superseded` (recipe D).
-- **Batch ingest does not refuse superseded rows** (recipe C, step 3 works around it).
 - **A changed file does not reset its approval** (recipe B, step 2 is a manual step).
 - **"Evaluated" is not recorded.** The report says so instead of showing a number.
 - **The report cannot see Pinecone.** It confirms the database; it cannot confirm that the vectors match.
