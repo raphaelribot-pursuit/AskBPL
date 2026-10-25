@@ -14,6 +14,29 @@ logger = logging.getLogger(__name__)
 EXTERNAL_PROBE_TIMEOUT_SECONDS = 30.0
 
 
+def safe_error_detail(exc: BaseException) -> str:
+    """A fixed, non-sensitive label for a failed probe.
+
+    `/health/deep` is unauthenticated, so it must never echo `str(exc)`: provider errors can carry request ids,
+    key fragments, hostnames or account details. The full error still goes to the server log.
+    """
+    if isinstance(exc, (asyncio.TimeoutError, TimeoutError)):
+        return "timeout"
+    status = getattr(exc, "status_code", None)
+    if status in (401, 403):
+        return "authentication_failed"
+    if status == 429:
+        return "rate_limited"
+    name = type(exc).__name__.lower()
+    if "auth" in name or "permission" in name:
+        return "authentication_failed"
+    if "ratelimit" in name:
+        return "rate_limited"
+    if "connect" in name or "network" in name:
+        return "unreachable"
+    return "probe_failed"
+
+
 def missing_required_env(settings: Settings | None = None) -> list[str]:
     """Env vars required for the /ask RAG pipeline (not login-only paths)."""
     cfg = settings or get_settings()
@@ -54,7 +77,7 @@ async def probe_pinecone(settings: Settings | None = None) -> dict[str, Any]:
         return {"status": "ok", "vectors": count}
     except Exception as exc:  # noqa: BLE001 — health probe must not raise
         logger.warning("pinecone_health_failed: %s", exc)
-        return {"status": "error", "detail": str(exc)}
+        return {"status": "error", "detail": safe_error_detail(exc)}
 
 
 async def probe_openai(settings: Settings | None = None) -> dict[str, Any]:
@@ -79,7 +102,7 @@ async def probe_openai(settings: Settings | None = None) -> dict[str, Any]:
         return {"status": "ok"}
     except Exception as exc:  # noqa: BLE001
         logger.warning("openai_health_failed: %s", exc)
-        return {"status": "error", "detail": str(exc)}
+        return {"status": "error", "detail": safe_error_detail(exc)}
 
 
 async def probe_anthropic(settings: Settings | None = None) -> dict[str, Any]:
@@ -105,7 +128,7 @@ async def probe_anthropic(settings: Settings | None = None) -> dict[str, Any]:
         return {"status": "ok"}
     except Exception as exc:  # noqa: BLE001
         logger.warning("anthropic_health_failed: %s", exc)
-        return {"status": "error", "detail": str(exc)}
+        return {"status": "error", "detail": safe_error_detail(exc)}
 
 
 async def run_deep_health_checks(settings: Settings | None = None) -> dict[str, Any]:
