@@ -507,6 +507,26 @@ def _row_findings(sr: SourceRow, exp: Eligibility, member: bool, doc: Optional[D
             "The database records this document as replaced by a newer one; the workbook does not say so.",
             "Mark the row Superseded in the workbook (see docs/CURATOR_WORKFLOW.md), then run askbpl-apply-inventory.",
         )
+    if doc.chunks > 0 and exp in (Eligibility.blocked, Eligibility.excluded, Eligibility.superseded) and not doc.answerable:
+        # Stored text under a document the workbook keeps out of answers. Inert for retrieval, but it should
+        # not sit unnoticed (and its vectors may still be in Pinecone, which this report cannot see).
+        if exp == Eligibility.blocked and doc.extraction_status == ExtractionStatus.validated:
+            add(
+                "stored_text_on_blocked_document",
+                f"A validated review record and {doc.chunks} stored text chunks exist, but the workbook still says "
+                "blocked: the decision to activate this document is pending. It cannot answer meanwhile.",
+                "Decide with the team and log it (docs/CURATOR_WORKFLOW.md). To activate, follow the guide; to leave it "
+                "blocked, askbpl-apply-inventory --purge-vectors removes any leftover vectors.",
+                NOTE,
+            )
+        else:
+            add(
+                "stored_text_on_blocked_document",
+                f"{doc.chunks} text chunks are stored for a document the workbook marks {exp.value}. "
+                "It cannot answer, but the text (and possibly its vectors in Pinecone) is still there.",
+                "If it should stay out, run askbpl-apply-inventory --purge-vectors to remove its vectors.",
+                NOTE,
+            )
     if doc.extraction_status == ExtractionStatus.review_required:
         add(
             "extraction_review_required",

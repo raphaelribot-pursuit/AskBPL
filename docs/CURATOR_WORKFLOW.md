@@ -213,6 +213,7 @@ example and is blocked.
 | `error:duplicate` | Two stored documents match one row (usually a renamed file). | Recipe F. Nothing was changed. |
 | `warning: ... validated ... no verified review record` | The workbook says a scan is validated but the database has no record. It stays blocked. | Section 5. |
 | report: `answerable_but_not_allowed` | The database lets a document answer that the workbook blocks. | Run `askbpl-apply-inventory --purge-vectors` now. |
+| report note: `stored_text_on_blocked_document` | Text chunks are stored for a document the workbook keeps blocked, excluded or superseded. It cannot answer. For a blocked scan with a validated review record, it means the activation decision is pending. | Decide and log it. To leave the document out, run `askbpl-apply-inventory --purge-vectors` (it affects every blocked, excluded or superseded document). To activate a validated scan, follow section 5. |
 
 ## 8. Decisions BPL still has to make (not made here)
 
