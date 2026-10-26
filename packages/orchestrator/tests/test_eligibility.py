@@ -78,10 +78,11 @@ def test_shipped_inventory_counts_match_workbook() -> None:
     assert len(by) == 30
     assert sum(r.eligibility == Eligibility.eligible for r in by) == 0  # nothing is BPL-confirmed yet
     assert sum(r.eligibility == Eligibility.excluded for r in by) == 1
-    assert sum(r.eligibility == Eligibility.blocked for r in by) == 1
-    assert sum(r.test_index_member for r in by) == 7  # 8 in pilot index minus the blocked COI scan
-    blocked = next(r for r in by if r.eligibility == Eligibility.blocked)
-    assert blocked.source_id == "SRC-13"
+    assert sum(r.eligibility == Eligibility.blocked for r in by) == 0  # SRC-13 was activated 2026-10-25 (DEC-15)
+    assert sum(r.eligibility == Eligibility.authority_pending for r in by) == 29
+    assert sum(r.test_index_member for r in by) == 8  # all 8 pilot PDFs, including the validated COI scan
+    coi = next(r for r in by if r.source_id == "SRC-13")
+    assert coi.eligibility == Eligibility.authority_pending and coi.test_index_member  # answers only as a marked test-index document
 
 
 def test_every_pilot_pdf_maps_to_an_inventory_row() -> None:
@@ -387,7 +388,10 @@ async def test_reingest_preserves_eligibility(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_batch_ingest_refuses_blocked_and_excluded_and_passes_inventory_row() -> None:
+async def test_batch_ingest_passes_every_manifest_entry_with_its_inventory_row_and_the_scan_with_its_record() -> None:
+    """Since SRC-13's activation (DEC-15) nothing in the shipped manifest is blocked. Refusal of blocked, excluded and
+    superseded rows is pinned against a temporary workbook in test_corpus_report.py. The scanned COI file is only
+    ingested because its committed validation record verifies against the PDF; a stale record fails here."""
     from ask_bpl_orchestrator.ingest import batch
 
     manifest = ROOT / "sample_corpus" / "corpus_manifest_pilot.yaml"
@@ -399,11 +403,13 @@ async def test_batch_ingest_refuses_blocked_and_excluded_and_passes_inventory_ro
     with patch.object(batch, "ingest_file", side_effect=fake_ingest):
         lines = await batch.ingest_manifest(manifest, INVENTORY)
 
-    refused = [l for l in lines if l.startswith("refused:")]
-    assert len(refused) == 1 and ":blocked:SRC-13" in refused[0]
-    assert len(calls) == 7  # 8 manifest entries minus the blocked scan
+    assert [l for l in lines if l.startswith(("refused:", "failed:"))] == []
+    assert len(calls) == 8  # every manifest entry
     assert all(c["inventory_row"] is not None and c["inventory_row"].test_index_member for c in calls)
-    assert not any("Conflict of Interest" in str(c["absolute_path"]) for c in calls)
+    validated = [c for c in calls if c["validated_extraction"] is not None]
+    assert len(validated) == 1 and "Conflict of Interest" in str(validated[0]["absolute_path"])
+    assert validated[0]["inventory_row"].source_id == "SRC-13"
+    assert sum(l.endswith(":validated") for l in lines) == 1
 
 
 # ---------------------------------------------------------------- 0003a: fresh-index delete, empty DB

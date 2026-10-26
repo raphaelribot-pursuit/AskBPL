@@ -91,12 +91,14 @@ def test_shipped_inventory_buckets_add_up_and_nothing_is_double_counted() -> Non
     c = counts_of(rep)
     assert c["Received (rows in the inventory)"] == "30"
     assert c["Eligible: BPL-confirmed current"] == "0"
-    assert c["Authority pending"] == "28"  # the workbook's own line says 29 because it also counts the blocked file
-    assert c["Blocked (parse check failed or extraction blocked)"] == "1"
+    # SRC-13 was activated on 2026-10-25 (DEC-15): it moved from Blocked to Authority pending, so nothing is blocked now.
+    # It is still not BPL-confirmed, so "Eligible" stays 0.
+    assert c["Authority pending"] == "29"
+    assert c["Blocked (parse check failed or extraction blocked)"] == "0"
     assert c["Excluded from the corpus"] == "1"
     assert c["Superseded"] == "0"
     assert c["those five lines add up to received"] == "30"
-    assert c["Marked as test-index members by the workbook"] == "7"
+    assert c["Marked as test-index members by the workbook"] == "8"
     assert c["BPL documents (not evaluation material)"] == "29"
     assert rep.disagreements == []  # the shipped workbook agrees with itself
 

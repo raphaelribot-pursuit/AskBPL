@@ -258,12 +258,21 @@ def test_validated_parse_check_is_a_claim_not_a_pass(tmp_path: Path) -> None:
     assert not plain.extraction_validated_claim
 
 
-def test_shipped_inventory_still_blocks_conflict_of_interest_and_makes_no_claim() -> None:
-    """This patch must not activate anything: the shipped workbook is unchanged."""
+def test_shipped_inventory_activates_conflict_of_interest_only_with_both_keys() -> None:
+    """SRC-13 was activated on 2026-10-25 (DEC-15). Two keys are needed and both are pinned: the workbook claims the
+    validation, and the manifest names the record. It is a marked test-index document, never BPL-confirmed."""
+    import yaml
+
     inv = load_inventory(INVENTORY)
     coi = next(r for r in inv.values() if r.source_id == "SRC-13")
-    assert coi.eligibility == Eligibility.blocked and not coi.test_index_member
-    assert not any(r.extraction_validated_claim for r in inv.values())
+    assert coi.eligibility == Eligibility.authority_pending and coi.test_index_member
+    assert coi.extraction_validated_claim
+    assert [r.source_id for r in inv.values() if r.extraction_validated_claim] == ["SRC-13"]  # no other row claims one
+    assert not any(r.eligibility == Eligibility.eligible for r in inv.values())
+    manifest = yaml.safe_load((ROOT / "sample_corpus" / "corpus_manifest_pilot.yaml").read_text())
+    named = [d for d in manifest["documents"] if d.get("validated_extraction")]
+    assert len(named) == 1 and "Conflict of Interest" in named[0]["path"]
+    assert named[0]["validated_extraction"].endswith("extraction_reviews/SRC-13/validation_record.json")
 
 
 async def _add_doc(session, *, path: str, extraction_status=ExtractionStatus.standard,
