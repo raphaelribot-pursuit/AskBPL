@@ -258,6 +258,7 @@ def test_ask_answer_with_retrieval_and_generation_mocked() -> None:
                     source_format=SourceFormat.md,
                     ingest_status=IngestStatus.indexed,
                     eligibility=Eligibility.eligible,
+                    source_sha256="a" * 64, approved_sha256="a" * 64,  # an approved file (patch 0023)
                 )
             )
             session.add(
@@ -338,6 +339,7 @@ async def test_hydrate_ordered_skips_chunks_on_superseded_documents() -> None:
                     source_format=SourceFormat.md,
                     ingest_status=IngestStatus.indexed,
                     eligibility=Eligibility.eligible,
+                    source_sha256="a" * 64, approved_sha256="a" * 64,  # an approved file (patch 0023)
                 ),
                 Document(
                     document_id=doc_old,
@@ -347,6 +349,7 @@ async def test_hydrate_ordered_skips_chunks_on_superseded_documents() -> None:
                     source_format=SourceFormat.md,
                     ingest_status=IngestStatus.indexed,
                     eligibility=Eligibility.eligible,
+                    source_sha256="a" * 64, approved_sha256="a" * 64,  # an approved file (patch 0023)
                     superseded_by_document_id=doc_new,
                 ),
                 Chunk(

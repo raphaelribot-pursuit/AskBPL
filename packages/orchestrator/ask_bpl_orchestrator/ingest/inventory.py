@@ -4,8 +4,10 @@ The inventory workbook (`Source Inventory` sheet) is the team's per-file disposi
 It is NOT BPL approval. This module is deliberately fail-closed:
 
   * an unrecognised lifecycle value raises, it is never guessed;
-  * `Eligible` is only honoured when a reviewer AND review date are recorded,
-    otherwise the row is downgraded to `authority_pending` with a warning;
+  * `Eligible` is only honoured when a reviewer, a review date AND the SHA-256 of the file that was reviewed
+    (column `Approved SHA-256`, patch 0023) are recorded, otherwise the row is downgraded to
+    `authority_pending` with a warning. The stored file must also match that hash for the document to answer
+    (services/eligibility.py), so a changed file does not keep the approval of the old one;
   * a failed parse check always yields `blocked`, whatever else the row says;
   * a parse check that says "Validated ..." is only a CLAIM: it is honoured when the stored document
     carries a verified extraction-review record (patch 0009), otherwise the row stays `blocked`.
@@ -51,6 +53,7 @@ class InventoryRow:
     reviewed_at: Optional[date] = None
     note: Optional[str] = None
     extraction_validated_claim: bool = False
+    approved_sha256: Optional[str] = None
     warnings: List[str] = field(default_factory=list)
 
     @property
@@ -75,7 +78,26 @@ def _parse_review(raw: Optional[str]) -> tuple[Optional[str], Optional[date]]:
     return who, when
 
 
-def derive_eligibility(lifecycle: str, parse_check: str, reviewer: Optional[str], reviewed_at: Optional[date]):
+_SHA256 = re.compile(r"[0-9a-f]{64}")
+APPROVED_HASH_COLUMN = "Approved SHA-256"
+
+
+def parse_approved_hash(raw: Optional[str]) -> tuple[Optional[str], Optional[str]]:
+    """(hash, warning). A value that is not 64 hex characters is ignored with a warning, never guessed at."""
+    if not raw or not raw.strip():
+        return None, None
+    cleaned = re.sub(r"\s+", "", raw).lower()
+    if cleaned.startswith("sha256:"):
+        cleaned = cleaned[len("sha256:"):]
+    if _SHA256.fullmatch(cleaned):
+        return cleaned, None
+    return None, f"'{APPROVED_HASH_COLUMN}' is not 64 hexadecimal characters; ignored"
+
+
+def derive_eligibility(
+    lifecycle: str, parse_check: str, reviewer: Optional[str], reviewed_at: Optional[date],
+    approved_sha256: Optional[str] = None,
+):
     """Return (Eligibility, warnings). Raises ValueError on an unknown lifecycle value."""
     warnings: List[str] = []
     life = (lifecycle or "").strip().lower()
@@ -88,9 +110,14 @@ def derive_eligibility(lifecycle: str, parse_check: str, reviewer: Optional[str]
     if parse_failed or "extraction blocked" in life or life.startswith("blocked"):
         return Eligibility.blocked, warnings
     if life.startswith("eligible"):
-        if reviewer and reviewed_at:
+        if reviewer and reviewed_at and approved_sha256:
             return Eligibility.eligible, warnings
-        warnings.append("marked Eligible without reviewer and date; treated as authority_pending")
+        if reviewer and reviewed_at:
+            warnings.append(
+                f"marked Eligible without an approved file hash (column '{APPROVED_HASH_COLUMN}'); treated as authority_pending"
+            )
+        else:
+            warnings.append("marked Eligible without reviewer and date; treated as authority_pending")
         return Eligibility.authority_pending, warnings
     if life.startswith("authority pending"):
         return Eligibility.authority_pending, warnings
@@ -122,9 +149,12 @@ def load_inventory(path: Path) -> Dict[str, InventoryRow]:
         if not source_id or not file_name:
             continue
         reviewer, reviewed_at = _parse_review(get(r, "Reviewer / date"))
+        approved_hash, hash_warning = parse_approved_hash(get(r, APPROVED_HASH_COLUMN))  # optional column
         elig, warnings = derive_eligibility(
-            get(r, "Lifecycle status (ING-9)") or "", get(r, "Parse check") or "", reviewer, reviewed_at
+            get(r, "Lifecycle status (ING-9)") or "", get(r, "Parse check") or "", reviewer, reviewed_at, approved_hash
         )
+        if hash_warning:
+            warnings.append(hash_warning)
         in_pilot = (get(r, "In current pilot index") or "").lower().startswith("y")
         row = InventoryRow(
             source_id=source_id,
@@ -138,6 +168,7 @@ def load_inventory(path: Path) -> Dict[str, InventoryRow]:
             reviewed_at=reviewed_at,
             note=get(r, "Notes (PRD v1.2 s19.3 / 19.4)"),
             extraction_validated_claim=(get(r, "Parse check") or "").strip().lower().startswith("validated"),
+            approved_sha256=approved_hash if elig == Eligibility.eligible else None,
             warnings=warnings,
         )
         if row.key in out:
@@ -156,6 +187,8 @@ def apply_row(doc: Document, row: InventoryRow) -> None:
     doc.reviewed_by = row.reviewer
     doc.reviewed_at = row.reviewed_at
     doc.status_note = row.note
+    # An approval is recorded only for an Eligible row; any other disposition clears it, so a stale hash cannot linger.
+    doc.approved_sha256 = row.approved_sha256 if row.eligibility == Eligibility.eligible else None
 
 
 async def apply_inventory_to_db(
@@ -200,6 +233,7 @@ async def apply_inventory_to_db(
             # Default-deny: a stored document with no inventory row is not answerable.
             doc.eligibility = Eligibility.authority_pending
             doc.test_index_member = False
+            doc.approved_sha256 = None  # no row, so no approval of any file
             lines.append(f"unlisted:{doc.source_path}:not answerable until it has an inventory row")
             continue
         seen.add(key)
@@ -217,6 +251,16 @@ async def apply_inventory_to_db(
                 "validation record is ingested"
             )
         apply_row(doc, row)
+        if row.eligibility == Eligibility.eligible and doc.source_sha256 != row.approved_sha256:
+            lines.append(
+                f"warning:{row.source_id}:" + (
+                    "no file hash is stored for this document (it was ingested before patch 0023); it cannot answer until it is "
+                    "re-ingested from the approved file"
+                    if not doc.source_sha256 else
+                    f"the stored file (sha256 {doc.source_sha256[:12]}...) is not the approved file (sha256 {(row.approved_sha256 or "")[:12]}...); "
+                    "it cannot answer until the approved file is ingested or the new file is approved"
+                )
+            )
         lines.append(
             f"{row.source_id}:{row.eligibility.value}"
             f"{':test_index' if row.test_index_member else ''}:{doc.source_path}"

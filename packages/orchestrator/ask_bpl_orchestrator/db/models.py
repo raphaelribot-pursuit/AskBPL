@@ -201,6 +201,11 @@ class Document(Base):
     extraction_validated_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     extraction_validated_at: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     extraction_record_sha256: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    # --- Approval bound to the reviewed file (patch 0023; PRD ING-2, GATE-02, R-14) ---
+    # source_sha256: hash of the file's bytes at its last ingest. approved_sha256: the hash the workbook says was
+    # reviewed. An `eligible` document answers only while both are set and equal (see services/eligibility.py).
+    source_sha256: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    approved_sha256: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
     policy_type_row: Mapped[PolicyType] = relationship(back_populates="documents")
     chunks: Mapped[list["Chunk"]] = relationship(back_populates="document", cascade="all, delete-orphan")

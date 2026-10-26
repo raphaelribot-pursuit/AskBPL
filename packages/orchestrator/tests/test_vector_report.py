@@ -608,6 +608,9 @@ async def _make_docs(specs: List[Dict[str, Any]]) -> List[uuid.UUID]:
                 ingest_status=sp.get("status", IngestStatus.indexed), eligibility=sp.get("elig", Eligibility.authority_pending),
                 test_index_member=sp.get("member", True), source_path=sp["path"], source_id=sp.get("sid"),
                 superseded_by_document_id=sp.get("sup"), extraction_status=sp.get("extraction", ExtractionStatus.standard),
+                # An eligible document is approved for its stored file unless a test says otherwise (patch 0023).
+                source_sha256=sp.get("file_hash", "a" * 64 if sp.get("elig") == Eligibility.eligible else None),
+                approved_sha256=sp.get("approved_hash", "a" * 64 if sp.get("elig") == Eligibility.eligible else None),
             ))
             ids.append(did)
             await s.flush()

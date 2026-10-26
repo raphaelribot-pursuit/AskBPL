@@ -387,7 +387,8 @@ async def _seed_doc(*, pages):
     doc_id, chunk_id = uuid.uuid4(), uuid.uuid4()
     async with async_session_factory() as s:
         s.add(Document(document_id=doc_id, title="Page API Doc", version="t", policy_type="generic_policy",
-                       source_format="pdf", ingest_status="indexed", eligibility="eligible", test_index_member=True))
+                       source_format="pdf", ingest_status="indexed", eligibility="eligible", test_index_member=True,
+                       source_sha256="a" * 64, approved_sha256="a" * 64))  # an approved file (patch 0023)
         await s.flush()
         s.add(Chunk(chunk_id=chunk_id, document_id=doc_id, ordinal=0, text="Donors must disclose gifts over $500.",
                     token_count=7, section_heading="Gifts", page_start=pages[0], page_end=pages[1]))

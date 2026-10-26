@@ -24,7 +24,7 @@ from ask_bpl_orchestrator.db.models import (
 )
 from ask_bpl_orchestrator.db.session import async_session_factory
 from ask_bpl_orchestrator.ingest.chunking import split_text_with_sections
-from ask_bpl_orchestrator.ingest.extraction_review import ValidatedExtraction
+from ask_bpl_orchestrator.ingest.extraction_review import ValidatedExtraction, sha256_file
 from ask_bpl_orchestrator.ingest.inventory import InventoryRow, apply_row
 from ask_bpl_orchestrator.ingest.loaders import load_bytes
 from ask_bpl_orchestrator.ingest.provenance import (
@@ -135,6 +135,7 @@ async def ingest_file(
 
     try:
         # A verified review record replaces automatic extraction: the indexed text is the text a person signed off.
+        file_sha256 = sha256_file(absolute_path)  # of the bytes on disk now: what an approval must match (patch 0023)
         full_text = validated_extraction.text if validated_extraction is not None else load_bytes(absolute_path)
     except Exception:  # noqa: BLE001 ingestion must mark failure
         async with async_session_factory() as db_session:
@@ -236,6 +237,8 @@ async def ingest_file(
         document_row.ingest_status = IngestStatus.indexed
         document_row.page_count = max(1, len(full_text) // 2000)
         document_row.source_path = rel
+        # Recorded on EVERY ingest. Approval is not reset here: it simply stops matching when the file changes.
+        document_row.source_sha256 = file_sha256
         # Set on EVERY ingest so a stale 'validated' can never stay attached to newly extracted text.
         if validated_extraction is not None:
             document_row.extraction_status = ExtractionStatus.validated

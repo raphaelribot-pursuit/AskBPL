@@ -512,6 +512,7 @@ def test_a_good_answer_is_unchanged_and_logs_no_refusal_fields(caplog) -> None:
                     source_format=SourceFormat.md,
                     ingest_status=IngestStatus.indexed,
                     eligibility=Eligibility.eligible,
+                    source_sha256="a" * 64, approved_sha256="a" * 64,  # an approved file (patch 0023)
                 )
             )
             s.add(
@@ -577,7 +578,7 @@ async def _purge(chunk_ids: List[uuid.UUID], doc_ids: List[uuid.UUID]) -> None:
 @pytest.mark.asyncio
 async def test_hydrate_counts_uncitable_hits_but_not_stale_vectors_or_eligible_ones() -> None:
     pending = _doc(eligibility=Eligibility.authority_pending, test_index_member=False)
-    eligible = _doc(eligibility=Eligibility.eligible)
+    eligible = _doc(eligibility=Eligibility.eligible, source_sha256="a" * 64, approved_sha256="a" * 64)  # an approved file (patch 0023)
     c_pending, c_eligible, c_stale = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
     async with async_session_factory() as s:
         s.add_all([pending, eligible])

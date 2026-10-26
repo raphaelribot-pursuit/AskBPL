@@ -4,7 +4,9 @@ Every path that exposes document content (vector retrieval, citation emission, t
 citation viewer) must use this module so the rule cannot drift between call sites.
 
 Rule:
-  * `eligible`                      -> answerable.
+  * `eligible`                      -> answerable ONLY while the file that was approved is the file that is stored:
+                                       `approved_sha256` and `source_sha256` are both set and equal (patch 0023).
+                                       A changed file that is re-ingested stops answering until it is approved again.
   * `authority_pending`             -> answerable ONLY if the document is a marked
                                        test-index member (OD-11) AND ALLOW_TEST_INDEX is on.
   * `blocked`/`excluded`/`superseded` -> never answerable, regardless of any flag.
@@ -29,7 +31,12 @@ TEST_INDEX_LABEL = "Test index: sources not yet confirmed current by BPL"
 def retrievable_clause(settings: Optional[Settings] = None) -> ColumnElement[bool]:
     """SQL predicate over `Document` for use in WHERE clauses."""
     cfg = settings or get_settings()
-    answerable = Document.eligibility == Eligibility.eligible
+    answerable = and_(
+        Document.eligibility == Eligibility.eligible,
+        Document.approved_sha256.is_not(None),
+        Document.source_sha256.is_not(None),
+        Document.approved_sha256 == Document.source_sha256,
+    )
     if cfg.allow_test_index:
         answerable = or_(
             answerable,
@@ -57,7 +64,8 @@ def is_retrievable(doc: Any, settings: Optional[Settings] = None) -> bool:
     if getattr(doc, "extraction_status", ExtractionStatus.standard) == ExtractionStatus.review_required:
         return False
     if doc.eligibility == Eligibility.eligible:
-        return True
+        approved = getattr(doc, "approved_sha256", None)  # a stand-in without the column is never approved
+        return bool(approved) and approved == getattr(doc, "source_sha256", None)
     return bool(
         cfg.allow_test_index
         and doc.eligibility == Eligibility.authority_pending

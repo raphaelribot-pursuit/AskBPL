@@ -277,7 +277,7 @@ def test_ask_passes_only_approved_teams_for_the_retrieved_policy_to_the_model() 
         async with async_session_factory() as s:
             s.add(Document(document_id=doc_id, title="T10 Doc", version="t", policy_type=a,
                            source_format=SourceFormat.md, ingest_status=IngestStatus.indexed,
-                           eligibility=Eligibility.eligible))
+                           eligibility=Eligibility.eligible, source_sha256="a" * 64, approved_sha256="a" * 64))  # approved file (0023)
             await s.flush()
             s.add(Chunk(chunk_id=chunk_id, document_id=doc_id, ordinal=0, text="Gifts over $500 are disclosed.",
                         token_count=8))

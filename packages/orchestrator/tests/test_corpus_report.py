@@ -35,14 +35,16 @@ INVENTORY = ORCH / "sample_corpus" / "AskBPL_Source_Inventory_v0_1.xlsx"
 HEADER = [
     "Source ID", "File name", "Format", "Pages", "Chars per page", "Parse check", "In current pilot index",
     "Source type", "Lifecycle status (ING-9)", "Blocking decision", "Notes (PRD v1.2 s19.3 / 19.4)", "Owner (D-02)",
-    "Policy number / dates (from document, to confirm)", "Reviewer / date",
+    "Policy number / dates (from document, to confirm)", "Reviewer / date", "Approved SHA-256",
 ]
 
 
 # ------------------------------------------------------------------------------------------------ builders
 def wrow(sid: str, name: str, *, parse: str = "Pass: text layer present", pilot: str = "No", typ: str = "Policy",
-         life: str = "Authority pending", blocking: str = "", reviewer: Optional[str] = None) -> dict[str, Any]:
-    return dict(sid=sid, name=name, parse=parse, pilot=pilot, typ=typ, life=life, blocking=blocking, reviewer=reviewer)
+         life: str = "Authority pending", blocking: str = "", reviewer: Optional[str] = None,
+         approved: Optional[str] = None) -> dict[str, Any]:
+    return dict(sid=sid, name=name, parse=parse, pilot=pilot, typ=typ, life=life, blocking=blocking, reviewer=reviewer,
+                approved=approved)
 
 
 def make_workbook(path: Path, rows: list[dict[str, Any]], counts: Optional[dict[str, Any]] = None) -> Path:
@@ -52,7 +54,7 @@ def make_workbook(path: Path, rows: list[dict[str, Any]], counts: Optional[dict[
     ws.append(HEADER)
     for r in rows:
         ws.append([r["sid"], r["name"], "PDF", 3, 2000, r["parse"], r["pilot"], r["typ"], r["life"], r["blocking"],
-                   None, None, None, r["reviewer"]])
+                   None, None, None, r["reviewer"], r["approved"]])
     if counts is not None:
         cs = wb.create_sheet("Counts (ING-13)")
         cs.append(["Measure", "Count", "How it is computed"])
@@ -114,13 +116,17 @@ def test_unique_by_content_is_not_claimed_without_the_files() -> None:
     assert counts_of(rep)["Unique by content"] == "not checked here"
 
 
-def test_unreviewed_eligible_row_is_not_counted_as_eligible(tmp_path: Path) -> None:
-    rows = sources(tmp_path, [wrow("S1", "a.pdf", life="Eligible"), wrow("S2", "b.pdf", life="Eligible", reviewer="B. Bilissalou / 2026-10-12")])
+def test_an_eligible_row_is_counted_only_with_reviewer_date_and_approved_file_hash(tmp_path: Path) -> None:
+    rows = sources(tmp_path, [
+        wrow("S1", "a.pdf", life="Eligible"),
+        wrow("S2", "b.pdf", life="Eligible", reviewer="B. Bilissalou / 2026-10-12"),  # reviewed, but no file hash
+        wrow("S3", "c.pdf", life="Eligible", reviewer="B. Bilissalou / 2026-10-12", approved="a" * 64),
+    ])
     rep = cr.build_report(rows, cr.CorpusFacts())
-    assert rep.eligible == 1  # only the row with a reviewer and a date
+    assert rep.eligible == 1  # only the row with a reviewer, a date and the hash of the reviewed file
     assert counts_of(rep)["Eligible: BPL-confirmed current"] == "1"
-    assert counts_of(rep)["Authority pending"] == "1"  # the unreviewed one is pending, as the system treats it
-    assert "row_warning" in codes(rep, "S1")
+    assert counts_of(rep)["Authority pending"] == "2"  # the other two are pending, as the system treats them
+    assert "row_warning" in codes(rep, "S1") and "row_warning" in codes(rep, "S2") and "row_warning" not in codes(rep, "S3")
 
 
 def test_superseded_and_blocked_and_excluded_are_separate_buckets(tmp_path: Path) -> None:
@@ -327,6 +333,9 @@ async def _make_docs(specs: list[dict[str, Any]]) -> list[uuid.UUID]:
                 ingest_status=sp.get("status", IngestStatus.indexed), eligibility=sp.get("elig", Eligibility.authority_pending),
                 test_index_member=sp.get("member", True), source_path=sp["path"], source_id=sp.get("sid"),
                 superseded_by_document_id=sp.get("sup"), extraction_status=sp.get("extraction", ExtractionStatus.standard),
+                # An eligible document is approved for its stored file unless a test says otherwise (patch 0023).
+                source_sha256=sp.get("file_hash", "a" * 64 if sp.get("elig") == Eligibility.eligible else None),
+                approved_sha256=sp.get("approved_hash", "a" * 64 if sp.get("elig") == Eligibility.eligible else None),
             ))
             ids.append(did)
             await s.flush()
@@ -440,7 +449,7 @@ def test_a_clean_database_gives_no_disagreement_and_the_confirmed_split(tmp_path
     t = uuid.uuid4().hex[:8]
     rows = sources(tmp_path, [
         wrow(f"T{t}-1", f"zz{t}-1.pdf", pilot="Yes"),
-        wrow(f"T{t}-2", f"zz{t}-2.pdf", life="Eligible", reviewer="B. Bilissalou / 2026-10-12"),
+        wrow(f"T{t}-2", f"zz{t}-2.pdf", life="Eligible", reviewer="B. Bilissalou / 2026-10-12", approved="a" * 64),
     ])
     ids = asyncio.run(_make_docs([dict(path=f"zz{t}-1.pdf"), dict(path=f"zz{t}-2.pdf", elig=Eligibility.eligible, member=False)]))
     try:

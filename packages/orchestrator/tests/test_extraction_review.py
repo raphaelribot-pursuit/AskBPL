@@ -282,6 +282,9 @@ async def _add_doc(session, *, path: str, extraction_status=ExtractionStatus.sta
         document_id=doc_id, title="scan", version="t", policy_type="generic_policy", source_format=SourceFormat.pdf,
         ingest_status=IngestStatus.indexed, eligibility=eligibility, test_index_member=member,
         extraction_status=extraction_status, source_path=path,
+        # An eligible document is approved for its stored file, so only the rule under test can stop it (patch 0023).
+        source_sha256="a" * 64 if eligibility == Eligibility.eligible else None,
+        approved_sha256="a" * 64 if eligibility == Eligibility.eligible else None,
     ))
     await session.flush()
     session.add(Chunk(chunk_id=uuid.uuid4(), document_id=doc_id, ordinal=0, text="Covered Persons.", token_count=2))

@@ -51,10 +51,14 @@ def test_unknown_lifecycle_fails_closed() -> None:
         derive_eligibility("Approved-ish", "Pass", None, None)
 
 
-def test_eligible_requires_reviewer_and_date() -> None:
+def test_eligible_requires_reviewer_date_and_the_approved_file_hash() -> None:
     elig, warns = derive_eligibility("Eligible", "Pass", None, None)
     assert elig == Eligibility.authority_pending and warns
-    elig, warns = derive_eligibility("Eligible", "Pass", "B. Bilissalou", date(2026, 10, 12))
+    elig, warns = derive_eligibility("Eligible", "Pass", "B. Bilissalou", date(2026, 10, 12))  # no hash (patch 0023)
+    assert elig == Eligibility.authority_pending and "approved file hash" in warns[0]
+    elig, warns = derive_eligibility("Eligible", "Pass", None, None, "a" * 64)  # hash alone is not a review
+    assert elig == Eligibility.authority_pending and "reviewer and date" in warns[0]
+    elig, warns = derive_eligibility("Eligible", "Pass", "B. Bilissalou", date(2026, 10, 12), "a" * 64)
     assert elig == Eligibility.eligible and not warns
 
 
@@ -116,6 +120,9 @@ async def _add_doc(session, *, eligibility, member=False, status=IngestStatus.in
         source_format=SourceFormat.md, ingest_status=status, eligibility=eligibility,
         test_index_member=member, source_path=source_path or f"t/{doc_id}.md",
         superseded_by_document_id=superseded_by,
+        # An eligible document answers only with an approved file (patch 0023).
+        source_sha256="a" * 64 if eligibility == Eligibility.eligible else None,
+        approved_sha256="a" * 64 if eligibility == Eligibility.eligible else None,
     ))
     await session.flush()
     session.add(Chunk(chunk_id=chunk_id, document_id=doc_id, ordinal=0,

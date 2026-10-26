@@ -86,6 +86,8 @@ class DbDoc:
     superseded: bool
     chunks: int
     answerable: bool
+    source_sha256: Optional[str] = None
+    approved_sha256: Optional[str] = None
 
     @property
     def key(self) -> str:
@@ -333,6 +335,7 @@ async def gather_corpus_facts(
                     Document.document_id, Document.title, Document.source_path, Document.source_id,
                     Document.eligibility, Document.test_index_member, Document.ingest_status,
                     Document.extraction_status, Document.superseded_by_document_id, chunk_counts.c.n,
+                    Document.source_sha256, Document.approved_sha256,
                 )
                 .outerjoin(chunk_counts, chunk_counts.c.document_id == Document.document_id)
                 .order_by(Document.source_path, Document.title)
@@ -352,6 +355,7 @@ async def gather_corpus_facts(
                         # Retrievable by rule AND holding text. A document with no chunks can answer nothing, so it is
                         # never counted as answerable (the report must not overclaim).
                         answerable=str(r[0]) in answerable and int(r[9] or 0) > 0,
+                        source_sha256=r[10], approved_sha256=r[11],
                     )
                 )
             facts.state = "checked"
@@ -543,6 +547,18 @@ def _row_findings(sr: SourceRow, exp: Eligibility, member: bool, doc: Optional[D
         )
     elif expects_answer and doc.chunks == 0:
         add("no_chunks", "Marked indexed but holds no text chunks.", "Re-ingest it with askbpl-ingest-batch.")
+    elif exp == Eligibility.eligible and doc.eligibility == Eligibility.eligible.value and not doc.answerable and (
+        not doc.source_sha256 or not doc.approved_sha256 or doc.source_sha256 != doc.approved_sha256
+    ):
+        add(
+            "approved_file_differs",
+            ("No file hash is stored for this document (it was ingested before patch 0023)." if not doc.source_sha256
+             else "The workbook has no approved file hash for it in the database." if not doc.approved_sha256
+             else f"The stored file (sha256 {doc.source_sha256[:12]}...) is not the file that was approved (sha256 {doc.approved_sha256[:12]}...).")
+            + " It cannot answer: an approval covers only the file that was reviewed.",
+            "If the stored file is the reviewed one, run askbpl-apply-inventory after putting its hash in 'Approved SHA-256'; "
+            "otherwise ingest the approved file again, or have the new file reviewed and approved (docs/CURATOR_WORKFLOW.md).",
+        )
     elif expects_answer and not doc.answerable and not out:
         why = " ALLOW_TEST_INDEX is off, so test-index documents cannot answer." if (member and not allow_test_index) else ""
         add(
@@ -824,9 +840,10 @@ def render(report: CorpusReport, *, summary_only: bool = False) -> str:
         stored = [ln for ln in report.lines if ln.doc is not None]
         if stored:
             w("")
-            w("STORED DOCUMENTS (use the full id with askbpl-ingest --supersedes)")
+            w("STORED DOCUMENTS (use the full id with askbpl-ingest --supersedes; file_sha256 is what 'Approved SHA-256' must equal)")
             for ln in stored:
-                w(f"  {ln.source_id:8} {ln.doc.document_id}  chunks={ln.doc.chunks}  {ln.doc.ingest_status}")
+                digest = ln.doc.source_sha256 or "unknown (re-ingest to record it)"
+                w(f"  {ln.source_id:8} {ln.doc.document_id}  chunks={ln.doc.chunks}  {ln.doc.ingest_status}  file_sha256={digest}")
         w("")
     w("WHAT THIS REPORT CANNOT TELL YOU")
     for s in CANNOT_TELL:
