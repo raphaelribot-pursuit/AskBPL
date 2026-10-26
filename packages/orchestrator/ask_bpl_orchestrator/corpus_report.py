@@ -18,7 +18,7 @@ the policy files and Pinecone are only read. Without ``--csv`` it writes no file
 
 What it cannot tell you (the report says so every time):
 
-* whether a document's vectors in Pinecone match the database (it never calls Pinecone),
+* whether a document's vectors in Pinecone match the database (it never calls Pinecone; askbpl-vector-report does),
 * whether answers are right, whether a policy is current, or whether BPL has approved anything,
 * how many documents were evaluated: the "Evaluated" stage of ING-9 is not recorded anywhere yet.
 
@@ -53,7 +53,7 @@ STAGE_ANSWERABLE_TEST = "answerable (test index)"
 
 NOT_EVALUATED_NOTE = "not tracked: the Evaluated stage of ING-9 is not recorded anywhere yet"
 CANNOT_TELL = (
-    "Pinecone was not asked, so this report cannot confirm that the stored vectors match the database.",
+    "Pinecone was not asked, so this report cannot confirm that the stored vectors match the database. Run askbpl-vector-report for that.",
     "Nothing here shows that answers are right, that a policy is current, or that BPL has approved it.",
     "A document counted as answerable is answerable only because of the test-index setting while BPL authority is pending.",
 )

@@ -99,6 +99,12 @@ change log (BASE-8, BASE-9). If `askbpl-doctor` shows a **[FIX]** line, solve th
    ```
    Your document should show as `answerable (test index)` if it was marked `Yes`, or `indexed, not answerable` if not.
    Exit code 0 means nothing needs reconciling.
+   Then check the vectors (patch 0022). The corpus report reads only the database; this command also asks Pinecone, using
+   reads only, and tells you whether every stored passage has a vector:
+   ```
+   askbpl-vector-report --strict
+   ```
+   `URGENT` means a document that can answer today has passages nobody can retrieve: run the ingest step for it again.
 9. **Re-run the evaluation.** A new document gives every question new candidates, so existing answers can change. Run the
    sets separately and read each result; do not tune anything from one case.
    ```
@@ -198,7 +204,8 @@ example and is blocked.
 1. `askbpl-corpus-report --strict` exits 0 (nothing to reconcile), and the counts moved the way you expected.
 2. `askbpl-doctor` shows no **[FIX]**.
 3. The evaluation was re-run live with `--repeat 3` and the results were read, not just counted.
-4. The report output, the commit and the date are saved in the baseline record, and the change is in the change log
+4. `askbpl-vector-report --strict` exits 0 after an ingest (see section 7 for what each finding means).
+5. The report output, the commit and the date are saved in the baseline record, and the change is in the change log
    (BASE-8, BASE-9).
 
 ## 7. When something goes wrong
@@ -214,6 +221,12 @@ example and is blocked.
 | `error:duplicate` | Two stored documents match one row (usually a renamed file). | Recipe F. Nothing was changed. |
 | `warning: ... validated ... no verified review record` | The workbook says a scan is validated but the database has no record. It stays blocked. | Section 5. |
 | report: `answerable_but_not_allowed` | The database lets a document answer that the workbook blocks. | Run `askbpl-apply-inventory --purge-vectors` now. |
+| vector report: `answerable_missing_vectors` (URGENT) | A document that can answer today has stored passages with no vector in Pinecone. Those passages can never be found. A failed ingest can leave this behind: the database is saved before the vectors are. | Run `askbpl-ingest-batch` again for that document, then `askbpl-vector-report`. If it repeats, run `askbpl-doctor --live`. |
+| vector report: `stale_vectors_for_stored_document` (WARN) | Pinecone holds vectors for a document this database has, but their ids no longer exist here (the text changed, or the database was restored). Each can use up one of the 6 retrieval slots. | Ingest that document again, then re-run the report. This report never deletes anything. |
+| vector report: `metadata_mismatch` (WARN) | A vector exists under a stored chunk's id but records a different document (or none). The id matches; the label does not. | Ingest that document again, then re-run the report. This is a label check only; it does not prove the vector encodes the chunk's text. |
+| vector report: `vectors_for_unknown_document` (note) | Pinecone holds vectors for documents this database has never heard of. If several machines share the index, these are another machine's passages. | Ask the build team before removing anything. |
+| vector report: `orphan_check_unavailable` (note) | This index cannot list its vector ids (listing works on serverless indexes only), so strays cannot be named. A count-only note may follow. | Nothing to fix; the other checks still ran. |
+| vector report: `vectors_on_document_that_cannot_answer` (note) | A blocked, excluded, superseded or unconfirmed document still has vectors in Pinecone. | `askbpl-apply-inventory --purge-vectors` (it affects every blocked, excluded or superseded document). |
 | report note: `stored_text_on_blocked_document` | Text chunks are stored for a document the workbook keeps blocked, excluded or superseded. It cannot answer. For a blocked scan with a validated review record, it means the activation decision is pending. | Decide and log it. To leave the document out, run `askbpl-apply-inventory --purge-vectors` (it affects every blocked, excluded or superseded document). To activate a validated scan, follow section 5. |
 
 ## 8. Decisions BPL still has to make (not made here)
@@ -232,7 +245,9 @@ example and is blocked.
 - **No remove command.** Retire documents with `Excluded` or `Superseded` (recipe D).
 - **A changed file does not reset its approval** (recipe B, step 2 is a manual step).
 - **"Evaluated" is not recorded.** The report says so instead of showing a number.
-- **The report cannot see Pinecone.** It confirms the database; it cannot confirm that the vectors match.
+- **`askbpl-corpus-report` cannot see Pinecone.** `askbpl-vector-report` (patch 0022) can: it confirms that vector ids exist and
+  record the right document. It cannot confirm that a vector encodes the right text. There is still no command that
+  deletes stray vectors; the vector report only names them.
 - **No automatic ingestion from SharePoint** in this build (PRD ING-8).
 - **The manifest and the workbook are edited by hand** and can disagree; `askbpl-corpus-report` finds many such
   disagreements but cannot fix them.
