@@ -19,7 +19,7 @@ the decisions and it does not make any document "approved".
    (PRD ING-2). Anything the workbook does not list is treated as *not answerable*.
 2. **Today nothing is BPL-confirmed.** The seven documents that can answer are a **marked test index**: answerable only
    while `ALLOW_TEST_INDEX=true`, and labelled to staff as "not yet confirmed current by BPL". Nothing in this workflow
-   changes that. Only a row with a named reviewer **and** a review date can be `Eligible`.
+   changes that. Only a row with a named reviewer **and** a review date, plus the SHA-256 of the exact file they reviewed (`Approved SHA-256`, patch 0023), can be `Eligible`.
 3. **Ingesting sends policy text to outside services** (OpenAI turns it into searchable numbers; Pinecone stores them).
    Whether BPL permits that for unconfirmed documents is an open decision (section 8). Do not ingest anything you are
    not allowed to send out.
@@ -35,7 +35,7 @@ Every command is run from `packages/orchestrator` with the virtual environment a
 | Received | The file is in the corpus folder. |
 | Inventoried | A row exists in the workbook with a Source ID. **Every received file needs one** (AC-1). |
 | Authority pending | Workbook: Lifecycle status `Authority pending`. The default for everything. |
-| Eligible | Workbook: `Eligible` **plus** a reviewer name and date in `Reviewer / date`. Without both, the system quietly treats the row as Authority pending and warns. |
+| Eligible | Workbook: `Eligible` **plus** a reviewer name and date in `Reviewer / date` **plus** the SHA-256 of the reviewed file in `Approved SHA-256` (recipe G). Without all three, the system treats the row as Authority pending and warns. The approval then covers that file only: if the stored file changes, the document stops answering. |
 | Extracted / validated | Normal PDFs: text extracted automatically. Scanned PDFs: a person's validated record is required first (section 5). |
 | Indexed | `askbpl-ingest-batch` has stored its chunks and vectors. |
 | Evaluated | **Not recorded anywhere yet.** The report says "not tracked" rather than guess. |
@@ -73,7 +73,7 @@ change log (BASE-8, BASE-9). If `askbpl-doctor` shows a **[FIX]** line, solve th
 3. **Add a row to the workbook** (`Source Inventory` sheet): the next Source ID, the exact file name, the parse result,
    `In current pilot index` (`Yes` only if the team has decided it joins the test index), and Lifecycle status
    `Authority pending`. Leave `Reviewer / date` empty. Do not type `Eligible` unless BPL has confirmed the document and
-   you can write the reviewer and the date.
+   you can write the reviewer, the date and the reviewed file's hash (recipe G).
 4. **Add the document to the manifest** (`path`, `policy`, `title`, `version`). The `policy` value must be a `slug` in
    `config/routing_seed.yaml`. A new slug is a routing change: add it there and run `askbpl-seed`. Routing wording is
    itself an approved-configuration item, so record who approved it.
@@ -121,10 +121,12 @@ corrected copy and the old copy should not be kept. Because a document's identit
 second document.
 
 1. Overwrite the file, keeping its name and folder.
-2. **Reset the approval yourself.** If the content changed and the row says `Eligible`, set the lifecycle back to
-   `Authority pending` and clear `Reviewer / date`. **The system cannot see that the content changed.** Re-ingesting
-   keeps the approval: the single-file command leaves the stored eligibility alone, and batch ingest re-applies whatever
-   the workbook row says. A changed policy would stay approved on the strength of the old review.
+2. **Know what happens to an approval (patch 0023).** An `Eligible` approval is tied to the SHA-256 of the file that was
+   reviewed. Re-ingesting records the new file's hash, which no longer matches, so **the document stops answering at once**
+   and `askbpl-corpus-report` reports `approved_file_differs`. Nothing is reset for you and nothing is deleted. To approve
+   the new file, have it reviewed and follow recipe G (new hash in `Approved SHA-256`). If the old file is put back and
+   ingested again, the old approval applies again. An unapproved document that is a marked test-index member is not
+   affected: it has no approval to bind.
 3. `askbpl-ingest-batch --manifest ...`, then `askbpl-apply-inventory`, then `askbpl-corpus-report --strict`, as in recipe A.
 4. Re-run the evaluation (A, step 9).
 
@@ -183,6 +185,23 @@ A different path is a **different document**. The old and new copies now both ex
 stops with `error:duplicate` until one is gone. Treat the new path as the live one and retire the old id with recipe C
 (`--supersedes`). The report lists both under `duplicate_documents`.
 
+### G. Approve a reviewed document (make it `Eligible`)
+
+Do this only when BPL has confirmed the document (OD-01) and someone has read **this exact file**. The system never
+approves anything itself: ingesting a file records its hash; only the workbook, through `askbpl-apply-inventory`, records an approval.
+
+1. Make sure the file is ingested: `askbpl-ingest-batch --manifest ...`. Run `askbpl-corpus-report` and find the document
+   under `STORED DOCUMENTS`. Copy its full `file_sha256=` value. (A document ingested before patch 0023 shows
+   `unknown`: ingest it again first.)
+2. **Check that it is the file the reviewer read.** Compute the hash of the reviewed copy yourself (for example
+   `shasum -a 256 "<file>"` on a Mac) and compare. If they differ, stop: the reviewer saw a different file.
+3. In the workbook, `Source Inventory` sheet: set Lifecycle status to `Eligible`, fill `Reviewer / date`, and paste the hash
+   into a column headed exactly `Approved SHA-256` (add the column at the end if it is not there yet; the system treats
+   it as optional until the first approval).
+4. `askbpl-apply-inventory`, then `askbpl-corpus-report --strict`. The document should show as `answerable (BPL-confirmed)`.
+   A line `warning:<id>:...stored file ... is not the approved file` means the hashes differ; nothing answers until they match.
+5. Re-run the evaluation (A, step 9). Record who approved it, on what date, and the hash, in the decision log.
+
 ## 5. Validate: scanned or unreadable files (PRD ING-3, GATE-04)
 
 A scanned PDF has no trustworthy text. OCR is a **fallback** and is never trusted on its own: a person compares every page
@@ -221,6 +240,9 @@ example and is blocked.
 | `error:duplicate` | Two stored documents match one row (usually a renamed file). | Recipe F. Nothing was changed. |
 | `warning: ... validated ... no verified review record` | The workbook says a scan is validated but the database has no record. It stays blocked. | Section 5. |
 | report: `answerable_but_not_allowed` | The database lets a document answer that the workbook blocks. | Run `askbpl-apply-inventory --purge-vectors` now. |
+| report: `approved_file_differs` | An `Eligible` document is stored, but the stored file is not the file that was approved (or no hash is stored, or none was approved). It cannot answer: an approval covers only the file that was reviewed. | If the stored file is the reviewed one, put its hash in `Approved SHA-256` and run `askbpl-apply-inventory`. If the file changed, ingest the approved file again or have the new file reviewed (recipe G). |
+| `warning: marked Eligible without an approved file hash` | The row has a reviewer and date but no `Approved SHA-256`, so it was treated as Authority pending. | Recipe G. |
+| `warning: 'Approved SHA-256' is not 64 hexadecimal characters` | The hash cell was mistyped or cut off; it was ignored. | Paste all 64 characters (spaces and an `sha256:` prefix are tolerated). |
 | vector report: `answerable_missing_vectors` (URGENT) | A document that can answer today has stored passages with no vector in Pinecone. Those passages can never be found. A failed ingest can leave this behind: the database is saved before the vectors are. | Run `askbpl-ingest-batch` again for that document, then `askbpl-vector-report`. If it repeats, run `askbpl-doctor --live`. |
 | vector report: `stale_vectors_for_stored_document` (WARN) | Pinecone holds vectors for a document this database has, but their ids no longer exist here (the text changed, or the database was restored). Each can use up one of the 6 retrieval slots. | Ingest that document again, then re-run the report. This report never deletes anything. |
 | vector report: `metadata_mismatch` (WARN) | A vector exists under a stored chunk's id but records a different document (or none). The id matches; the label does not. | Ingest that document again, then re-run the report. This is a label check only; it does not prove the vector encodes the chunk's text. |
@@ -243,7 +265,7 @@ example and is blocked.
 ## 9. Known gaps (so you are not surprised)
 
 - **No remove command.** Retire documents with `Excluded` or `Superseded` (recipe D).
-- **A changed file does not reset its approval** (recipe B, step 2 is a manual step).
+- **An approval covers a file, not its meaning.** The hash proves which bytes were approved. It does not show the reviewer read them carefully, or that the policy is current. Documents ingested before patch 0023 have no stored hash until they are ingested again, so none can be `Eligible` until then.
 - **"Evaluated" is not recorded.** The report says so instead of showing a number.
 - **`askbpl-corpus-report` cannot see Pinecone.** `askbpl-vector-report` (patch 0022) can: it confirms that vector ids exist and
   record the right document. It cannot confirm that a vector encodes the right text. There is still no command that
