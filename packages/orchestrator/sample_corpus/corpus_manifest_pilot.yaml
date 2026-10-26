@@ -33,7 +33,7 @@ documents:
     version: "2014-06"
     # Scanned PDF. It is refused while the inventory says "extraction blocked". After a person has validated the
     # OCR text (docs/EXTRACTION_REVIEW.md) AND the inventory row has been edited to say so, add this line:
-    # validated_extraction: ../extraction_reviews/SRC-13/validation_record.json
+    validated_extraction: ../extraction_reviews/SRC-13/validation_record.json
 
   - path: "06 - Fundraising Policy (12.01) (1).pdf"
     policy: fundraising
