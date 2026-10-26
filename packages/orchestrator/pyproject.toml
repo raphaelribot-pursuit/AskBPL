@@ -57,6 +57,7 @@ askbpl-glossary-candidates = "ask_bpl_orchestrator.glossary_tools:candidates_mai
 askbpl-score-report = "ask_bpl_orchestrator.score_report:main"
 askbpl-doctor = "ask_bpl_orchestrator.doctor:main"
 askbpl-corpus-report = "ask_bpl_orchestrator.corpus_report:main"
+askbpl-vector-report = "ask_bpl_orchestrator.vector_report:main"
 
 [build-system]
 requires = ["setuptools>=61", "wheel"]
