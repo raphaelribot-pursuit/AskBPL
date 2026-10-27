@@ -6,6 +6,7 @@ import { DocumentViewer } from './DocumentViewer'
 import { Modal } from './Modal'
 import { PilotTranscript } from './PilotTranscript'
 import { InputField } from './InputField'
+import { RoleSelector } from './RoleSelector'
 import {
   WelcomeOverlay,
   isWelcomeDismissed,
@@ -188,6 +189,7 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
         liveRegion={chat.liveRegionMessage}
         footer={
           <>
+            <RoleSelector value={chat.role} onChange={chat.setRole} disabled={inputDisabled} />
             <InputField
               value={composer}
               onChange={setComposer}

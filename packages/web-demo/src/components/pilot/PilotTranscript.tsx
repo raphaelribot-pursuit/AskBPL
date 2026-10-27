@@ -9,6 +9,7 @@ import type { FeedbackRating, FeedbackSubmitResult } from '../../conversation/as
 import { AnswerMarkdown } from './AnswerMarkdown'
 import { Bubble } from './Bubble'
 import { CitationCardList } from './CitationCard'
+import { RoleBadge } from './RoleBadge'
 import { TestIndexNotice } from './TestIndexNotice'
 import { FeedbackControl } from './FeedbackControl'
 import { PIIBanner } from './PIIBanner'
@@ -93,6 +94,7 @@ function AssistantAnswer({
     <Bubble variant="bot">
       <Bubble.Stack>
         {row.indexLabel ? <TestIndexNotice label={row.indexLabel} /> : null}
+        {row.roleLabel ? <RoleBadge label={row.roleLabel} /> : null}
         <AnswerMarkdown>{row.body}</AnswerMarkdown>
         <CitationCardList citations={row.citations} onOpen={onOpenCitation} />
         {row.routing.length > 0 ? (

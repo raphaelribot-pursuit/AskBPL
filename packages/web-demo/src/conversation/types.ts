@@ -54,6 +54,13 @@ export function testIndexLabelFor(
   return citations.some((c) => c.test_index === true) ? DEFAULT_TEST_INDEX_LABEL : null
 }
 
+/** The label the server says it used. Anything malformed is ignored, so a bad field can never hide an answer. */
+export function roleLabelFromPayload(role: unknown): string | null {
+  if (typeof role !== 'object' || role === null) return null
+  const label = (role as Record<string, unknown>).label
+  return typeof label === 'string' && label.trim() !== '' ? label.trim().slice(0, 40) : null
+}
+
 export type RoutingPayload = {
   team: string
   contact_hint: string
@@ -90,6 +97,8 @@ export type AssistantAnswerRow = {
   inferredPolicy?: string | null
   /** Non-null when any cited source is not yet confirmed by BPL (OD-11). */
   indexLabel?: string | null
+  /** Role lens that framed this answer (ROLE-9). Absent on answers from a server that predates patch 0024. */
+  roleLabel?: string | null
 }
 
 /** `type: "refusal"` (Wireframe §5.4–5.5). */
@@ -203,6 +212,7 @@ export function rowFromAskResponse(args: {
             ? payload.inferred_policy_type
             : null,
         indexLabel: testIndexLabelFor(payload.index_label, citations),
+        roleLabel: roleLabelFromPayload(payload.role),
       }
     }
 

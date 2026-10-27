@@ -9,6 +9,7 @@ import {
   type FeedbackRating,
   type FeedbackSubmitResult,
 } from './askApi'
+import { readStoredRole, storeRole, type RoleKey } from './roles'
 import type { CitationPayload, TranscriptRow } from './types'
 
 /**
@@ -36,6 +37,9 @@ export type UseAskChatArgs = {
 
 export type UseAskChatResult = {
   rows: TranscriptRow[]
+  /** Role lens for the next question (ROLE-1). Changeable at any time. */
+  role: RoleKey
+  setRole: (next: RoleKey) => void
   pending: boolean
   status: string
   setStatus: (next: string) => void
@@ -59,6 +63,12 @@ export function useAskChat({
   const [pending, setPending] = useState(false)
   const [status, setStatus] = useState('')
   const mockEnabled = useRef(isMockEnabled())
+  const [role, setRoleState] = useState<RoleKey>(() => readStoredRole())
+
+  const setRole = useCallback((next: RoleKey) => {
+    setRoleState(next)
+    storeRole(next)
+  }, [])
 
   const ask = useCallback(
     async (textRaw: string) => {
@@ -81,6 +91,7 @@ export function useAskChat({
         question: text,
         rowId: nextRowId(),
         conversationContext,
+        userRole: role,
         mock: mockEnabled.current,
       })
 
@@ -116,7 +127,7 @@ export function useAskChat({
       setRows((history) => [...history, outcome.row])
       setPending(false)
     },
-    [apiBase, onRestoreInput, pending, rows],
+    [apiBase, onRestoreInput, pending, role, rows],
   )
 
   const submitFeedback = useCallback(
@@ -176,6 +187,8 @@ export function useAskChat({
 
   return {
     rows,
+    role,
+    setRole,
     pending,
     status,
     setStatus,

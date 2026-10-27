@@ -1,4 +1,5 @@
 import type { TranscriptRow } from './types'
+import { roleLabel, type RoleKey } from './roles'
 import { DEFAULT_TEST_INDEX_LABEL, rowFromAskResponse } from './types'
 import {
   apiSessionHeaders,
@@ -84,6 +85,7 @@ async function postAsk(
   sessionId: string | null,
   question: string,
   conversationContext?: ConversationTurn[],
+  userRole?: RoleKey,
 ): Promise<Response> {
   const res = await fetchImpl(`${apiBase}/v1/ask`, {
     method: 'POST',
@@ -93,6 +95,8 @@ async function postAsk(
       ...(conversationContext?.length
         ? { conversation_context: conversationContext }
         : {}),
+      // Framing only; the server treats anything unrecognised as General (ROLE-11).
+      ...(userRole ? { user_role: userRole } : {}),
     }),
     signal: AbortSignal.timeout(ASK_FETCH_TIMEOUT_MS),
   })
@@ -109,6 +113,8 @@ export type AskRequestArgs = {
   rowId: string
   /** Last 2 Q&A pairs from the transcript, for follow-up resolution. */
   conversationContext?: ConversationTurn[]
+  /** Self-selected role lens (ROLE-4: not a security boundary). Omitted means General. */
+  userRole?: RoleKey
   /** When true, return canned data without hitting the orchestrator. */
   mock?: boolean
   /** Override `fetch`; mostly useful for tests. */
@@ -142,11 +148,12 @@ export async function askQuestion({
   question,
   rowId,
   conversationContext,
+  userRole,
   mock,
   fetchImpl,
 }: AskRequestArgs): Promise<AskOutcome> {
   if (mock) {
-    return mockAsk(question, rowId)
+    return mockAsk(question, rowId, userRole)
   }
 
   const f = fetchImpl ?? fetch
@@ -155,7 +162,7 @@ export async function askQuestion({
   let lastError: unknown
   for (let attempt = 0; attempt < ASK_NETWORK_MAX_ATTEMPTS; attempt += 1) {
     try {
-      res = await postAsk(f, apiBase, resolvedSessionId, question, conversationContext)
+      res = await postAsk(f, apiBase, resolvedSessionId, question, conversationContext, userRole)
       lastError = undefined
       break
     } catch (err) {
@@ -288,6 +295,7 @@ const MOCK_LATENCY_MS = 700
 function mockAsk(
   question: string,
   rowId: string,
+  userRole?: RoleKey,
 ): Promise<AskOutcome> {
   const lower = question.toLowerCase()
   return new Promise((resolve) => {
@@ -364,6 +372,7 @@ function mockAsk(
           inferredPolicy: 'gift_acceptance',
           // Mirrors the live pilot: every source is still in the marked test index.
           indexLabel: DEFAULT_TEST_INDEX_LABEL,
+          roleLabel: roleLabel(userRole),
         },
       })
     }, MOCK_LATENCY_MS)

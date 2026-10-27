@@ -11,6 +11,7 @@ import type {
   UserMessageRow,
 } from './types'
 import { formatPageLabel } from './types'
+import { RoleBadge } from '../components/pilot/RoleBadge'
 import { TestIndexNotice } from '../components/pilot/TestIndexNotice'
 
 /**
@@ -66,6 +67,7 @@ export function AssistantAnswer({
       </div>
       <div className="answer-block">
         {row.indexLabel ? <TestIndexNotice label={row.indexLabel} /> : null}
+        {row.roleLabel ? <RoleBadge label={row.roleLabel} /> : null}
         <p className="answer-body">{row.body}</p>
         {row.citations.length > 0 ? (
           <ul className="citation-inset-stack" aria-label="Sources">
