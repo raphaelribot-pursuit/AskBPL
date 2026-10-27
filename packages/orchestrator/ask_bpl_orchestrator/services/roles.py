@@ -101,6 +101,11 @@ def render_role_block(role: Role) -> str:
         "  · State a duty, permission or step for this role ONLY if the RETRIEVAL_BLOCK says so. If the excerpts do not",
         "    distinguish by role, say in one sentence that the excerpts do not describe a different rule for this role,",
         "    then answer normally. Do not say or imply that the policy applies to everyone unless the excerpts say that.",
+        "  · Report what the excerpts say, not what you think follows from them. Do not write \"you would\", \"you'll want to\"",
+        "    or \"make sure\" about a step the excerpts do not state for this role, even if it seems a sensible consequence.",
+        "  · If a rule applies to a defined group (for example \"Covered Persons\"), name the group and keep the rule attached",
+        "    to it. Do not say \"you must\" or \"you need to\" unless the excerpts say the person asking belongs to that group.",
+        "  · Point the person to an office or contact only if the excerpts name that office or contact for that purpose.",
         "  · The sentence limit stated earlier still applies in full. The role lens adds no sentences.",
     ]
     addendum = role.addendum

@@ -255,3 +255,45 @@ def test_a_broken_configured_file_falls_back_to_general_only(tmp_path, monkeypat
         monkeypatch.delenv("ROLES_PATH")
         get_settings.cache_clear()
         roles.get_roles.cache_clear()
+
+
+# ------------------------------------------------------------------------------- wording revision 2 (patch 0026)
+# Live review of the 0024 wording (2026-10-27 run, answers read against the policy text) found: a manager step stated
+# as a rule that the policy only implies (BPL-AL-03), a Covered Person duty restated as "you need to" for any staff
+# member (BPL-CI-03), and a referral to an office the excerpts do not name for that purpose (BPL-CI-01).
+
+
+@pytest.mark.parametrize("key", ["staff", "manager"])
+def test_lens_rules_forbid_inferred_steps_and_keep_group_rules_attached_to_their_group(key) -> None:
+    block = render_role_block(load_roles(BUNDLED_PATH).by_key[key])
+    assert "Report what the excerpts say, not what you think follows from them" in block
+    assert 'Do not write "you would"' in block
+    assert 'name the group and keep the rule attached' in block
+    assert 'Do not say "you must" or "you need to" unless the excerpts say the person asking belongs to that group' in block
+    assert "Point the person to an office or contact only if the excerpts name that office or contact for that purpose" in block
+
+
+def test_the_new_rules_do_not_reach_the_general_prompt() -> None:
+    general = load_roles(BUNDLED_PATH).default
+    assert render_role_block(general) == ""
+    assert hashlib.sha256(build_system_prompt().encode()).hexdigest().startswith(PRE_0024_PROMPT_PREFIX)
+
+
+def test_staff_lens_no_longer_tells_the_model_to_lead_with_what_the_reader_should_do() -> None:
+    """That phrase pushed 'a Covered Person must...' into 'you need to...' for every staff member."""
+    staff = load_roles(BUNDLED_PATH).by_key["staff"].lens
+    assert "should do" not in staff
+    assert "Lead with the answer in plain words" in staff
+    assert "say who it covers" in staff and "only if the excerpts state it for staff" in staff
+
+
+def test_manager_lens_adds_a_manager_step_only_when_the_excerpts_assign_it_to_supervisors() -> None:
+    manager = " ".join(load_roles(BUNDLED_PATH).by_key["manager"].lens.split())
+    assert "only when the excerpts assign it to supervisors or managers" in manager
+    assert "add no manager step" in manager
+
+
+def test_the_two_lenses_still_differ_and_still_name_their_own_role() -> None:
+    rs = load_roles(BUNDLED_PATH)
+    staff, manager = render_role_block(rs.by_key["staff"]), render_role_block(rs.by_key["manager"])
+    assert staff != manager and "role as: Staff" in staff and "role as: Manager" in manager

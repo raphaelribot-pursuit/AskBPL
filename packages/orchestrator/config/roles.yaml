@@ -7,6 +7,9 @@
 # STATUS: PROPOSED DEFAULTS, not approved by BPL. Decision D-09 (role set, label, default, answer length) is still
 # open. Until BPL answers it, treat every value below as a placeholder the team chose so the feature can be built.
 #
+# Wording revision 2 (patch 0026). Revision 1 shipped in 0024. What changed and why is in Handoff 21. Both revisions
+# are drafts for BPL review; neither is approved.
+#
 # Rules the loader enforces:
 #   * exactly one role is the default, and it must have no lens text (so a General answer is exactly today's answer);
 #   * every other role needs a label and a lens;
@@ -27,16 +30,18 @@ roles:
   - key: staff
     label: Staff
     lens: |
-      The person asking works directly with patrons or at the branch level. Lead with what they should do or
-      know in their day-to-day work, in plain words. Mention an obligation, permission or step for staff only if the
-      excerpts state it.
+      The person asking works directly with patrons or at the branch level. Lead with the answer in plain words,
+      the way you would explain it to a colleague at the desk. Mention an obligation, permission or step for staff
+      only if the excerpts state it for staff. When the excerpts set a rule for a named group, say who it covers
+      instead of assuming it covers the person asking.
 
   - key: manager
     label: Manager
     lens: |
       The person asking supervises other staff. Lead with the answer, then, only if the excerpts say so, what a
-      supervisor or manager must do, approve, document or pass on. Do not describe a manager's duties that the
-      excerpts do not state.
+      supervisor or manager must do, approve, document or pass on. Use a manager step only when the excerpts
+      assign it to supervisors or managers. If the excerpts say only what employees or the Library do, give
+      that and add no manager step.
     # Optional short "as a supervisor" addendum. Off until BPL approves wording and length.
     supervisor_addendum:
       approved: false
