@@ -1,0 +1,45 @@
+# Role lenses for answers (patch 0024; PRD ROLE-1 to ROLE-11).
+#
+# A role changes how an answer is FRAMED. It never changes which policies are searched, which gates run, or whether
+# a question is answered or refused (ROLE-2). Role wording lives here so BPL can review and edit it without touching
+# retrieval code (ROLE-6).
+#
+# STATUS: PROPOSED DEFAULTS, not approved by BPL. Decision D-09 (role set, label, default, answer length) is still
+# open. Until BPL answers it, treat every value below as a placeholder the team chose so the feature can be built.
+#
+# Rules the loader enforces:
+#   * exactly one role is the default, and it must have no lens text (so a General answer is exactly today's answer);
+#   * every other role needs a label and a lens;
+#   * the supervisor addendum is OFF until `approved: true` is set together with `approved_by` and `approved_on`
+#     (ROLE-7: BPL must approve the wording and the length before a manager answer may run past 2 to 4 sentences).
+
+default_role: general
+
+# Answer length: the inherited 2 to 4 sentence cap from the May 26 pilot check-in (ROLE-7, decision OD-10 still open)
+# is written in the base system prompt and applies to every role. A role lens adds no sentences. The only exception
+# is the supervisor addendum below, and it stays off until BPL approves it.
+
+roles:
+  - key: general
+    label: General
+    lens: ""
+
+  - key: staff
+    label: Staff
+    lens: |
+      The person asking works directly with patrons or at the branch level. Lead with what they should do or
+      know in their day-to-day work, in plain words. Mention an obligation, permission or step for staff only if the
+      excerpts state it.
+
+  - key: manager
+    label: Manager
+    lens: |
+      The person asking supervises other staff. Lead with the answer, then, only if the excerpts say so, what a
+      supervisor or manager must do, approve, document or pass on. Do not describe a manager's duties that the
+      excerpts do not state.
+    # Optional short "as a supervisor" addendum. Off until BPL approves wording and length.
+    supervisor_addendum:
+      approved: false
+      max_sentences: 2
+      approved_by: ""
+      approved_on: ""

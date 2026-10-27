@@ -266,7 +266,7 @@ def test_live_run_records_eligibility_from_the_database() -> None:
         loops.append(id(asyncio.get_running_loop()))
         return {ok_chunk: 0.95} if "carry over" in question else {}
 
-    async def fake_generate(*, question, chunks, conversation_context=None, routing=None):
+    async def fake_generate(*, question, chunks, conversation_context=None, routing=None, role=None):
         return "Staff may carry over seven days.", False, [c.chunk_id for c in chunks], "{}"
 
     try:

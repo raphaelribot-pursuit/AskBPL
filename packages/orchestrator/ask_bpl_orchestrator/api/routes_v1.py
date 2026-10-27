@@ -37,6 +37,7 @@ async def ask_v1(body: AskBody, request: Request, claims: SessionClaims, db: DbS
                 jwt_attribution=claims["attribution"],
                 question_text=body.question.strip(),
                 conversation_context=context_dicts,
+                user_role=body.user_role,
             ),
             timeout=ASK_PIPELINE_TIMEOUT_SECONDS,
         )

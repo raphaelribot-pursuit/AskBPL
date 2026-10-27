@@ -43,6 +43,7 @@ from ask_bpl_orchestrator.services.refusal import (
     user_message,
 )
 from ask_bpl_orchestrator.services.glossary import acronyms_missing_from, get_glossary
+from ask_bpl_orchestrator.services.roles import get_roles
 from ask_bpl_orchestrator.services.query_rewriter import rewrite_follow_up
 from ask_bpl_orchestrator.services.eligibility import TEST_INDEX_LABEL, is_retrievable, is_test_index_source
 from ask_bpl_orchestrator.services.retrieval import RetrievedChunk, VectorRetriever, max_score
@@ -289,9 +290,14 @@ async def handle_ask(
     jwt_attribution: str,
     question_text: str,
     conversation_context: Optional[List[Dict[str, str]]] = None,
+    user_role: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], int]:
     settings = get_settings()
     started = time.perf_counter()
+    # Role lens (patch 0024, ROLE-2/8/11). Resolved once: anything unrecognised is the default role. The role is
+    # logged on the question row and handed to generation ONLY. Gates, retrieval, grounding and the answer-or-refuse
+    # decision below never read it, so they cannot differ between roles.
+    role = get_roles().resolve(user_role)
     request_id = uuid.uuid4()
 
     sess = await db.get(Session, jwt_session_id)
@@ -321,6 +327,7 @@ async def handle_ask(
             tester_id=tester_storage,
             question_text=None,
             question_hash=PII_REDACTED_QUESTION_HASH,
+            user_role=role.key,
             pii_rejected=True,
             pii_categories=cats,
             latency_ms=int((time.perf_counter() - started) * 1000),
@@ -365,6 +372,7 @@ async def handle_ask(
             tester_id=tester_storage,
             question_text=None,  # NEVER store potentially sensitive content
             question_hash=CRISIS_REDACTED_QUESTION_HASH,
+            user_role=role.key,
             pii_rejected=False,
             latency_ms=int((time.perf_counter() - started) * 1000),
         )
@@ -390,6 +398,7 @@ async def handle_ask(
         tester_id=tester_storage,
         question_text=question_text if attributed_session else None,
         question_hash=q_hash,
+        user_role=role.key,
         pii_rejected=False,
     )
     db.add(question_row)
@@ -532,6 +541,7 @@ async def handle_ask(
         chunks=retrieved,
         conversation_context=conversation_context,
         routing=routing,
+        role=role,
     )
     retrieval_ids = {c.chunk_id for c in retrieved}
     ok = verify_citations(
@@ -632,6 +642,7 @@ async def handle_ask(
     )
 
     payload = _payload(request_id, ans_row, [], cites)
+    payload["role"] = {"key": role.key, "label": role.label}  # ROLE-9: which lens framed this answer
     if any(c.get("test_index") for c in cites):
         payload["index_label"] = TEST_INDEX_LABEL
     return payload, 200

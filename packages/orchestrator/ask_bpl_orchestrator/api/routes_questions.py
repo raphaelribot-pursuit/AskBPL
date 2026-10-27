@@ -31,6 +31,14 @@ class AskBody(BaseModel):
             "Last 2 Q&A pairs max. Frontend-managed, not stored."
         ),
     )
+    user_role: Optional[str] = Field(
+        default=None,
+        max_length=64,
+        description=(
+            "Optional self-selected role lens (general, staff, manager). Not a security boundary (ROLE-4). "
+            "Missing or unrecognised values are treated as General (ROLE-11), never an error."
+        ),
+    )
 
 
 @router.post("/ask")
@@ -46,6 +54,7 @@ async def ask_question(body: AskBody, request: Request, claims: SessionClaims, d
         jwt_attribution=claims["attribution"],
         question_text=body.question.strip(),
         conversation_context=context_dicts,
+        user_role=body.user_role,
     )
     rid = payload.get("request_id")
     headers = {"X-Request-ID": rid} if isinstance(rid, str) else None

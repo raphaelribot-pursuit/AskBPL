@@ -11,6 +11,7 @@ import anthropic
 
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.services.retrieval import RetrievedChunk
+from ask_bpl_orchestrator.services.roles import Role, render_role_block
 from ask_bpl_orchestrator.services.routing_service import RoutingChoice
 
 log = logging.getLogger("ask_bpl.generation")
@@ -160,9 +161,17 @@ def render_routing_block(routing: Optional[Sequence[RoutingChoice]]) -> str:
     )
 
 
-def build_system_prompt(routing: Optional[Sequence[RoutingChoice]] = None) -> str:
-    """The system prompt with the approved routing list filled in (none given -> name no team)."""
-    return SYSTEM_PROMPT.replace(ROUTING_PLACEHOLDER, render_routing_block(routing))
+def build_system_prompt(
+    routing: Optional[Sequence[RoutingChoice]] = None, role: Optional[Role] = None
+) -> str:
+    """The system prompt with the approved routing list filled in (none given -> name no team).
+
+    `role` adds a framing-only role lens (patch 0024, ROLE-10: applied inside this single generation call). The default
+    role, or none, adds nothing, so the General prompt is exactly the pre-0024 prompt.
+    """
+    prompt = SYSTEM_PROMPT.replace(ROUTING_PLACEHOLDER, render_routing_block(routing))
+    block = render_role_block(role) if role is not None else ""
+    return f"{prompt}\n\n{block}" if block else prompt
 
 
 def _build_user_prompt(
@@ -196,11 +205,12 @@ async def generate_answer(
     chunks: List[RetrievedChunk],
     conversation_context: Optional[List[dict[str, str]]] = None,
     routing: Optional[Sequence[RoutingChoice]] = None,
+    role: Optional[Role] = None,
 ) -> tuple[str, bool, List[uuid.UUID], str]:
     """Return (answer_text, refuses, cited_ids, raw_model_text).
 
     `routing` is the approved owning-team list for this question. Omitted or empty means the model
-    is told no team is on file and must name none.
+    is told no team is on file and must name none. `role` is the framing lens (None or the default role: no lens).
     """
     settings = get_settings()
     client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key or None)
@@ -226,7 +236,7 @@ async def generate_answer(
     message = await client.messages.create(
         model=settings.anthropic_model,
         max_tokens=600,
-        system=build_system_prompt(routing),
+        system=build_system_prompt(routing, role),
         messages=messages,
     )
 

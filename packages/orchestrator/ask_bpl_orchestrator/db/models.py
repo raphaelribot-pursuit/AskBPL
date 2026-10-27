@@ -241,6 +241,9 @@ class Question(Base):
     )
     question_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     question_hash: Mapped[str] = mapped_column(String(64), index=True)
+    # Role lens the asker chose (patch 0024, ROLE-8). Self-selected, not personal information, not a security boundary.
+    # NULL on rows logged before the patch.
+    user_role: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     pii_rejected: Mapped[bool] = mapped_column(Boolean, default=False)
     pii_categories: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)

@@ -69,6 +69,8 @@ class Settings(BaseSettings):
     pdf_reader: str = "pypdf"
     # Approved glossary file (patch 0016). Empty means config/glossary.yaml. Only entries with status "approved" are used.
     glossary_path: str = ""
+    # Role lens file (patch 0024). Empty means config/roles.yaml. A broken file falls back to General only.
+    roles_path: str = ""
 
     # Scanned PDF fallback (ingest-time only). Requires optional pip extra `[ocr]`
     # plus system `tesseract-ocr` and `poppler-utils` when enabled.
