@@ -5,6 +5,9 @@
   askbpl-eval --set glossary       the glossary probes (patch 0016); not part of --set all
   askbpl-eval --set robustness     the GRD-12 robustness probes (patch 0017); not part of --set all
   askbpl-eval --only BPL-AL-03 --repeat 5
+  askbpl-eval --role staff         ask every selected question as that role lens (patch 0025); recorded in the run
+  askbpl-eval --compare general.json staff.json manager.json
+                                   line the recorded runs up side by side against the first (offline, free)
   askbpl-eval --replay eval_data/results/<run>.json    re-score a recorded run offline: free, deterministic,
                                                        cannot detect model drift (nothing is re-asked)
 
@@ -32,6 +35,7 @@ from typing import Any, Dict, List, Optional
 from ask_bpl_orchestrator.evals.cases import (
     CLIENT_CSV, DATA_DIR, GLOSSARY_CSV, REGRESSION_CSV, ROBUSTNESS_CSV, Case, file_sha256, load_cases, questions_sha256,
 )
+from ask_bpl_orchestrator.evals.compare import CompareError, compare_runs, load_run, print_compare, write_compare_csv
 from ask_bpl_orchestrator.evals.scoring import aggregate, summarize
 
 HUMAN_COLUMNS = ["Accuracy_1to5", "Grounding_1to5", "Completeness_1to5", "Clarity_1to5",
@@ -46,7 +50,19 @@ def _git(*args: str) -> Optional[str]:
         return None
 
 
-def run_metadata(cases: List[Case], *, mode: str, env_label: str, repeat: int) -> Dict[str, Any]:
+def _role_meta(role: Optional[str]) -> Dict[str, Any]:
+    """Which lens a run used. `system_prompt_sha256` covers only the base template, so the lens text is hashed apart."""
+    from ask_bpl_orchestrator.services.roles import get_roles, render_role_block
+
+    if not role:
+        return {"role": None, "role_lens_sha256": None, "role_lens_label": None}
+    resolved = get_roles().resolve(role)
+    block = render_role_block(resolved)
+    return {"role": resolved.key, "role_lens_label": resolved.label,
+            "role_lens_sha256": hashlib.sha256(block.encode()).hexdigest()[:16] if block else None}
+
+
+def run_metadata(cases: List[Case], *, mode: str, env_label: str, repeat: int, role: Optional[str] = None) -> Dict[str, Any]:
     from ask_bpl_orchestrator.config import get_settings
     from ask_bpl_orchestrator.services.generation import SYSTEM_PROMPT
 
@@ -61,6 +77,7 @@ def run_metadata(cases: List[Case], *, mode: str, env_label: str, repeat: int) -
         "allow_test_index": s.allow_test_index, "top_k": s.pinecone_top_k,
         "grounding_floor": s.grounding_threshold, "grounding_strong": s.grounding_strong_threshold,
         "system_prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:16],
+        **_role_meta(role),
         "client_questions_file_sha256": file_sha256(CLIENT_CSV)[:16],
         "client_question_wording_sha256": questions_sha256([c for c in cases if c.is_client])[:16]
         if any(c.is_client for c in cases) else None,
@@ -69,7 +86,7 @@ def run_metadata(cases: List[Case], *, mode: str, env_label: str, repeat: int) -
 
 
 # ------------------------------------------------------------------------------------------ live
-async def _ask_all(cases: List[Case], repeat: int, delay: float) -> Dict[str, List[Dict[str, Any]]]:
+async def _ask_all(cases: List[Case], repeat: int, delay: float, role: Optional[str] = None) -> Dict[str, List[Dict[str, Any]]]:
     """Ask every question through the real app inside ONE event loop.
 
     The app keeps long-lived database/OpenAI connections that are bound to the loop that created them, so every
@@ -94,14 +111,18 @@ async def _ask_all(cases: List[Case], repeat: int, delay: float) -> Dict[str, Li
             for _ in range(repeat):
                 t0 = time.perf_counter()
                 try:
-                    resp = await client.post("/v1/ask", headers=headers, json={"question": case.question})
+                    body: Dict[str, Any] = {"question": case.question}
+                    if role:
+                        body["user_role"] = role  # only the framing lens; the question text is untouched
+                    resp = await client.post("/v1/ask", headers=headers, json=body)
                     payload = resp.json()
                     status = resp.status_code
                 except Exception as exc:  # noqa: BLE001
                     payload, status = {"type": "error_client", "message": f"{type(exc).__name__}: {str(exc)[:200]}"}, 0
-                records[case.test_id].append(
-                    {"http_status": status, "payload": payload, "latency_s": round(time.perf_counter() - t0, 2)}
-                )
+                rec: Dict[str, Any] = {"http_status": status, "payload": payload, "latency_s": round(time.perf_counter() - t0, 2)}
+                if role:
+                    rec["role_requested"] = role
+                records[case.test_id].append(rec)
                 await asyncio.sleep(delay)
             print(f"  asked {case.test_id}", flush=True)
         await _collect_states(cases, records)  # same loop as the asks
@@ -146,11 +167,11 @@ async def _collect_states(cases: List[Case], records: Dict[str, List[Dict[str, A
                     rec["citation_states"].append(st)
 
 
-async def _run_live(cases: List[Case], repeat: int, delay: float) -> Dict[str, List[Dict[str, Any]]]:
+async def _run_live(cases: List[Case], repeat: int, delay: float, role: Optional[str] = None) -> Dict[str, List[Dict[str, Any]]]:
     from ask_bpl_orchestrator.db.session import engine
 
     try:
-        return await _ask_all(cases, repeat, delay)
+        return await _ask_all(cases, repeat, delay, role)
     finally:
         await engine.dispose()  # close pooled connections inside the loop that owns them
 
@@ -168,7 +189,8 @@ def _redirect_app_logs(out_dir: Path) -> Path:
 def _write(out_dir: Path, meta: Dict[str, Any], results: List[Dict[str, Any]], records, summary) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    base = out_dir / f"eval_{stamp}_{meta.get('commit') or 'nocommit'}_{meta['mode']}"
+    role_part = f"_{meta['role']}" if meta.get("role") else ""
+    base = out_dir / f"eval_{stamp}_{meta.get('commit') or 'nocommit'}_{meta['mode']}{role_part}"
     base.with_suffix(".json").write_text(
         json.dumps({"meta": meta, "summary": summary, "results": results, "records": records}, indent=2, default=str),
         encoding="utf-8")
@@ -189,7 +211,8 @@ def _write(out_dir: Path, meta: Dict[str, Any], results: List[Dict[str, Any]], r
 
 
 def _print_report(meta, results, summary, path: Path, app_log: Optional[Path] = None) -> None:
-    print(f"\n== RESULTS ({meta['mode']}, commit {meta['commit']}{'+dirty' if meta['working_tree_dirty'] else ''})")
+    role_note = f", role {meta['role']}" if meta.get("role") else ""
+    print(f"\n== RESULTS ({meta['mode']}{role_note}, commit {meta['commit']}{'+dirty' if meta['working_tree_dirty'] else ''})")
     for r in results:
         flag = " (provisional)" if r["provisional"] and r["status"] == "PASS" else ""
         extra = f"  failed: {','.join(r['failed_checks'])}" if r["failed_checks"] and r["status"] == "FAIL" else ""
@@ -234,7 +257,26 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--env-label", default=os.environ.get("EVAL_ENV_LABEL", "local"))
     ap.add_argument("--replay", metavar="RESULTS_JSON", help="re-score a recorded run; asks nothing")
     ap.add_argument("--list", action="store_true", help="list the selected cases and exit")
+    from ask_bpl_orchestrator.services.roles import get_roles
+
+    ap.add_argument("--role", choices=[x.key for x in get_roles().roles], default=None,
+                    help="ask every question as this role lens (sends user_role); omitted = send none, i.e. General")
+    ap.add_argument("--compare", nargs="+", metavar="RESULTS_JSON",
+                    help="compare recorded runs, first file = baseline; asks nothing")
     a = ap.parse_args(argv)
+
+    if a.compare:
+        if a.replay or a.role:
+            raise SystemExit("--compare reads recorded files only; do not combine it with --replay or --role")
+        try:
+            result = compare_runs([load_run(Path(p)) for p in a.compare])
+        except CompareError as exc:
+            raise SystemExit(f"cannot compare: {exc}") from exc
+        out = write_compare_csv(result, Path(a.out_dir))
+        print_compare(result, out)
+        return 1 if result["hard"] or result["echo_failures"] else 0
+    if a.replay and a.role:
+        raise SystemExit("--role applies to a live run; a replay uses the role recorded in the file")
 
     app_log: Optional[Path] = None
     cases = select_cases(a.set, a.only)
@@ -251,12 +293,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         app_log = _redirect_app_logs(Path(a.out_dir))
         print(f"asking {len(cases)} question(s) x{a.repeat} against the real pipeline...", flush=True)
-        records = asyncio.run(_run_live(cases, a.repeat, a.delay))
+        records = asyncio.run(_run_live(cases, a.repeat, a.delay, a.role))
         mode, repeat = "live", a.repeat
 
     results = [aggregate(c, records[c.test_id]) for c in cases]
     summary = summarize(results, records)
-    meta = run_metadata(cases, mode=mode, env_label=a.env_label, repeat=repeat)
+    meta = run_metadata(cases, mode=mode, env_label=a.env_label, repeat=repeat, role=None if a.replay else a.role)
+    if a.replay:  # keep what the recorded run used; the roles file may have changed since
+        meta.update({k: recorded["meta"].get(k) for k in ("role", "role_lens_label", "role_lens_sha256")})
     path = _write(Path(a.out_dir), meta, results, records, summary)
     _print_report(meta, results, summary, path, app_log)
     return 1 if any(r["status"] in {"FAIL", "ERROR"} for r in results) else 0

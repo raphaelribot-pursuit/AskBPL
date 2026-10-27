@@ -100,6 +100,14 @@ def score_run(case: Case, rec: Dict[str, Any]) -> RunScore:
         checks["citations_present"] = checks["citation_integrity"] = checks["test_index_label"] = None
         checks["no_citations_on_refusal"] = not payload.get("citations")
 
+    # --- role lens echo (patch 0025). Only runs made with --role carry role_requested; older records score as before.
+    requested = rec.get("role_requested")
+    if requested and outcome == "answer":
+        echoed = (payload.get("role") or {}).get("key") if isinstance(payload.get("role"), dict) else None
+        checks["role_echo"] = echoed == requested
+        if echoed != requested:
+            warnings.append(f"asked as role {requested!r} but the server reported {echoed!r}: is the roles file loaded?")
+
     # --- which policy was cited (optional per case; patch 0017) -----------------------------
     if case.must_cite_source and outcome == "answer":
         cited_ids = {c.get("source_id") for c in cites}
