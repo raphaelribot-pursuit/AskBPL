@@ -23,18 +23,27 @@ describe('normalizeRole', () => {
     storeRole('manager')
     expect(readStoredRole()).toBe('manager')
     window.sessionStorage.setItem('askbpl.role', 'nonsense')
-    expect(readStoredRole()).toBe('general')
+    expect(readStoredRole()).toBe(DEFAULT_ROLE)
     const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('blocked')
     })
-    expect(readStoredRole()).toBe('general')
+    expect(readStoredRole()).toBe(DEFAULT_ROLE)
     spy.mockRestore()
     window.sessionStorage.clear()
   })
 
   it('labels the roles the way the control shows them', () => {
     expect(roleLabel('staff')).toBe('Staff')
-    expect(roleLabel('zzz')).toBe('General')
+    expect(roleLabel('general')).toBe('General')
+    expect(roleLabel('zzz')).toBe(roleLabel(DEFAULT_ROLE))
+  })
+
+  it('defaults to Staff, the team working choice that matches the server config (0028), and keeps General selectable', () => {
+    expect(DEFAULT_ROLE).toBe('staff')
+    expect(normalizeRole(undefined)).toBe('staff')
+    expect(normalizeRole('general')).toBe('general')
+    window.sessionStorage.clear()
+    expect(readStoredRole()).toBe('staff')
   })
 })
 

@@ -11,12 +11,16 @@
 # are drafts for BPL review; neither is approved.
 #
 # Rules the loader enforces:
-#   * exactly one role is the default, and it must have no lens text (so a General answer is exactly today's answer);
+#   * exactly one role has no lens text (the plain role, "general"), so a General answer is exactly the pre-role answer;
+#     the default role may be any role;
 #   * every other role needs a label and a lens;
 #   * the supervisor addendum is OFF until `approved: true` is set together with `approved_by` and `approved_on`
 #     (ROLE-7: BPL must approve the wording and the length before a manager answer may run past 2 to 4 sentences).
 
-default_role: general
+# DEFAULT ROLE: staff. This is the TEAM'S WORKING CHOICE (patch 0028, 2026-10-28), not a BPL decision: Selvon indicated in
+# conversation that staff are the primary users, so a question that arrives with no role (or an unrecognised one) is
+# explained for Staff. D-09 is still open with BPL. "general" stays selectable and is the plain, no-lens baseline.
+default_role: staff
 
 # Answer length: the inherited 2 to 4 sentence cap from the May 26 pilot check-in (ROLE-7, decision OD-10 still open)
 # is written in the base system prompt and applies to every role. A role lens adds no sentences. The only exception

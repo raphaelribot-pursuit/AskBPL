@@ -3,11 +3,13 @@
 PRD ROLE-1 to ROLE-11. What this does, and the limits that matter:
 
 * A role is **self-selected and is not a security boundary** (ROLE-4). It must never gate access to a document.
-* ``normalize_role`` accepts anything. A missing, blank, wrongly typed or unrecognised value becomes the default role
-  (General) instead of an error (ROLE-11). It never raises.
+* ``resolve`` accepts anything. A missing, blank, wrongly typed or unrecognised value becomes the default role
+  instead of an error (ROLE-11). It never raises. The default is set in the file (Staff since patch 0028, a team working
+  choice, not a BPL decision), so a request that sends no role gets the default role's lens.
 * The role reaches **generation only**. Retrieval, the safety gates, the grounding threshold and the answer-or-refuse
   decision never read it (ROLE-2). ``ask_service`` passes it to ``generate_answer`` and to the question log, nowhere else.
-* The default role has no lens text, so the General prompt is byte-identical to the pre-0024 prompt.
+* Exactly one role is the *plain* role: no lens text and no addendum (General). Its prompt is byte-identical to the
+  pre-0024 prompt, so it is the baseline the evals compare against. The default role may be any role.
 * A lens may only ask the model to frame what the excerpts say. It must not invite invented duties (ROLE-3).
 * The supervisor addendum stays off until the file records who approved it and when (ROLE-7).
 * The role words live in ``config/roles.yaml`` so BPL can review them without code changes (ROLE-6).
@@ -68,6 +70,11 @@ class RoleSet:
         return self.by_key[self.default_key]
 
     @property
+    def plain(self) -> Role:
+        """The one role with no lens: the pre-role prompt, and the baseline for evals."""
+        return next(r for r in self.roles if not r.lens and not r.addendum.active)
+
+    @property
     def by_key(self) -> dict[str, Role]:
         return {r.key: r for r in self.roles}
 
@@ -80,13 +87,13 @@ class RoleSet:
         return self.default
 
 
-# The built-in set is used only if the file cannot be read: General, with no lens.
+# The built-in set is used only if the file cannot be read: General, with no lens (the pre-role behaviour).
 FALLBACK = RoleSet(roles=(Role(key="general", label="General"),), default_key="general")
 
 
 # ------------------------------------------------------------------------------------------------ prompt text
 def render_role_block(role: Role) -> str:
-    """Text added to the system prompt for a role. The default role adds nothing (empty string)."""
+    """Text added to the system prompt for a role. The plain role (General) adds nothing (empty string)."""
     if not role.lens.strip():
         return ""
     lens = " ".join(role.lens.split())
@@ -201,14 +208,15 @@ def parse_roles(data: Any) -> RoleSet:
     default_key = _text(data, "default_role", "file").casefold()
     if default_key not in seen:
         raise RolesError(f"default_role {default_key!r} is not one of the roles {sorted(seen)}")
+    plain = [r.key for r in roles if not r.lens]
+    if len(plain) != 1:
+        raise RolesError(
+            f"exactly one role must have no lens (the plain role whose answers match the pre-role behaviour); "
+            f"found {len(plain)}: {plain}"
+        )
     for r in roles:
-        if r.key == default_key and (r.lens or r.addendum.active):
-            raise RolesError(
-                f"the default role ({default_key}) must have no lens and no addendum, so its answers match "
-                "the pre-role behaviour"
-            )
-        if r.key != default_key and not r.lens:
-            raise RolesError(f"role {r.key}: a non-default role needs a lens")
+        if not r.lens and r.addendum.active:
+            raise RolesError(f"role {r.key}: the plain role (no lens) cannot have a supervisor addendum")
     return RoleSet(roles=tuple(roles), default_key=default_key)
 
 

@@ -6,6 +6,8 @@
  * so a stale or edited value here can never break a question.
  *
  * PROPOSED DEFAULTS pending BPL decision D-09 (role set, "Staff" vs "Frontline" label, default role).
+ * The default role is Staff: the team's working choice (patch 0028), not a BPL decision. It must match `default_role`
+ * in the server's config/roles.yaml; the server applies its own default when no role is sent.
  */
 
 export type RoleKey = 'general' | 'staff' | 'manager'
@@ -18,7 +20,7 @@ export const ROLE_OPTIONS: readonly RoleOption[] = [
   { key: 'manager', label: 'Manager' },
 ]
 
-export const DEFAULT_ROLE: RoleKey = 'general'
+export const DEFAULT_ROLE: RoleKey = 'staff'
 
 /** Wording for the control (ROLE-5): low-friction, not a security-role prompt. */
 export const ROLE_PROMPT_LABEL = 'Explain this for:'
@@ -50,5 +52,5 @@ export function storeRole(role: RoleKey): void {
 
 export function roleLabel(key: unknown): string {
   const k = normalizeRole(key)
-  return ROLE_OPTIONS.find((o) => o.key === k)?.label ?? 'General'
+  return ROLE_OPTIONS.find((o) => o.key === k)?.label ?? ROLE_OPTIONS[0].label
 }

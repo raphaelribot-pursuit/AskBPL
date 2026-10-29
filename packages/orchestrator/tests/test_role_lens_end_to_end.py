@@ -171,9 +171,26 @@ def test_missing_or_unrecognised_role_is_accepted_and_resolved_to_a_known_lens(r
     ):
         r = _ask(route, sent, include_role=sent is not None)
     assert r.status_code == 200, r.text  # never a 4xx for a bad role (ROLE-11)
-    expected = {"MANAGER ": "manager", "Staff": "staff"}.get(sent, "general")
+    expected = {"MANAGER ": "manager", "Staff": "staff"}.get(sent, "staff")  # anything else -> the default, Staff (0028)
     assert gen.call_args.kwargs["role"].key == expected
     assert r.json()["role"]["key"] == expected
+
+
+@pytest.mark.parametrize("route", ROUTES)
+def test_an_explicit_general_is_still_general_and_gets_no_lens(route, corpus) -> None:
+    """Only a request that names General gets the plain, lens-free prompt now that Staff is the default (0028)."""
+    gen = AsyncMock(return_value=("Ok.", False, [corpus.chunk_id], "{}"))
+    with (
+        patch.object(VectorRetriever, "query", new_callable=AsyncMock, return_value=[corpus]),
+        patch("ask_bpl_orchestrator.services.ask_service.generation.generate_answer", gen),
+    ):
+        r = _ask(route, "general")
+    assert r.status_code == 200, r.text
+    assert gen.call_args.kwargs["role"].key == "general"
+    assert r.json()["role"] == {"key": "general", "label": "General"}
+    from ask_bpl_orchestrator.services.generation import build_system_prompt
+
+    assert build_system_prompt(None, gen.call_args.kwargs["role"]) == build_system_prompt(None)
 
 
 @pytest.mark.parametrize("route", ROUTES)
@@ -187,7 +204,7 @@ def test_the_resolved_role_is_logged_on_the_question_row(route, corpus) -> None:
         for sent in ("manager", "staff", "nonsense"):
             r = _ask(route, sent)
             logged[sent] = _run(_logged_role(r.json()["request_id"]))
-    assert logged == {"manager": "manager", "staff": "staff", "nonsense": "general"}  # ROLE-8, the stored value is the resolved key
+    assert logged == {"manager": "manager", "staff": "staff", "nonsense": "staff"}  # ROLE-8, the stored value is the resolved key
 
 
 def test_the_role_is_logged_even_when_the_question_is_stopped_by_a_gate(corpus) -> None:

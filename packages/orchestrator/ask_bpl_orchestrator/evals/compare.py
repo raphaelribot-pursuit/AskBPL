@@ -47,7 +47,11 @@ def load_run(path: Path) -> Dict[str, Any]:
     if not isinstance(data, dict) or not isinstance(data.get("records"), dict) or not data["records"]:
         raise CompareError(f"{path} is not a recorded askbpl-eval run (no 'records')")
     meta = data.get("meta") if isinstance(data.get("meta"), dict) else {}
-    data["_label"] = str(meta.get("role") or "general")
+    role = meta.get("role")
+    label = str(role) if role else "general"  # a run recorded before patch 0024 sent no role and is General
+    if role and meta.get("role_sent") is False:
+        label += "-default"  # run with no --role: the server's default role was applied, nothing was requested
+    data["_label"] = label
     data["_path"] = str(path)
     return data
 

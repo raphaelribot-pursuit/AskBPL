@@ -54,11 +54,13 @@ def _role_meta(role: Optional[str]) -> Dict[str, Any]:
     """Which lens a run used. `system_prompt_sha256` covers only the base template, so the lens text is hashed apart."""
     from ask_bpl_orchestrator.services.roles import get_roles, render_role_block
 
-    if not role:
-        return {"role": None, "role_lens_sha256": None, "role_lens_label": None}
-    resolved = get_roles().resolve(role)
+    roles = get_roles()
+    # With no --role nothing is sent and the server applies its default role (Staff since patch 0028). The run records
+    # the role that was actually applied, and whether it was asked for, so a no-flag run is never mistaken for General.
+    resolved = roles.resolve(role) if role else roles.default
     block = render_role_block(resolved)
-    return {"role": resolved.key, "role_lens_label": resolved.label,
+    return {"role": resolved.key, "role_sent": bool(role), "default_role": roles.default_key,
+            "role_lens_label": resolved.label,
             "role_lens_sha256": hashlib.sha256(block.encode()).hexdigest()[:16] if block else None}
 
 
@@ -189,7 +191,7 @@ def _redirect_app_logs(out_dir: Path) -> Path:
 def _write(out_dir: Path, meta: Dict[str, Any], results: List[Dict[str, Any]], records, summary) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    role_part = f"_{meta['role']}" if meta.get("role") else ""
+    role_part = (f"_{meta['role']}" if meta.get("role_sent") else f"_default-{meta['role']}") if meta.get("role") else ""
     base = out_dir / f"eval_{stamp}_{meta.get('commit') or 'nocommit'}_{meta['mode']}{role_part}"
     base.with_suffix(".json").write_text(
         json.dumps({"meta": meta, "summary": summary, "results": results, "records": records}, indent=2, default=str),
@@ -211,7 +213,9 @@ def _write(out_dir: Path, meta: Dict[str, Any], results: List[Dict[str, Any]], r
 
 
 def _print_report(meta, results, summary, path: Path, app_log: Optional[Path] = None) -> None:
-    role_note = f", role {meta['role']}" if meta.get("role") else ""
+    role_note = ""
+    if meta.get("role"):
+        role_note = f", role {meta['role']}" if meta.get("role_sent") else f", role {meta['role']} (server default; no --role given)"
     print(f"\n== RESULTS ({meta['mode']}{role_note}, commit {meta['commit']}{'+dirty' if meta['working_tree_dirty'] else ''})")
     for r in results:
         flag = " (provisional)" if r["provisional"] and r["status"] == "PASS" else ""
@@ -300,7 +304,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     summary = summarize(results, records)
     meta = run_metadata(cases, mode=mode, env_label=a.env_label, repeat=repeat, role=None if a.replay else a.role)
     if a.replay:  # keep what the recorded run used; the roles file may have changed since
-        meta.update({k: recorded["meta"].get(k) for k in ("role", "role_lens_label", "role_lens_sha256")})
+        meta.update({k: recorded["meta"].get(k) for k in ("role", "role_sent", "default_role", "role_lens_label", "role_lens_sha256")})
     path = _write(Path(a.out_dir), meta, results, records, summary)
     _print_report(meta, results, summary, path, app_log)
     return 1 if any(r["status"] in {"FAIL", "ERROR"} for r in results) else 0

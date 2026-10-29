@@ -76,8 +76,11 @@ def test_metadata_records_the_lens_text_hash_that_the_prompt_hash_cannot_see() -
     staff = runner.run_metadata([], mode="live", env_label="t", repeat=1, role="staff")
     manager = runner.run_metadata([], mode="live", env_label="t", repeat=1, role="manager")
     general = runner.run_metadata([], mode="live", env_label="t", repeat=1, role="general")
-    assert plain["role"] is None and plain["role_lens_sha256"] is None
-    assert general["role"] == "general" and general["role_lens_sha256"] is None  # General has no lens text
+    # No --role: nothing is sent, the server applies its default (Staff, patch 0028), and the run says so.
+    assert plain["role"] == "staff" and plain["role_sent"] is False and plain["default_role"] == "staff"
+    assert plain["role_lens_sha256"] == staff["role_lens_sha256"] and staff["role_sent"] is True
+    assert general["role"] == "general" and general["role_sent"] is True
+    assert general["role_lens_sha256"] is None  # General has no lens text
     assert staff["role"] == "staff" and len(staff["role_lens_sha256"]) == 16
     assert staff["role_lens_sha256"] != manager["role_lens_sha256"]
     assert plain["system_prompt_sha256"] == staff["system_prompt_sha256"] == manager["system_prompt_sha256"]
@@ -85,7 +88,7 @@ def test_metadata_records_the_lens_text_hash_that_the_prompt_hash_cannot_see() -
 
 def test_replay_keeps_the_recorded_role_and_refuses_a_new_one(tmp_path: Path) -> None:
     f = tmp_path / "rec.json"
-    f.write_text(json.dumps({"meta": {"role": "staff", "role_lens_sha256": "abc", "role_lens_label": "Staff"},
+    f.write_text(json.dumps({"meta": {"role": "staff", "role_sent": True, "role_lens_sha256": "abc", "role_lens_label": "Staff"},
                              "records": {"REG-AL-02": [_with_role(answer_rec("New hires wait 90 days."), "staff")]}}),
                  encoding="utf-8")
     assert runner.main(["--replay", str(f), "--only", "REG-AL-02", "--out-dir", str(tmp_path)]) == 0
@@ -137,7 +140,7 @@ def test_live_run_sends_the_role_and_it_comes_back_on_every_answer() -> None:
              patch("ask_bpl_orchestrator.services.ask_service.generation.generate_answer", side_effect=fake_generate):
             records = asyncio.run(runner._run_live(cases, repeat=2, delay=0, role="manager"))
             no_role = asyncio.run(runner._run_live(cases, repeat=1, delay=0))
-        assert seen_roles == ["manager", "manager", "general"]
+        assert seen_roles == ["manager", "manager", "staff"]  # no role sent -> the server default, Staff
         recs = records["T-IN"]
         assert all(r["role_requested"] == "manager" and r["payload"]["role"]["key"] == "manager" for r in recs)
         assert aggregate_status(cases[0], recs) == "PASS"
@@ -272,3 +275,35 @@ def test_main_compare_exits_nonzero_on_a_role_echo_failure(tmp_path: Path) -> No
     data["results"][0]["failed_checks"] = ["role_echo"]
     s.write_text(json.dumps(data), encoding="utf-8")
     assert runner.main(["--compare", str(g), str(s), "--out-dir", str(tmp_path)]) == 1
+
+
+# ------------------------------------------------------------------------------- default-role runs (patch 0028)
+def test_a_run_with_no_role_flag_gets_a_default_file_name_and_an_explicit_role_does_not(tmp_path: Path) -> None:
+    no_flag = runner.run_metadata([], mode="live", env_label="t", repeat=1)
+    explicit = runner.run_metadata([], mode="live", env_label="t", repeat=1, role="staff")
+    general = runner.run_metadata([], mode="live", env_label="t", repeat=1, role="general")
+    names = {k: runner._write(tmp_path, m, [], {}, {}).name for k, m in (("no_flag", no_flag), ("staff", explicit), ("general", general))}
+    assert names["no_flag"].endswith("_live_default-staff")  # applied Staff, but nobody asked for it
+    assert names["staff"].endswith("_live_staff") and names["general"].endswith("_live_general")
+
+
+def test_replaying_a_file_recorded_before_role_lenses_stays_general_and_unnamed(tmp_path: Path) -> None:
+    f = tmp_path / "rec.json"
+    f.write_text(json.dumps({"meta": {}, "records": {"REG-AL-02": [answer_rec("New hires wait 90 days.")]}}), encoding="utf-8")
+    assert runner.main(["--replay", str(f), "--only", "REG-AL-02", "--out-dir", str(tmp_path)]) == 0
+    out = sorted(tmp_path.glob("eval_*_replay.json"))
+    assert len(out) == 1 and json.loads(out[0].read_text())["meta"]["role"] is None
+
+
+def test_compare_labels_a_no_flag_run_as_default_and_an_old_run_as_general(tmp_path: Path) -> None:
+    rec = {"T1": [answer_rec(BASE_TEXT)]}
+    old = _run_file(tmp_path, "old.json", None, rec)  # recorded before role lenses: General
+    default_run = tmp_path / "d.json"
+    default_run.write_text(json.dumps({"meta": {"role": "staff", "role_sent": False, "mode": "live"},
+                                       "results": [], "records": {"T1": [_answer(BASE_TEXT, "staff")]}}), encoding="utf-8")
+    explicit = _run_file(tmp_path, "s.json", "staff", {"T1": [_answer(BASE_TEXT, "staff")]})
+    assert load_run(old)["_label"] == "general"
+    assert load_run(default_run)["_label"] == "staff-default"
+    assert load_run(explicit)["_label"] == "staff"
+    res = compare_runs([load_run(old), load_run(default_run), load_run(explicit)])
+    assert res["labels"] == ["general", "staff-default", "staff"]
