@@ -3,7 +3,7 @@
 What these tests pin (docs/CORPUS_WAVES.md has the reasoning):
   * every wave manifest entry is a real file, byte-identical to the copy BPL supplied, and a row in the inventory
     workbook whose parse check passed and whose lifecycle can still answer;
-  * the nine documents the team chose to HOLD back are in no wave manifest and have no file in any wave folder;
+  * the eleven documents the team chose to HOLD back are in no wave manifest and have no file in any wave folder;
   * each manifest `policy` slug exists in routing_seed.yaml with at least one proposed rule that names an existing team
     (no team is invented, RTG-4);
   * the workbook is either before or after a wave's hand edit, never half of it, and the held rows are never marked
@@ -46,6 +46,8 @@ HELD = {
     "SRC-29": "supporting guidance for an unsettled policy (OD-02)",
     "SRC-30": "draft marked 'Issued: June 2026 (TBD)' (OD-02)",
     "SRC-15": "named as superseded by SRC-11, Promotional and Marketing Materials (2020) (ING-12)",
+    "SRC-12": "named individual's work email and phone (PII); held until BPL decides (team decision 2026-10-31)",
+    "SRC-19": "named individuals' work emails and phones (PII); held until BPL decides (team decision 2026-10-31)",
 }
 
 # manifest file -> {file name: (source id, sha-256 of the supplied copy)}
@@ -58,6 +60,11 @@ WAVES = {
         "09 - Dress Code Policy (06.06).pdf": ("SRC-17", "28bd212c4059070ee6951563a34917326202b697dad2c9e5c09b20447c8f4def"),
         "12 - Custodianship of Library Materials (02.08) (1).pdf": ("SRC-21", "931182924461e3f235fa458746d5d237b7b6ba95b9f5ee2705cd92a50a5438fa"),
         "26 - Social Media Policy (03.22) (1).pdf": ("SRC-27", "6b5d499c276e6a51410da49fc8d02f0ea68dba6bde5c3e9e02e5a1930d887a12"),
+    },
+    "corpus_manifest_wave2.yaml": {
+        "10 - Whistle Blowers Protection-09.2006 (1).pdf": ("SRC-18", "028d2537e9c1e77add4fb02488dc67a5aabdb11b218b117d531e0709071b35b9"),
+        "14 - Progressive Discipline Policy (06.06).pdf": ("SRC-24", "b7cfa95e615ee7483976ff58814c4a9c060f6d85a9b189c4eeca311f47e1f592"),
+        "25 - Family and Medical Leave Act  (06.06).pdf": ("SRC-26", "7333af79f8759b80ddaf1b39902de3573a3dcc8ecb7700c5be9e47e8fe79114c"),
     },
 }
 
@@ -137,8 +144,8 @@ def test_wave_held_and_pilot_sets_are_disjoint_and_cover_the_inventory_exactly()
     excluded = {sid for sid, r in inv.items() if r.eligibility == Eligibility.excluded}
     assert excluded == {"SRC-28"}  # the test script is not a policy
     unplaced = set(inv) - PILOT - waves - held - excluded
-    # Documents not yet in a wave (waves not built yet) are the only ones allowed to be unplaced.
-    assert unplaced == {"SRC-12", "SRC-18", "SRC-19", "SRC-24", "SRC-26"} - waves
+    # With both waves built, every one of the 30 files has a disposition: nothing is left unplaced.
+    assert unplaced == set()
 
 
 def test_the_workbook_is_never_half_edited_and_held_rows_are_never_members() -> None:
@@ -233,3 +240,39 @@ async def test_batch_ingest_accepts_every_wave_entry_with_its_row_once_the_workb
     assert got == {name: sid for name, (sid, _) in WAVES[manifest_name].items()}
     assert all(c["inventory_row"].test_index_member for c in calls)
     assert all(c["validated_extraction"] is None for c in calls)
+
+
+# Public institutional numbers that may appear in an ingestable document. Anything else that looks like an email address
+# or phone number blocks the document: named individuals' contact details are not sent to outside services until BPL
+# decides (team decision 2026-10-31; SRC-12 and SRC-19 are held for this reason).
+PUBLIC_CONTACTS = {
+    "800-342-3720": "New York State Child Abuse Hotline (SRC-06, Policy on Unattended Children)",
+}
+_EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_PHONE = re.compile(r"\(?\b\d{3}\)?[-. ]\d{3}[-. ]\d{4}\b")
+
+
+def _contacts(text: str) -> set[str]:
+    found = set(_EMAIL.findall(text))
+    found |= {re.sub(r"[^\d]", "", m)[-10:] for m in _PHONE.findall(text)}
+    return found
+
+
+def test_no_document_in_any_manifest_carries_a_personal_email_or_phone_number() -> None:
+    import pypdf
+
+    allowed = {re.sub(r"[^\d]", "", n)[-10:] for n in PUBLIC_CONTACTS}
+    for manifest in sorted(CORPUS.glob("corpus_manifest*.yaml")):
+        m = yaml.safe_load(manifest.read_text())
+        for d in m.get("documents", []):
+            path = CORPUS / m["corpus_root"] / d["path"]
+            if path.suffix.lower() != ".pdf" or not path.exists():
+                continue
+            text = " ".join((p.extract_text() or "") for p in pypdf.PdfReader(str(path)).pages)
+            assert not (_contacts(text) - allowed), f"{manifest.name}: {d['path']} contains contact details {_contacts(text) - allowed}"
+
+
+def test_the_contact_guard_catches_the_held_documents_details() -> None:
+    assert _contacts("Resources Department: 5-HR; someone@bklynlibrary.org; 718-230-2155.") == {"someone@bklynlibrary.org", "7182302155"}
+    assert _contacts("please call 929-276-4232 or email x@bkynlibrary.org") == {"9292764232", "x@bkynlibrary.org"}
+    assert _contacts("report to the New York State Child Abuse Hotline (800-342-3720)") == {"8003423720"}

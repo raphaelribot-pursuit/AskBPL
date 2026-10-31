@@ -82,6 +82,19 @@ policy_types:
     display_name: Social Media Use Policy
     description: Staff use of social platforms for BPL and personal accounts.
 
+  # Wave 2 (patch 0029a): proposed, unapproved. HR rules follow where the document itself names HR.
+  - slug: whistleblower
+    display_name: Whistle-Blower Protection Policy
+    description: Reporting suspected fraud, ethics or compliance violations without retaliation.
+
+  - slug: progressive_discipline
+    display_name: Progressive Discipline Policy
+    description: HR14. How discipline escalates; union and non-union staff are handled differently.
+
+  - slug: fmla
+    display_name: Family and Medical Leave Act Policy
+    description: HR25. Federal family and medical leave as the 2006 policy describes it.
+
 teams:
   - name: Supervisor / General
     contact_hint: Ask your supervisor or intranet Policies portal.
@@ -197,3 +210,13 @@ routing_rules:
 
   - policy_type_slug: social_media
     team_key: SUPERVISOR
+
+  # Wave 2 (patch 0029a): proposed, unapproved until BPL says otherwise.
+  - policy_type_slug: whistleblower
+    team_key: HR
+
+  - policy_type_slug: progressive_discipline
+    team_key: HR
+
+  - policy_type_slug: fmla
+    team_key: HR

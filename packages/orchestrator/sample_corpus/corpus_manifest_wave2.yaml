@@ -1,0 +1,29 @@
+# Wave 2 of the 21 documents that were received but not yet evaluated (patch 0029a). Source: docs/CORPUS_WAVES.md.
+#
+# STATUS: marked TEST INDEX members only. Nothing here is BPL-confirmed (OD-01). These three need more care than wave 1:
+# HR and legal subject matter (labor agreements, legal entitlements). Ingest them only after wave 1 has been evaluated
+# (one change per run). SRC-12 and SRC-19 are HELD (named individuals' contact details; see docs/CORPUS_WAVES.md).
+#
+# Run (from packages/orchestrator):  askbpl-ingest-batch --manifest sample_corpus/corpus_manifest_wave2.yaml
+corpus_root: wave2
+default_version: pilot-2026-10
+
+documents:
+  # SRC-18. Issued September 2006, updated October 2009. Reports go to the HR Employee Relations Manager.
+  - path: "10 - Whistle Blowers Protection-09.2006 (1).pdf"
+    policy: whistleblower
+    title: Whistle-Blower Protection Policy
+    version: "2009-10"
+
+  # SRC-24. HR14, issued October 2006, effective June 2006. Separates union and non-union staff; the union contract is not in the corpus.
+  - path: "14 - Progressive Discipline Policy (06.06).pdf"
+    policy: progressive_discipline
+    title: Progressive Discipline Policy
+    version: "2006-06"
+
+  # SRC-26. HR25, issued October 2006, effective June 2006. A legal entitlement from 2006: never compute current entitlements from it.
+  # NOTE: the file name has two spaces before "(06.06)". Keep them.
+  - path: "25 - Family and Medical Leave Act  (06.06).pdf"
+    policy: fmla
+    title: Family and Medical Leave Act Policy
+    version: "2006-06"
