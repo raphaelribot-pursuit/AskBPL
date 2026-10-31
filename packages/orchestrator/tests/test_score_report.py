@@ -183,13 +183,13 @@ def test_classification_table(expect: str, outcome: str, kind: str) -> None:
 # ----------------------------------------------------------------------------- the summary
 def _scenario(tmp_path: Path):
     """ROB-ST-01 (answer expected) refused at 0.4023 twice; BPL-CI-05 and BPL-UC-05 (refusal expected) stopped at the gate;
-    ROB-LD-01 answered; ROB-UI-01 refused later by the model; ROB-MS-01 ('either') ignored."""
+    ROB-LD-01 answered; BPL-VM-05 refused later by the model; ROB-MS-01 ('either') ignored."""
     records = {
         "ROB-ST-01": [refusal_rec("a1"), refusal_rec("a2")],
         "BPL-CI-05": [refusal_rec("b1")],
         "BPL-UC-05": [refusal_rec("b2")],
         "ROB-LD-01": [answer_rec("c1")],
-        "ROB-UI-01": [refusal_rec("d1")],
+        "BPL-VM-05": [refusal_rec("d1")],
         "ROB-MS-01": [refusal_rec("e1")],
         "ROB-LD-02": [refusal_rec("f1")],  # answer expected, but the MODEL refused after the gate let it through
     }
@@ -220,7 +220,7 @@ def test_only_gate_stopped_refusals_form_the_protected_group(tmp_path: Path) -> 
     text = sr.render(rows, 0.40, 0.45)
     import re
 
-    assert re.search(r"refused at the gate, refusal expected\s+n=2\b", text)  # BPL-CI-05 and BPL-UC-05, not ROB-UI-01
+    assert re.search(r"refused at the gate, refusal expected\s+n=2\b", text)  # BPL-CI-05 and BPL-UC-05, not BPL-VM-05
     assert "refused later (model/citation), refusal expected: 1 run(s)" in text
     assert "ROB-MS-01" not in text.split("-- Best score")[1]  # 'either' takes no part
 

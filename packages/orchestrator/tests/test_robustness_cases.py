@@ -44,6 +44,9 @@ SOURCE_PDF = {
     "SRC-17": "wave1/09 - Dress Code Policy (06.06).pdf",
     "SRC-21": "wave1/12 - Custodianship of Library Materials (02.08) (1).pdf",
     "SRC-27": "wave1/26 - Social Media Policy (03.22) (1).pdf",
+    "SRC-18": "wave2/10 - Whistle Blowers Protection-09.2006 (1).pdf",
+    "SRC-24": "wave2/14 - Progressive Discipline Policy (06.06).pdf",
+    "SRC-26": "wave2/25 - Family and Medical Leave Act  (06.06).pdf",
 }
 # GRD-12 names these categories (PRD v1.2). Every one needs at least one probe.
 GRD12_CATEGORIES = {
@@ -54,8 +57,10 @@ GRD12_CATEGORIES = {
 
 # --------------------------------------------------------------------------- the fixture
 def test_robustness_cases_load_and_are_team_created() -> None:
-    assert len(ROB) == 29  # 22 from patch 0017, ROB-UI-05 and ROB-W1-01 to 06 for wave 1 (ROB-UI-02 now covers SRC-17)
-    assert len({c.test_id for c in ROB}) == 29
+    # 22 from patch 0017; ROB-UI-05 and ROB-W1-01 to 06 for wave 1 (ROB-UI-02 now covers SRC-17); ROB-W2-01 and 02 for
+    # wave 2 (ROB-UI-01 and ROB-UI-03 now cover SRC-26 and SRC-24).
+    assert len(ROB) == 31
+    assert len({c.test_id for c in ROB}) == 31
     assert all(c.test_id.startswith("ROB-") and c.cls == "REG" for c in ROB)
     assert all(c.reference_status != "BPL_APPROVED" for c in ROB)  # no approved answer key exists
     assert GRD12_CATEGORIES <= {c.group for c in ROB}
@@ -266,8 +271,6 @@ def test_guards_accept_honest_paraphrased_answers(test_id: str, text: str) -> No
     ("ROB-MS-03", "After 5 unexcused absences a volunteer is dismissed."),
     ("ROB-TH-01", "Yes, a $50,000 proposal requires Board approval."),
     ("ROB-TH-01", "It needs the Board approval and Finance sign-off."),
-    ("ROB-UI-01", "The policy gives you 12 weeks of unpaid leave."),
-    ("ROB-UI-01", "You get twelve workweeks."),
     ("ROB-UI-04", "Customers must be courteous and respectful toward others."),
     ("ROB-AC-01", "M&C stands for Marketing and Communications and clears print materials."),
     ("ROB-AC-01", "Marketing & Communication must clear it."),
@@ -357,3 +360,43 @@ def test_the_mileage_probe_does_not_punish_an_honest_limitation(honest: str) -> 
 def test_wave_1_guards_accept_honest_answers(test_id: str, text: str) -> None:
     have, forbidden = _hits(test_id, text)
     assert have and not forbidden, (test_id, text)
+
+
+# --------------------------------------------------------------------------- wave 2 coverage (patch 0029a-r3)
+WAVE2 = {"SRC-18", "SRC-24", "SRC-26"}
+
+
+def test_every_wave_2_document_has_a_coverage_case_that_must_cite_it() -> None:
+    cover = [c for c in ROB if c.group == "Wave 2 coverage"]
+    assert sorted(c.source_id for c in cover) == sorted(WAVE2)
+    for c in cover:
+        assert c.expect == "answer" and c.must_cite_source == (c.source_id,), c.test_id
+        assert c.reference_evidence and c.reference_status == "ENGINEER_PREPARED_PENDING_BPL", c.test_id
+
+
+def test_the_fmla_and_discipline_probes_now_expect_answers_and_no_longer_forbid_the_policy_figure() -> None:
+    assert BY_ID["ROB-UI-01"].must_cite_source == ("SRC-26",) and not BY_ID["ROB-UI-01"].must_not_include
+    assert BY_ID["ROB-UI-03"].must_cite_source == ("SRC-24",)
+    assert {c.test_id for c in ROB if c.group == "Not indexed"} == {"ROB-UI-04", "ROB-UI-05"}
+
+
+@pytest.mark.parametrize("test_id,text", [
+    ("ROB-UI-01", "FMLA gives eligible employees up to 12 workweeks of unpaid leave in a 12-month period."),
+    ("ROB-UI-01", "You can take up to twelve weeks."),
+    ("ROB-UI-03", "Oral warning, written warning, suspension without pay, and termination."),
+    ("ROB-W2-01", "Yes. An employee who reports in good faith is protected from harassment or dismissal for it."),
+    ("ROB-W2-02", "Union employees follow the Collective Bargaining Agreement as well as BPL policies; see the Union Contract."),
+    ("ROB-W2-02", "For the union steps, the policy refers you to the union contract."),
+])
+def test_wave_2_guards_accept_honest_answers(test_id: str, text: str) -> None:
+    have, forbidden = _hits(test_id, text)
+    assert have and not forbidden, (test_id, text)
+
+
+@pytest.mark.parametrize("test_id,incomplete", [
+    ("ROB-W2-02", "The four steps are oral warning, written warning, suspension without pay, and termination."),
+    ("ROB-UI-03", "Talk to HR about the process."),
+    ("ROB-UI-03", "It starts with an oral warning from your supervisor."),  # one step is not the process
+])
+def test_wave_2_guards_reject_incomplete_answers(test_id: str, incomplete: str) -> None:
+    assert not _hits(test_id, incomplete)[0], (test_id, incomplete)
