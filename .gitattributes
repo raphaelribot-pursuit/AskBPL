@@ -1,0 +1,11 @@
+# Files whose exact bytes are checked by SHA-256 must never have their line endings converted on checkout
+# (Git for Windows defaults to core.autocrlf=true, which turns LF into CRLF and breaks the check):
+#   - extraction_reviews/: a validation record fixes the hash of validated_text.md (docs/EXTRACTION_REVIEW.md);
+#   - sample_corpus/: an Eligible approval fixes the hash of the reviewed file (patch 0023, recipe G).
+# tests/test_setup_guards.py checks these rules.
+packages/orchestrator/extraction_reviews/** -text
+packages/orchestrator/sample_corpus/** -text
+
+*.pdf binary
+*.docx binary
+*.xlsx binary

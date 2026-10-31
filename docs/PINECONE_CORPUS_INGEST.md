@@ -32,6 +32,19 @@ PII must **never** be pasted into corpus files for ingestion; the **input gate**
    - Default orchestrator setting: `OPENAI_EMBEDDING_MODEL=text-embedding-3-small` (`packages/orchestrator/ask_bpl_orchestrator/config.py`).
    - OpenAI’s **`text-embedding-3-small`** returns **1536** dimensions with default API parameters (what this codebase uses).
    - Create the Pinecone index with **dimension = 1536** and metric **`cosine`** (standard for normalized embedding similarity).
+   - It must be a **plain dense vector index**: **no integrated embedding model and no document schema** (no text fields).
+     Ingest writes through the vectors API (`index.upsert(vectors=...)`, `ingest/service.py`), and Pinecone rejects those
+     writes to a document-schema index with HTTP 400 ("This index has a document schema..."). In the console choose custom
+     settings; in code use `create_index` without a `schema`, for example (pinecone 10):
+
+     ```python
+     from pinecone import Pinecone, ServerlessSpec
+     pc = Pinecone(api_key="...")
+     pc.create_index(name="askbpl-pilot", dimension=1536, metric="cosine", vector_type="dense",
+                     spec=ServerlessSpec(cloud="aws", region="us-east-1"))
+     ```
+
+     `describe_index` on a correct index shows `embed=None` and a schema with only `_values` and `_sparse_values`.
 
 3. **Serverless / host**
 
@@ -168,6 +181,7 @@ Effects: old document marked superseded, **old chunk vectors deleted** from Pine
 | `Policy X missing — run routing seed` | `askbpl-seed` not run, or typo in `--policy`. |
 | `Corpus root must be parent of target path` | `--corpus-root` not an ancestor of `--path`. |
 | Pinecone dimension mismatch | Index dimension ≠ embedding model output (fix index or model). |
+| `[400] This index has a document schema, so writes must go through the documents API` | The index was created with a document schema. Recreate it as a plain dense index (section 2); a client upgrade does not help. |
 | Ingest marks `failed`, 0 vectors | Loader threw (corrupt PDF, bad path); see Postgres `Document.ingest_status` and logs. |
 | Ask returns no citations | No / low retrieval: missing Pinecone key, wrong index/host, or threshold `GROUNDING_THRESHOLD` too high vs scores. |
 
