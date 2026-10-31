@@ -50,6 +50,38 @@ policy_types:
     display_name: Technology Usage Policy
     description: HR12 — covers staff acceptable use of computers, email, internet, voicemail.
 
+  # Wave 1 of the 21 unevaluated documents (patch 0029, docs/CORPUS_WAVES.md). Slugs and routing are PROPOSED, not approved:
+  # `askbpl-seed` stores every rule as unapproved (SEED_AUTO_APPROVE_ROUTING=0), and an unapproved rule is never shown,
+  # so staff get the neutral supervisor referral until BPL approves a team (RTG-3, RTG-4, RTG-7). No team was invented:
+  # each rule uses a team that already exists in this file. Where the policy names no existing team, SUPERVISOR is used.
+  - slug: policy_management
+    display_name: Policy for Policy Management
+    description: How BPL policies are drafted, approved, issued and reviewed (April 2026).
+
+  - slug: collection_maintenance
+    display_name: Collection Maintenance Procedures
+    description: Evaluating, replacing and withdrawing circulating materials (updated January 2026).
+
+  - slug: internal_communications
+    display_name: Internal Communications Policy
+    description: Staff tools and norms for email, chat, video and other internal communication.
+
+  - slug: promotional_marketing
+    display_name: Promotional and Marketing Materials Policy
+    description: How printed and electronic promotional materials are requested and produced.
+
+  - slug: dress_code
+    display_name: Dress Code Policy
+    description: HR09. Workplace dress expectations for staff.
+
+  - slug: custodianship
+    display_name: Custodianship of Library Materials Policy
+    description: Staff responsibility for safeguarding library materials and using the library system.
+
+  - slug: social_media
+    display_name: Social Media Use Policy
+    description: Staff use of social platforms for BPL and personal accounts.
+
 teams:
   - name: Supervisor / General
     contact_hint: Ask your supervisor or intranet Policies portal.
@@ -143,3 +175,25 @@ routing_rules:
 
   - policy_type_slug: technology_usage_policy
     team_key: IT
+
+  # Wave 1 (patch 0029): proposed, unapproved until BPL says otherwise.
+  - policy_type_slug: policy_management
+    team_key: SUPERVISOR
+
+  - policy_type_slug: collection_maintenance
+    team_key: SUPERVISOR
+
+  - policy_type_slug: internal_communications
+    team_key: SUPERVISOR
+
+  - policy_type_slug: promotional_marketing
+    team_key: SUPERVISOR
+
+  - policy_type_slug: dress_code
+    team_key: HR
+
+  - policy_type_slug: custodianship
+    team_key: SUPERVISOR
+
+  - policy_type_slug: social_media
+    team_key: SUPERVISOR

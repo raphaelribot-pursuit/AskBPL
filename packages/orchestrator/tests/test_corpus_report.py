@@ -100,7 +100,9 @@ def test_shipped_inventory_buckets_add_up_and_nothing_is_double_counted() -> Non
     assert c["Excluded from the corpus"] == "1"
     assert c["Superseded"] == "0"
     assert c["those five lines add up to received"] == "30"
-    assert c["Marked as test-index members by the workbook"] == "8"
+    # 8 pilot documents; 15 once the curator has marked wave 1 (patch 0029); 20 once wave 2 is marked (0029a).
+    # Which rows may be marked is pinned in tests/test_corpus_waves.py.
+    assert c["Marked as test-index members by the workbook"] in {"8", "15", "20"}
     assert c["BPL documents (not evaluation material)"] == "29"
     assert rep.disagreements == []  # the shipped workbook agrees with itself
 

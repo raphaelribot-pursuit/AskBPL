@@ -84,7 +84,10 @@ def test_shipped_inventory_counts_match_workbook() -> None:
     assert sum(r.eligibility == Eligibility.excluded for r in by) == 1
     assert sum(r.eligibility == Eligibility.blocked for r in by) == 0  # SRC-13 was activated 2026-10-25 (DEC-15)
     assert sum(r.eligibility == Eligibility.authority_pending for r in by) == 29
-    assert sum(r.test_index_member for r in by) == 8  # all 8 pilot PDFs, including the validated COI scan
+    # All 8 pilot PDFs, including the validated COI scan. Later waves (patch 0029 on, tests/test_corpus_waves.py) add
+    # members when the curator marks them, so only the original eight are pinned here.
+    pilot_ids = {"SRC-03", "SRC-05", "SRC-06", "SRC-10", "SRC-13", "SRC-14", "SRC-16", "SRC-22"}
+    assert {r.source_id for r in by if r.test_index_member} >= pilot_ids
     coi = next(r for r in by if r.source_id == "SRC-13")
     assert coi.eligibility == Eligibility.authority_pending and coi.test_index_member  # answers only as a marked test-index document
 

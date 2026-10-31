@@ -1,0 +1,55 @@
+# Wave 1 of the 21 documents that were received but not yet evaluated (patch 0029). Source: docs/CORPUS_WAVES.md.
+#
+# STATUS: marked TEST INDEX members only. Nothing here is BPL-confirmed (OD-01). Each file is also a row in the
+# inventory workbook; the workbook, not this file, decides whether it may answer (ING-2). Ingesting this manifest
+# does nothing until the seven rows below say "In current pilot index = Yes" and `askbpl-apply-inventory` has run.
+#
+# Run (from packages/orchestrator):  askbpl-ingest-batch --manifest sample_corpus/corpus_manifest_wave1.yaml
+# Always ingest through a manifest so the stored paths (and therefore the document ids) stay consistent.
+#
+# Source IDs are for the reader of this file; the loader matches on the file name.
+corpus_root: wave1
+default_version: pilot-2026-10
+
+documents:
+  # SRC-02. April 2026. Two-column layout: some words are split across lines by the extractor (check the viewer text).
+  - path: "01 - Policy for Policy Management.pdf"
+    policy: policy_management
+    title: Policy for Policy Management
+    version: "2026-04"
+
+  # SRC-08. "Updated January 2026". A procedure, not a policy (ING-10). Cites outside documents that are not in the corpus.
+  - path: "02d - Collection Maintenance Procedures (updated 2026).pdf"
+    policy: collection_maintenance
+    title: Collection Maintenance Procedures
+    version: "2026-01"
+
+  # SRC-09. Effective 2024-10-07.
+  - path: "03 - Internal Communications Policy and Norms (10.24) (2).pdf"
+    policy: internal_communications
+    title: Internal Communications Policy
+    version: "2024-10-07"
+
+  # SRC-11. Effective 2020-05-26.
+  - path: "04 - Promotional and Marketing Materials (05.20) (1).pdf"
+    policy: promotional_marketing
+    title: Promotional and Marketing Materials Policy
+    version: "2020-05-26"
+
+  # SRC-17. HR09; issued October 2006, effective June 2006.
+  - path: "09 - Dress Code Policy (06.06).pdf"
+    policy: dress_code
+    title: Dress Code Policy
+    version: "2006-06"
+
+  # SRC-21. Issued 2008-02-29.
+  - path: "12 - Custodianship of Library Materials (02.08) (1).pdf"
+    policy: custodianship
+    title: Custodianship of Library Materials Policy
+    version: "2008-02-29"
+
+  # SRC-27. Revised 2022-03-07.
+  - path: "26 - Social Media Policy (03.22) (1).pdf"
+    policy: social_media
+    title: Social Media Use Policy
+    version: "2022-03-07"
