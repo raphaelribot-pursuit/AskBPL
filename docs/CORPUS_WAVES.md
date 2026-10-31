@@ -1,12 +1,12 @@
 # Corpus waves: bringing the 21 unevaluated documents into the marked test index
 
-Patch 0029 (wave 1) and 0029a (wave 2). PRD: ING-1, ING-2, ING-3, ING-6, ING-9, ING-10, OD-01, OD-02, OD-03, OD-11.
+Patch 0029 (wave 1) and 0029a (wave 2; apply it only after wave 1 has been evaluated). PRD: ING-1, ING-2, ING-3, ING-6, ING-9, ING-10, OD-01, OD-02, OD-03, OD-11.
 
 **What this is.** Of the 30 files BPL supplied, 8 were in the pilot index and 1 (SRC-28) is the test script. The other
-**21** had never been evaluated for inclusion. On 2026-10-31 the team evaluated each one and decided: **12 go into the
-marked test index in two waves; 9 are held back.** This page records who is where and why, and the exact steps.
+**21** had never been evaluated for inclusion. On 2026-10-31 the team evaluated each one and decided: **10 go into the
+marked test index in two waves; 11 are held back.** This page records who is where and why, and the exact steps.
 
-**What this is not.** Nothing here makes a document BPL-confirmed. Every one of the 12 enters as *Authority pending,
+**What this is not.** Nothing here makes a document BPL-confirmed. Every one of the 10 enters as *Authority pending,
 test index* (OD-11): answerable only while `ALLOW_TEST_INDEX=true`, and labelled to staff as not yet confirmed by BPL.
 Placement in a wave is a team decision, not a BPL decision. OD-01 (who confirms authority) is still open.
 
@@ -16,8 +16,8 @@ Placement in a wave is a team decision, not a BPL decision. OD-01 (who confirms 
 |---|---|---|
 | Pilot index (before the waves) | SRC-03, 05, 06, 10, 13, 14, 16, 22 | 8 |
 | **Wave 1** (patch 0029) | SRC-02, 08, 09, 11, 17, 21, 27 | 7 |
-| **Wave 2** (patch 0029a) | SRC-12, 18, 19, 24, 26 | 5 |
-| **Held** | SRC-01, 04, 07, 15, 20, 23, 25, 29, 30 | 9 |
+| **Wave 2** (patch 0029a) | SRC-18, 24, 26 | 3 |
+| **Held** | SRC-01, 04, 07, 12, 15, 19, 20, 23, 25, 29, 30 | 11 |
 | Excluded (test script) | SRC-28 | 1 |
 
 ## 2. How each of the 21 was evaluated
@@ -35,11 +35,9 @@ and none has a thin page that matters.** Extraction quality did not decide any d
 | SRC-17 | Dress Code (HR09) | Jun 2006 | All staff | clean; 5 | **Wave 1** | Routed to HR (an HR policy number). Has the typo "Orhganization". |
 | SRC-21 | Custodianship of Library Materials | Feb 2008 | All staff | clean; 5 | **Wave 1** | Mentions the Millennium system; check it is still the system in use. |
 | SRC-27 | Social Media Use | Mar 2022 | All staff | clean; 17 (all with headings) | **Wave 1** | Largest document. Two-column layout reads correctly. |
-| SRC-12 | Anti-Harassment (HR08) | Oct 2018 | All employees, volunteers, vendors, visitors | clean; U+F0A7 bullets | **Wave 2** | HR/legal authority. Contains a named HR contact (email and phone) and a compliance hotline number that may be stale. |
 | SRC-18 | Whistle-Blower Protection | Sep 2006, upd. Oct 2009 | Trustees, officers, all employees | clean | **Wave 2** | Legal/HR. Reports go to the HR Employee Relations Manager (routed to HR). |
 | SRC-24 | Progressive Discipline (HR14) | Jun 2006 | All staff | clean; 3 pages | **Wave 2** | Splits union and non-union staff and points to the union contract, which is not in the corpus. |
 | SRC-26 | Family and Medical Leave Act (HR25) | Jun 2006 | All employees | clean | **Wave 2** | A legal entitlement from 2006. PRD 19.4: never calculate current entitlements from outdated sources. |
-| SRC-19 | Photography, Filming and Videography | Mar 2024 | **All visitors** | clean | **Wave 2** | Written for visitors, not staff (PRD 19.4: keep audiences distinct). Contains named individuals' emails and phone numbers; one email domain looks misspelled ("bkynlibrary.org"). |
 | SRC-01 | Emergency Response Procedure | Oct 2002 | All staff | clean | **Held** | See section 3. |
 | SRC-07 | Emergency System-wide Closing | Oct 2002 | All staff | clean | **Held** | See section 3. |
 | SRC-23 | Crisis Management Policy | Sep 2008 | All staff, volunteers | clean; 1 thin page | **Held** | See section 3. |
@@ -49,12 +47,15 @@ and none has a thin page that matters.** Extraction quality did not decide any d
 | SRC-29 | Guidelines for Public Behavior Violations | 2025 | Staff, about patrons | clean | **Held** | Supporting guidance that "cannot override" the policy (PRD 19.4), and the policy it supports is unsettled (OD-02). |
 | SRC-30 | Public Behavior in the Library Policy | "Issued: June 2026 (TBD)" | Patrons | clean (.docx) | **Held** | Filename says "updated Jan-26"; the text says "June 2026 (TBD)". OD-02 is open. |
 | SRC-15 | Media Relations and Publicity | Oct 2018 | All staff | clean; 5 | **Held** | SRC-11 (Promotional and Marketing Materials, revised 05/26/2020) lists "Media Relations Policy (I. #07)" under *Supersedes policy #*. SRC-15 is numbered I. Organization 7 and is older. ING-12: block and ask BPL. |
+| SRC-12 | Anti-Harassment (HR08) | Oct 2018 | All employees, volunteers, vendors, visitors | clean; U+F0A7 bullets | **Held** | HR/legal authority. Contains a named HR contact (email and phone) and a compliance hotline number that may be stale. **Held 2026-10-31 (team): PII cannot be sent to outside services until BPL decides.** |
+| SRC-19 | Photography, Filming and Videography | Mar 2024 | **All visitors** | clean | **Held** | Written for visitors, not staff (PRD 19.4: keep audiences distinct). Contains named individuals' emails and phone numbers; one email domain looks misspelled ("bkynlibrary.org"). **Held 2026-10-31 (team): PII cannot be sent to outside services until BPL decides.** |
 
 \* Chunk counts are from `askbpl-provenance-report --stand-in-tokenizer`, so they are approximate. Wave 1 expects about
-61 chunks in total (3 + 12 + 11 + 8 + 5 + 5 + 17). The real count after ingest may differ a little. Compare
+61 chunks in total (3 + 12 + 11 + 8 + 5 + 5 + 17). The real count after ingest may differ a little. Wave 2 expects about 27 (6 + 9 + 12).
+Compare
 `askbpl-corpus-report`, not this table, once it has run.
 
-## 3. Why nine are held
+## 3. Why eleven are held
 
 * **Emergency and crisis documents (SRC-01, 07, 23).** The cost of a wrong answer is highest here, because staff would
   act on it in an emergency. SRC-01 lists 2002 numbers, including a gas utility under a name that I believe no longer
@@ -64,6 +65,10 @@ and none has a thin page that matters.** Extraction quality did not decide any d
   but a person looking for an emergency number will not weigh it.
 * **A stale figure (SRC-04) and an undated document (SRC-25).** Both are the failure modes PRD 19.3 and ING-6 name.
 * **Not policies, or not settled (SRC-20, 29, 30).** A design deck, supporting guidance, and a draft. OD-02.
+* **Named individuals' contact details (SRC-12, SRC-19).** SRC-12 gives a named HR employee's work email and phone;
+  SRC-19 gives two named individuals' emails and phones (one email domain is misspelled). Ingesting sends the text to
+  OpenAI and Pinecone, and answers could quote it. Team decision (2026-10-31): PII is not sent to outside services;
+  both are held until BPL decides (remove or redact the contacts, confirm they are current, or approve processing).
 * **Named as superseded (SRC-15).** SRC-11 (revised 05/26/2020, wave 1) lists "Media Relations Policy (I. #07)" under
   *Supersedes policy #*; SRC-15 is "I. Organization 7", dated October 2018. With both in the index, media questions
   could be answered from the replaced text. ING-12: block the conflict and ask BPL whether SRC-15 is still in force.
@@ -128,6 +133,33 @@ All commands run from `packages/orchestrator` with the virtual environment activ
 8. **Read the first answers.** Open each new document in the citation viewer once. See section 6.
 9. Record the date, commit, counts and run file names in the baseline record, and the decision (section 7) in the log.
 
+## 4a. Wave 2: exact steps (patch 0029a)
+
+Do this only after wave 1 has been ingested, evaluated and read (section 4). One change per run.
+
+1. **Baseline** is the "after" run from wave 1: `askbpl-corpus-report --strict` (expect 15 answerable) and the two
+   `askbpl-eval ... --repeat 3` runs. Keep the file names.
+2. **Apply** `0029a-wave2-corpus-and-routing.patch` on its own branch from `main` (it needs 0029 already merged),
+   then `askbpl-seed`. Routing rules are stored unapproved, as in wave 1.
+3. **Edit the workbook by hand**, column G (`In current pilot index`), `No` to `Yes`, these three rows only:
+
+   | Source ID | Row | File |
+   |---|---|---|
+   | SRC-18 | 19 | 10 - Whistle Blowers Protection-09.2006 (1).pdf |
+   | SRC-24 | 25 | 14 - Progressive Discipline Policy (06.06).pdf |
+   | SRC-26 | 27 | 25 - Family and Medical Leave Act  (06.06).pdf |
+
+4. `askbpl-apply-inventory --dry-run`, then
+   `askbpl-ingest-batch --manifest sample_corpus/corpus_manifest_wave2.yaml`, then `askbpl-apply-inventory`,
+   `askbpl-corpus-report --strict` and `askbpl-vector-report --strict`. Expect **18 answerable, all test index,
+   0 BPL-confirmed**.
+5. Re-run both evals and read them against step 1.
+6. **Wave 2 needs two extra reads that wave 1 does not:**
+   * **Union and non-union.** SRC-24 sends union staff to a contract that is not in the corpus, as Annual Leave does
+     (BPL-AL-05). Read it for the same answer-with-limitation versus refusal behavior.
+   * **Entitlements.** Ask a leave-eligibility question against SRC-26 and check the answer states what the 2006 text
+     says without computing a current entitlement (PRD 19.4).
+
 ## 5. What to watch in the evaluation
 
 Adding documents changes the candidates for **every** question, so compare questions, not totals.
@@ -152,8 +184,8 @@ Adding documents changes the candidates for **every** question, so compare quest
 
 ## 7. Suggested decision-log entry (yours to record)
 
-> **DEC-17.** On 2026-10-31 the team evaluated the 21 documents not yet in the pilot index. 12 will enter the marked
-> test index in two waves (OD-11); 9 are held (emergency/crisis OD-03; 1995 mileage rate; 1974 manual with blank
-> metadata; design deck; Public Behavior draft and its supporting guidance, OD-02; Media Relations, named as superseded by SRC-11, ING-12). Team decision only: BPL has
-> approved nothing (OD-01 open). Wave 1: SRC-02, 08, 09, 11, 17, 21, 27. Wave 2: SRC-12, 18, 19, 24, 26.
+> **DEC-17.** On 2026-10-31 the team evaluated the 21 documents not yet in the pilot index. 10 will enter the marked
+> test index in two waves (OD-11); 11 are held (emergency/crisis OD-03; 1995 mileage rate; 1974 manual with blank
+> metadata; design deck; Public Behavior draft and its supporting guidance, OD-02; Media Relations, named as superseded by SRC-11, ING-12; Anti-Harassment and Photography, which contain named individuals' contact details, held until BPL decides). Team decision only: BPL has
+> approved nothing (OD-01 open). Wave 1: SRC-02, 08, 09, 11, 17, 21, 27. Wave 2: SRC-18, 24, 26.
 > Decided by: ________. Reviewed by: ________.
