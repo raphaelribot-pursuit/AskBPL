@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react'
 import { useCallback, useEffect, useRef } from 'react'
 
+import bplLogoBlue from '../../assets/brand/BklynPublicLibrary_blue_RGB_hires.png'
+
 /**
  * Modal (Wireframe v3 §2.2).
  *
  * Fixed 380px panel anchored 92px above the FAB. Owns:
- *   - Header: small book avatar, `Ask BPL` title, signed-in subtitle,
- *     minimize + close icons.
+ *   - Header: BPL logo (BPL Blue, on white, at the 1.25-inch minimum with clearance; docs/BRANDING.md),
+ *     `Ask BPL` title, signed-in subtitle, minimize + close icons.
  *   - Scrollable body: `#FAFAF7` background, plays host to the transcript
  *     list. Renders behind the “↓ new message” jump control if the parent
  *     decides to surface one.
@@ -104,9 +106,13 @@ export function Modal({
         onKeyDown={handleKeyDown}
       >
         <header className="pilot-modal-header">
-          <span className="pilot-modal-avatar" aria-hidden="true">
-            <BookGlyph />
-          </span>
+          <img
+            className="pilot-modal-logo"
+            src={bplLogoBlue}
+            alt="Brooklyn Public Library"
+            width={120}
+            height={44}
+          />
           <div className="pilot-modal-title">
             <strong id="pilot-modal-title">Ask BPL</strong>
             {signedInLabel ? <span>{signedInLabel}</span> : null}
@@ -145,16 +151,5 @@ export function Modal({
         </span>
       </div>
     </>
-  )
-}
-
-function BookGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" role="presentation" aria-hidden="true" focusable={false}>
-      <path
-        fill="currentColor"
-        d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H7.5A1.5 1.5 0 0 0 6 20.5h13a1 1 0 1 1 0 2H6.5A2.5 2.5 0 0 1 4 20V5a.5.5 0 0 1 .25-.43A2.5 2.5 0 0 1 5 4.5Zm2.5-.5a.5.5 0 0 0-.5.5v12.06A3.4 3.4 0 0 1 7.5 16H18V4H7.5Z"
-      />
-    </svg>
   )
 }

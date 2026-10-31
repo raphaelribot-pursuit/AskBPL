@@ -1,0 +1,82 @@
+/**
+ * BPL brand for the Ask BPL widget (launcher, modal, welcome overlay, document viewer).
+ *
+ * Source: BPL logo pack and "Brooklyn Public Library / Logo Usage" guide, supplied by Selvon Smith via Lawrence
+ * Carrillo, received 2026-10-31 (D-08). Rules and provenance: docs/BRANDING.md.
+ *
+ * The host page deliberately reproduces Microsoft SharePoint (BPL's intranet), so its SharePoint blue is left alone;
+ * only the widget is recoloured. Custom properties derived at :root (--accent, --wf-accent, ...) are resolved there,
+ * so each one is re-declared inside the widget scope, not only the SharePoint base tokens.
+ * tests/brand.test.ts checks the colours, the contrast and the logo rules below.
+ */
+
+:root {
+  --bpl-blue: #3c5daa; /* BPL Blue: PMS 7455 C, RGB 60/93/170 */
+  --bpl-blue-dark: #2e4884; /* hover and pressed states */
+  --bpl-blue-soft: #e9eef8; /* tints behind BPL Blue text */
+  --bpl-logo-width: 120px; /* guide: never smaller than 1.25 inches */
+  --bpl-logo-clearance: 20px; /* guide: at least the height of the "n" (0.43 x logo height = 19px at 120px wide) */
+}
+
+.pilot-fab,
+.pilot-modal,
+.pilot-welcome,
+.doc-viewer {
+  --sp-blue-primary: var(--bpl-blue);
+  --sp-blue-hover: var(--bpl-blue-dark);
+  --sp-blue-dark: var(--bpl-blue-dark);
+  --sp-blue-light: var(--bpl-blue-soft);
+  --sp-button-primary-bg: var(--bpl-blue);
+  --sp-button-primary-hover: var(--bpl-blue-dark);
+  --sp-input-border-focus: var(--bpl-blue);
+  --sp-tab-active-border: var(--bpl-blue);
+  --sp-nav-active-border: var(--bpl-blue);
+  --sp-nav-active-text: var(--bpl-blue);
+  --accent: var(--bpl-blue);
+  --cyan-muted: var(--bpl-blue-dark);
+  --avatar-modal-accent: var(--bpl-blue);
+  --wf-accent: var(--bpl-blue);
+  --wf-accent-strong: var(--bpl-blue-dark);
+  --wf-accent-soft: var(--bpl-blue-soft);
+  --wf-note: var(--bpl-blue-soft);
+}
+
+/* Header: the colour logo is used on white only (guide: never the colour logo on a colour background). */
+.pilot-modal .pilot-modal-header {
+  background: #ffffff;
+  color: var(--sp-text-primary);
+  border-bottom: 1px solid var(--sp-border);
+  padding: var(--bpl-logo-clearance);
+  gap: var(--bpl-logo-clearance);
+}
+
+.pilot-modal-logo {
+  display: block;
+  flex: none;
+  width: var(--bpl-logo-width);
+  min-width: var(--bpl-logo-width);
+  height: auto; /* keep the aspect ratio: never stretch or distort */
+}
+
+.pilot-modal .pilot-modal-title strong {
+  color: var(--bpl-blue);
+}
+
+.pilot-modal .pilot-modal-title span {
+  color: var(--sp-text-secondary);
+}
+
+.pilot-modal .pilot-icon-button {
+  color: var(--sp-text-secondary);
+}
+
+.pilot-modal .pilot-icon-button:hover,
+.pilot-modal .pilot-icon-button:focus-visible {
+  background: var(--bpl-blue-soft);
+  color: var(--bpl-blue-dark);
+}
+
+.pilot-modal .pilot-icon-button:focus-visible {
+  outline: 2px solid var(--bpl-blue);
+  outline-offset: -2px;
+}
