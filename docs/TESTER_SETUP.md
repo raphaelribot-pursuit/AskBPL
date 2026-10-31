@@ -65,6 +65,17 @@ You will need: Git, **Python 3.10 or newer** (3.11 is what the project uses), **
 
 Open a terminal in the folder where the project lives. All the commands below are run from the **project folder** unless it says otherwise.
 
+**On Windows**, the repository's `.gitattributes` keeps the checked files (the scanned policy's validated text, the policy files) byte-for-byte. A copy cloned **before** that file existed may already have had the validated text's line endings changed. After pulling, refresh those files once (nothing in them is yours to edit; the workbook is not touched):
+
+```
+rm -rf packages/orchestrator/extraction_reviews
+git checkout -- packages/orchestrator/extraction_reviews
+git checkout -- 'packages/orchestrator/sample_corpus/*.yaml' 'packages/orchestrator/sample_corpus/**/*.md'
+git status
+```
+
+`git status` should then show nothing changed. Do not change `core.autocrlf` for this; `.gitattributes` already covers these folders. Never open and re-save `validated_text.md`: any change, including line endings, makes the system refuse it, by design.
+
 ### Step 2. Create the settings file (`.env`)
 
 1. Copy `.env.example` (in the project folder) to a new file named `.env` **inside `packages/orchestrator`**.
@@ -100,7 +111,13 @@ askbpl-seed
 
 ### Step 5. Load the test policies
 
-You also need an index in Pinecone, created once by the build team (1536 dimensions, cosine; details in `docs/PINECONE_CORPUS_INGEST.md`). Then:
+You also need an index in Pinecone, created once by the build team (1536 dimensions, cosine; details in `docs/PINECONE_CORPUS_INGEST.md`). It must be a **plain dense vector index**: no integrated embedding model and **no document schema** (text fields). Ask BPL writes vectors it has already made, and Pinecone refuses those writes to a document-schema index. Check an existing index first (reads only):
+
+```
+python -c "from pinecone import Pinecone; from ask_bpl_orchestrator.config import get_settings as g; s=g(); print(Pinecone(api_key=s.pinecone_api_key).describe_index(s.pinecone_index_name))"
+```
+
+Correct: `dimension=1536`, `metric='cosine'`, `vector_type='dense'`, `embed=None`, and a schema with only `_values` and `_sparse_values`. Then:
 
 ```
 askbpl-ingest-batch
@@ -181,6 +198,8 @@ Then ask one question you know the answer to, and open its citation. Only then i
 | `PRETEND mode` | The page shows canned answers. | Remove `VITE_MOCK_ASK` from `.env.local` and restart the page. |
 | `The service refused the key` (with `--live`) | The key is mistyped, expired or switched off. | Ask the build team for a replacement. Do not post the old one anywhere. |
 | Every question is refused | Often a loading problem, sometimes correct. | Run `askbpl-doctor --live`; if it is clean, tell the build team which question. |
+| `This index has a document schema, so writes must go through the documents API` | The Pinecone index was created as a document-schema index. Upgrading the client does not help. | Delete it and create a plain dense index (1536, cosine, no document schema): `docs/PINECONE_CORPUS_INGEST.md` section 2. If `.env` has `PINECONE_HOST`, update it to the new index's host. |
+| `validation record rejected: validated text was changed after the review was finalized` | Usually line endings changed by Git on Windows; otherwise someone edited the file. | Refresh the files as in step 1 (Windows), then `askbpl-extraction-review verify`. Do not edit the file. |
 
 ## What this version does not do yet
 
