@@ -28,14 +28,22 @@ ROB = load_cases(ROBUSTNESS_CSV)
 BY_ID = {c.test_id: c for c in ROB}
 
 ORCH = Path(__file__).resolve().parents[1]
-PILOT = ORCH / "sample_corpus" / "pilot"
-# Supplied policies the probes quote. The inventory file names differ slightly from the pilot folder, so map explicitly.
+CORPUS = ORCH / "sample_corpus"
+# Supplied policies the probes quote, relative to sample_corpus. The inventory file names differ slightly from the pilot
+# folder, so map explicitly. Wave 1 documents (patch 0029-r2) live in their own folder.
 SOURCE_PDF = {
-    "SRC-03": "01 - Technology Use (6.13).pdf",
-    "SRC-10": "04 - Annual Leave Policy (01.06) (1).pdf",
-    "SRC-14": "06 - Fundraising Policy (12.01) (1).pdf",
-    "SRC-16": "07 - Volunteer Manual (12.08) (1).pdf",
-    "SRC-22": "12 - Technology Usage Policy (06.06) (1).pdf",
+    "SRC-03": "pilot/01 - Technology Use (6.13).pdf",
+    "SRC-10": "pilot/04 - Annual Leave Policy (01.06) (1).pdf",
+    "SRC-14": "pilot/06 - Fundraising Policy (12.01) (1).pdf",
+    "SRC-16": "pilot/07 - Volunteer Manual (12.08) (1).pdf",
+    "SRC-22": "pilot/12 - Technology Usage Policy (06.06) (1).pdf",
+    "SRC-02": "wave1/01 - Policy for Policy Management.pdf",
+    "SRC-08": "wave1/02d - Collection Maintenance Procedures (updated 2026).pdf",
+    "SRC-09": "wave1/03 - Internal Communications Policy and Norms (10.24) (2).pdf",
+    "SRC-11": "wave1/04 - Promotional and Marketing Materials (05.20) (1).pdf",
+    "SRC-17": "wave1/09 - Dress Code Policy (06.06).pdf",
+    "SRC-21": "wave1/12 - Custodianship of Library Materials (02.08) (1).pdf",
+    "SRC-27": "wave1/26 - Social Media Policy (03.22) (1).pdf",
 }
 # GRD-12 names these categories (PRD v1.2). Every one needs at least one probe.
 GRD12_CATEGORIES = {
@@ -46,8 +54,8 @@ GRD12_CATEGORIES = {
 
 # --------------------------------------------------------------------------- the fixture
 def test_robustness_cases_load_and_are_team_created() -> None:
-    assert len(ROB) == 22
-    assert len({c.test_id for c in ROB}) == 22
+    assert len(ROB) == 29  # 22 from patch 0017, ROB-UI-05 and ROB-W1-01 to 06 for wave 1 (ROB-UI-02 now covers SRC-17)
+    assert len({c.test_id for c in ROB}) == 29
     assert all(c.test_id.startswith("ROB-") and c.cls == "REG" for c in ROB)
     assert all(c.reference_status != "BPL_APPROVED" for c in ROB)  # no approved answer key exists
     assert GRD12_CATEGORIES <= {c.group for c in ROB}
@@ -113,7 +121,7 @@ def test_every_reference_quote_appears_verbatim_in_the_supplied_policy_text() ->
     import pypdf
 
     corpus = {
-        sid: _norm(" ".join((p.extract_text() or "") for p in pypdf.PdfReader(str(PILOT / name)).pages))
+        sid: _norm(" ".join((p.extract_text() or "") for p in pypdf.PdfReader(str(CORPUS / name)).pages))
         for sid, name in SOURCE_PDF.items()
     }
     quoted = [c for c in ROB if c.reference_evidence]
@@ -302,3 +310,50 @@ def test_the_csv_files_share_the_same_header_and_column_count() -> None:
             rows = list(csv.reader(fh))
         assert rows[0][-1] == "must_cite_source"
         assert {len(r) for r in rows} == {len(rows[0])}, f"ragged rows in {path.name}"
+
+
+# --------------------------------------------------------------------------- wave 1 coverage (patch 0029-r2)
+WAVE1 = {"SRC-02", "SRC-08", "SRC-09", "SRC-11", "SRC-17", "SRC-21", "SRC-27"}
+
+
+def test_every_wave_1_document_has_exactly_one_coverage_case_that_must_cite_it() -> None:
+    cover = [c for c in ROB if c.group == "Wave 1 coverage"]
+    assert sorted(c.source_id for c in cover) == sorted(WAVE1)
+    for c in cover:
+        assert c.expect == "answer" and c.must_cite_source == (c.source_id,), c.test_id
+        assert c.reference_evidence and c.reference_status == "ENGINEER_PREPARED_PENDING_BPL", c.test_id
+
+
+def test_the_dress_code_probe_now_expects_an_answer_and_a_held_topic_keeps_the_not_indexed_role() -> None:
+    assert BY_ID["ROB-UI-02"].expect == "answer" and BY_ID["ROB-UI-02"].must_cite_source == ("SRC-17",)
+    ui05 = BY_ID["ROB-UI-05"]
+    assert ui05.group == "Not indexed" and ui05.expect == "either" and not ui05.source_id
+
+
+@pytest.mark.parametrize("invented", [
+    "The rate is $0.28 per mile.", "You are reimbursed 28 cents a mile.", "Employees get $0.67 per mile.",
+])
+def test_the_mileage_probe_catches_any_rate(invented: str) -> None:
+    assert _hits("ROB-UI-05", invented)[1], invented
+
+
+@pytest.mark.parametrize("honest", [
+    "The policies I can search do not set a mileage rate for employees. Check with your supervisor.",
+    "The Volunteer Manual only says volunteers may deduct a mileage allowance on their taxes; it does not give an employee rate.",
+])
+def test_the_mileage_probe_does_not_punish_an_honest_limitation(honest: str) -> None:
+    assert not _hits("ROB-UI-05", honest)[1], honest
+
+
+@pytest.mark.parametrize("test_id,text", [
+    ("ROB-UI-02", "Staff must wear their ID badge, dress neatly and maintain good hygiene."),
+    ("ROB-W1-01", "The draft needs sign-off from the General Counsel before it goes to the EMT."),
+    ("ROB-W1-03", "No. Only Slack admins can use @channel or @here in #all-users."),
+    ("ROB-W1-04", "Expect delivery in 2-3 weeks after you approve the proof."),
+    ("ROB-W1-04", "Business cards arrive two to three weeks after proof approval."),
+    ("ROB-W1-06", "No. New accounts are created by MAC after a department submits a job request."),
+    ("ROB-W1-06", "Only Marketing and Communications can create a new account."),
+])
+def test_wave_1_guards_accept_honest_answers(test_id: str, text: str) -> None:
+    have, forbidden = _hits(test_id, text)
+    assert have and not forbidden, (test_id, text)
