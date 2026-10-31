@@ -182,11 +182,11 @@ def test_classification_table(expect: str, outcome: str, kind: str) -> None:
 
 # ----------------------------------------------------------------------------- the summary
 def _scenario(tmp_path: Path):
-    """ROB-ST-01 (answer expected) refused at 0.4023 twice; ROB-UI-02 and BPL-UC-05 (refusal expected) stopped at the gate;
+    """ROB-ST-01 (answer expected) refused at 0.4023 twice; BPL-CI-05 and BPL-UC-05 (refusal expected) stopped at the gate;
     ROB-LD-01 answered; ROB-UI-01 refused later by the model; ROB-MS-01 ('either') ignored."""
     records = {
         "ROB-ST-01": [refusal_rec("a1"), refusal_rec("a2")],
-        "ROB-UI-02": [refusal_rec("b1")],
+        "BPL-CI-05": [refusal_rec("b1")],
         "BPL-UC-05": [refusal_rec("b2")],
         "ROB-LD-01": [answer_rec("c1")],
         "ROB-UI-01": [refusal_rec("d1")],
@@ -220,7 +220,7 @@ def test_only_gate_stopped_refusals_form_the_protected_group(tmp_path: Path) -> 
     text = sr.render(rows, 0.40, 0.45)
     import re
 
-    assert re.search(r"refused at the gate, refusal expected\s+n=2\b", text)  # ROB-UI-02 and BPL-UC-05, not ROB-UI-01
+    assert re.search(r"refused at the gate, refusal expected\s+n=2\b", text)  # BPL-CI-05 and BPL-UC-05, not ROB-UI-01
     assert "refused later (model/citation), refusal expected: 1 run(s)" in text
     assert "ROB-MS-01" not in text.split("-- Best score")[1]  # 'either' takes no part
 
@@ -250,7 +250,7 @@ def test_overlap_is_reported_when_scores_do_not_separate_the_groups(tmp_path: Pa
 
 
 def test_separation_is_reported_when_every_over_refusal_scores_higher(tmp_path: Path) -> None:
-    records = {"ROB-ST-01": [refusal_rec("a1")], "ROB-UI-02": [refusal_rec("b1")]}
+    records = {"ROB-ST-01": [refusal_rec("a1")], "BPL-CI-05": [refusal_rec("b1")]}
     log = "\n".join([completed("a1", 0.44, "retrieval_gate", "weak_evidence"), gate("a1", 0.44, 0.30, 1),
                      completed("b1", 0.35, "retrieval_gate", "absent_source"), gate("b1", 0.35, 0.30, 0)])
     text = sr.render(_rows(tmp_path, records, log), 0.40, 0.45)
@@ -295,7 +295,7 @@ def test_cli_flags_override_the_thresholds_and_summary_only_skips_the_table(tmp_
 
 def test_cli_accepts_several_results_and_logs(tmp_path: Path, capsys) -> None:
     r1 = results_file(tmp_path, {"ROB-ST-01": [refusal_rec("r1")]})
-    r2 = write(tmp_path, "run2.json", json.dumps({"meta": {}, "records": {"ROB-UI-02": [refusal_rec("r2")]}}))
+    r2 = write(tmp_path, "run2.json", json.dumps({"meta": {}, "records": {"BPL-CI-05": [refusal_rec("r2")]}}))
     l1, l2 = write(tmp_path, "1.log", completed("r1", 0.41, "retrieval_gate", "weak_evidence")), write(tmp_path, "2.log", completed("r2", 0.3))
     assert sr.main([str(r1), str(r2), "--log", str(l1), str(l2)]) == 0
     assert "2 recorded asks" in capsys.readouterr().out
