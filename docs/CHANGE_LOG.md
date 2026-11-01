@@ -64,6 +64,7 @@ claims (90/102 backend, 11/11 web) were re-checked under BASE-1 to BASE-4.
 | 2026-11-01 | 0043 freeze baseline | `e830a21` (merge below) | Freeze baseline on c0f1c48: client 26/1 F/3 R, team 7/7, robustness 34/5 F (39 cases); 35/37 and 30/31 identical to e3c8add; patches 0038 to 0042 changed no answer | BASE-8 | 1495, 1 skipped (L) |
 | 2026-11-01 | 0044 staff-audience probes | `accaa0c` (merge below) | ROB-MD-01 and ROB-CF-01 settled (team decision: staff get the staff rule); MD-01 passes; CF-01 fails on the patron rule told to staff (known defect) | GRD-12, GRD-1 | 1503, 1 skipped (L) |
 | 2026-11-01 | 0045 spend limits for BPL | `dd79704` (merge below) | docs/SPEND_LIMITS.md: steps and cost estimates for spend limits on the three providers; BPL sets the amounts; handover guide points to it | NFR-8 | unchanged (docs only) |
+| 2026-11-01 | 0046 GRD-11 proposal for BPL | `6dd23e8` (merge below) | docs/design/GRD-11_claim_level_grounding.md: costed proposal, not built (team decision option B); evidence, plan, effort and cost, how to start, BPL decisions | GRD-11 | 1504, 1 skipped (L) |
 
 ## Not merged
 
