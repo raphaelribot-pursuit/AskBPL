@@ -17,7 +17,7 @@ Five questions are still open with BPL (Selvon). Until they are answered, **keep
 |---|---|---|
 | Is it acceptable that testers' questions are sent to outside services? | Every question typed goes to **OpenAI** (to match it to policy text), **Anthropic** (to write the answer) and **Pinecone** (to store policy text). | SAF-5, SAF-9, NFR-4 |
 | Should questions be saved, and for how long? | The test page signs everyone in as an identified demo user, so the question text **is saved** in the database with the answer. (Questions the system blocks for personal details are not saved.) | SAF-5 |
-| May testers see the loaded policies while BPL has not confirmed them? | They are labelled "Test index", but BPL has not agreed to that. | ING-1, SAF-6 |
+| May testers see the loaded policies while BPL has not confirmed them? | They are labelled "Not yet confirmed by BPL", but BPL has not agreed to that. | ING-1, SAF-6 |
 | How will testers get in: on their own computer, or through a link the team runs? | Today each person would need developer tools. See "Why testers should not set this up themselves" below. | INT-1, NFR-3 |
 | Who tests, and how is feedback collected? | Everyone signs in as the **same demo user**, so feedback cannot be traced to a person and nobody can test whether answers differ by job role. | (team plan, not a PRD item) |
 
@@ -30,7 +30,7 @@ Five questions are still open with BPL (Selvon). Until they are answered, **keep
 **What to do**
 
 1. Open the page. Type a question about a BPL policy in everyday words, the way you would ask a colleague.
-2. Read the answer. It should say which policy it came from and show a **Test index** tag. Open the citation to check the answer against the policy text.
+2. Read the answer. It should say which policy it came from and show a **Not yet confirmed** tag. Open the citation to check the answer against the policy text.
 3. If the page says it cannot answer, that can be correct. The system is designed to refuse when the policy does not say. Tell the build team if you think it *should* have been able to answer.
 4. Send your feedback to the person who gave you the link. For each problem, note: what you asked, what you expected, what you got.
 

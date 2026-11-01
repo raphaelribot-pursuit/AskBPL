@@ -40,7 +40,7 @@ export function formatPageLabel(start: unknown, end?: unknown): string | null {
 
 /** Shown when a citation is flagged but the server sent no label text. */
 export const DEFAULT_TEST_INDEX_LABEL =
-  'Test index: sources not yet confirmed current by BPL'
+  'Not yet confirmed by BPL: these policies may not be the current versions'
 
 /**
  * Fail-safe: the label shows if the server sent one OR any citation is flagged,
@@ -269,7 +269,7 @@ export function rowFromAskResponse(args: {
           ? payload.refusal_explanation
           : typeof payload.answer === 'string'
             ? payload.answer
-            : 'Out of corpus — see the routing suggestions.'
+            : 'I could not find enough approved policy information to answer reliably.'
       const routing = Array.isArray(payload.routing)
         ? (payload.routing as RoutingPayload[])
         : []

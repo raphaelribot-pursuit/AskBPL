@@ -173,9 +173,12 @@ export function useAskChat({
         case 'assistant_answer':
           return 'Answer ready.'
         case 'assistant_refusal':
-          return 'Out of corpus; routing suggestions available.'
+          return 'No answer from the policies; see who can help.'
         case 'pii_banner':
           return 'Question blocked for privacy.'
+        case 'crisis_resource':
+          // Patch 0055: the crisis card was not announced (a screen reader heard nothing, or the previous "Answer ready.").
+          return 'Support resources are shown.'
         case 'error_generic':
           return `Error: ${row.message}`
         default:

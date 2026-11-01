@@ -203,9 +203,9 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
                       type="button"
                       onClick={() => void send(SAMPLE_PROMPT)}
                       disabled={inputDisabled}
-                      title="Send the suggested pilot prompt"
+                      title="Ask the sample question"
                     >
-                      Try the sample prompt
+                      Try a sample question
                     </button>
                   ) : (
                     <span />

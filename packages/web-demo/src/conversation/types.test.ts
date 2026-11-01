@@ -75,17 +75,17 @@ describe('test-index label (OD-11)', () => {
     })
 
   it('carries the server-provided label onto the answer row', () => {
-    const row = answer({ index_label: 'Test index: sources not yet confirmed current by BPL' })
+    const row = answer({ index_label: 'Not yet confirmed by BPL: these policies may not be the current versions' })
     expect(row.kind).toBe('assistant_answer')
     if (row.kind === 'assistant_answer') {
-      expect(row.indexLabel).toBe('Test index: sources not yet confirmed current by BPL')
+      expect(row.indexLabel).toBe('Not yet confirmed by BPL: these policies may not be the current versions')
     }
   })
 
   it('still labels the answer when only a citation is flagged (fail-safe)', () => {
     const row = answer({}, [{ chunk_id: 'c1', document_id: 'd1', test_index: true }])
     if (row.kind !== 'assistant_answer') throw new Error('expected answer')
-    expect(row.indexLabel).toMatch(/test index/i)
+    expect(row.indexLabel).toMatch(/^Not yet confirmed by BPL/)
   })
 
   it('does not label an answer from confirmed sources', () => {
