@@ -552,7 +552,7 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
         <textarea
           className="composer-input"
           rows={3}
-          placeholder="Ask a closed-corpus policy question…"
+          placeholder="Ask a question about a BPL policy…"
           value={composer}
           onChange={(e) => setComposer(e.target.value)}
           onKeyDown={handleComposerKeys}

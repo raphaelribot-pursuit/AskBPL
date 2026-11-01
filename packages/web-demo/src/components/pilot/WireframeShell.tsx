@@ -195,7 +195,7 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
               onChange={setComposer}
               onSubmit={handleComposerSubmit}
               disabled={inputDisabled}
-              placeholder="Ask a closed-corpus policy question…"
+              placeholder="Ask a question about a BPL policy…"
               metaSlot={
                 <>
                   {showSampleChip ? (
