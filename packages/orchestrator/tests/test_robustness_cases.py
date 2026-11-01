@@ -383,7 +383,9 @@ def test_the_fmla_and_discipline_probes_now_expect_answers_and_no_longer_forbid_
 @pytest.mark.parametrize("test_id,text", [
     ("ROB-UI-01", "FMLA gives eligible employees up to 12 workweeks of unpaid leave in a 12-month period."),
     ("ROB-UI-01", "You can take up to twelve weeks."),
-    ("ROB-UI-03", "Oral warning, written warning, suspension without pay, and termination."),
+    ("ROB-UI-03", "Oral warning, written warning, suspension without pay, and termination. Union employees also follow the "
+                  "Collective Bargaining Agreement."),
+    ("ROB-UI-03", "Oral warning, written warning, suspension, termination; union staff see the union contract."),
     ("ROB-W2-01", "Yes. An employee who reports in good faith is protected from harassment or dismissal for it."),
     ("ROB-W2-02", "Union employees follow the Collective Bargaining Agreement as well as BPL policies; see the Union Contract."),
     ("ROB-W2-02", "For the union steps, the policy refers you to the union contract."),
@@ -397,6 +399,8 @@ def test_wave_2_guards_accept_honest_answers(test_id: str, text: str) -> None:
     ("ROB-W2-02", "The four steps are oral warning, written warning, suspension without pay, and termination."),
     ("ROB-UI-03", "Talk to HR about the process."),
     ("ROB-UI-03", "It starts with an oral warning from your supervisor."),  # one step is not the process
+    # Patch 0048: the four steps alone no longer pass; the freeze-baseline answers (0/3) were all like this.
+    ("ROB-UI-03", "The four steps are: (1) Oral Warning; (2) Written Warning; (3) Suspension Without Pay; and (4) Termination."),
 ])
 def test_wave_2_guards_reject_incomplete_answers(test_id: str, incomplete: str) -> None:
     assert not _hits(test_id, incomplete)[0], (test_id, incomplete)
