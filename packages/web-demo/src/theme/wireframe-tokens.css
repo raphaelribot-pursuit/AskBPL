@@ -780,6 +780,28 @@
   font-size: 0.78rem;
   color: var(--wf-ink-muted);
   margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pilot-citation-action {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--wf-accent);
+}
+
+.doc-chunk-cited {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--wf-ink);
 }
 
 .pilot-citation-empty {

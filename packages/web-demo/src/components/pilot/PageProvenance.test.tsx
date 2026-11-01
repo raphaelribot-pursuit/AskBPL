@@ -84,7 +84,7 @@ describe('CitationCardList pages', () => {
       />,
     )
     expect(screen.queryByText(/pp?\./)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^View source: Fundraising Policy$/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Show evidence: Fundraising Policy$/ })).toBeInTheDocument()
   })
 })
 

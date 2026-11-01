@@ -58,7 +58,7 @@ describe('CitationCardList test-index tag', () => {
     expect(
       screen.getByRole('button', { name: /Annual Leave Policy.*test index, not yet confirmed current/i }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /^View source: Fundraising Policy$/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^Show evidence: Fundraising Policy$/ })).toBeInTheDocument()
   })
 
   it('tags the grouped card if any of its chunks is flagged', () => {
