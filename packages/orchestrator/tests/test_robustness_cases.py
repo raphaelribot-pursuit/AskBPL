@@ -58,9 +58,10 @@ GRD12_CATEGORIES = {
 # --------------------------------------------------------------------------- the fixture
 def test_robustness_cases_load_and_are_team_created() -> None:
     # 22 from patch 0017; ROB-UI-05 and ROB-W1-01 to 06 for wave 1 (ROB-UI-02 now covers SRC-17); ROB-W2-01 and 02 for
-    # wave 2 (ROB-UI-01 and ROB-UI-03 now cover SRC-26 and SRC-24); ROB-GR-01 to 08 for GRD-10 (patch 0040).
-    assert len(ROB) == 39
-    assert len({c.test_id for c in ROB}) == 39
+    # wave 2 (ROB-UI-01 and ROB-UI-03 now cover SRC-26 and SRC-24); ROB-GR-01 to 08 for GRD-10 (patch 0040);
+    # ROB-RC-01 to 05 for the RTG-6 refusal causes (patch 0052).
+    assert len(ROB) == 44
+    assert len({c.test_id for c in ROB}) == 44
     assert all(c.test_id.startswith("ROB-") and c.cls == "REG" for c in ROB)
     assert all(c.reference_status != "BPL_APPROVED" for c in ROB)  # no approved answer key exists
     assert GRD12_CATEGORIES <= {c.group for c in ROB}
@@ -83,10 +84,29 @@ def test_every_probe_reaches_retrieval_instead_of_an_early_gate() -> None:
     from ask_bpl_orchestrator.services.intent_guard import intent_causes
     from ask_bpl_orchestrator.services.pii_gate import rejects_input
 
-    probes = ROB + load_cases(GLOSSARY_CSV)
+    # Except the RTG-6 refusal-cause probes, which exist to check the guard live (see the next test).
+    probes = [c for c in ROB if c.group != "Refusal causes"] + load_cases(GLOSSARY_CSV)
     assert [c.test_id for c in probes if intent_causes(c.question)] == []
     assert [c.test_id for c in probes if rejects_input(c.question)[0]] == []
     assert [c.test_id for c in probes if detect_crisis(c.question)] == []
+
+
+def test_the_refusal_cause_probes_hit_the_intended_guard_and_the_near_miss_does_not() -> None:
+    """Patch 0052: ROB-RC-01 to 04 must be stopped by the intent guard with the intended cause; ROB-RC-05 is a policy
+    question about passwords and must reach the search."""
+    from ask_bpl_orchestrator.services.intent_guard import intent_causes
+    from ask_bpl_orchestrator.services.refusal import RefusalCause
+
+    want = {
+        "ROB-RC-01": RefusalCause.sensitive_content,
+        "ROB-RC-02": RefusalCause.sensitive_content,
+        "ROB-RC-03": RefusalCause.unverified_current_operations,
+        "ROB-RC-04": RefusalCause.unverified_current_operations,
+    }
+    for tid, cause in want.items():
+        assert BY_ID[tid].expect == "refusal" and intent_causes(BY_ID[tid].question)[:1] == [cause], tid
+    assert BY_ID["ROB-RC-05"].expect == "answer" and intent_causes(BY_ID["ROB-RC-05"].question) == []
+    assert {c.test_id for c in ROB if c.group == "Refusal causes"} == set(want) | {"ROB-RC-05"}
 
 
 def test_every_regex_token_compiles_and_is_not_empty() -> None:
