@@ -103,7 +103,9 @@ The team's working rules, which kept every change traceable:
 
 - Answers can add a small next step the policy does not state (GRD-11). A costed proposal for sentence-level citations,
   for BPL to consider investing in, is in `docs/design/GRD-11_claim_level_grounding.md` (not built; team decision 2026-11-01).
-- General discipline answers do not mention that union staff follow the Union Contract (the explicit union question does).
+- Fixed after the freeze baseline (patch 0048): general discipline answers did not mention that union staff follow the
+  Collective Bargaining Agreement. The answer prompt now adds one sentence when the passages say a group of staff
+  follows different rules (for example, Annual Leave answers now say the policy covers full-time non-union employees).
 - Fixed after the freeze baseline (patch 0047): staff asking whether their Internet use is private were told the
   customer confidentiality rule as if it applied to them. The answer prompt now says staff get the employee rule (team
   decision 2026-11-01); probe ROB-CF-01 passes 3/3. Other customer/employee overlaps are covered by the same rule but
