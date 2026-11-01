@@ -162,9 +162,13 @@ In a second terminal:
 ```
 cd packages/web-demo
 cp .env.example .env.local        # on Windows: copy .env.example .env.local
-npm install
+npm ci
 npm run dev
 ```
+
+Use `npm ci`, not `npm install`: it installs exactly the versions in `package-lock.json` and never changes
+`package.json`. If npm suggests `npm audit fix --force` or offers to change versions, do not accept; tell the build
+team. A changed lint package once left ESLint unable to run.
 
 Make sure `.env.local` contains `VITE_API_BASE_URL=http://localhost:8000` and **does not** contain `VITE_MOCK_ASK=true` (that switches on pretend answers). Open the address `npm run dev` prints (usually `http://localhost:5173`).
 
