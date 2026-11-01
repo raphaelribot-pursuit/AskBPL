@@ -68,13 +68,17 @@ def test_web_setup_installs_the_locked_versions(doc: str) -> None:
 
 
 @pytest.mark.skipif(shutil.which("git") is None or not (REPO / ".git").exists(), reason="needs git and a git checkout")
-def test_the_baseline_record_points_at_a_real_commit_and_a_comparison_script() -> None:
-    record = (DOCS / "BASELINE_2026-10-31.md").read_text(encoding="utf-8")
+@pytest.mark.parametrize("record_name", sorted(p.name for p in DOCS.glob("BASELINE_*.md")))
+def test_the_baseline_record_points_at_a_real_commit_and_a_comparison_script(record_name: str) -> None:
+    record = (DOCS / record_name).read_text(encoding="utf-8")
     commit = re.search(r"Evaluated commit \| `([0-9a-f]{7,40})`", record).group(1)
     subprocess.run(["git", "cat-file", "-e", f"{commit}^{{commit}}"], cwd=REPO, check=True)
     assert (REPO / "scripts" / "compare_runs.py").exists()
-    for f in re.findall(r"eval_\d{8}T\d{6}Z_[0-9a-f]+_live_default-staff\.json", record):
-        assert commit in f, f"{f} was not recorded on the evaluated commit"
+    files = re.findall(r"eval_\d{8}T\d{6}Z_[0-9a-f]+_live_default-staff\.json", record)
+    assert files
+    for f in files:
+        # the record's own result files were recorded on its evaluated commit (references to older baselines excepted)
+        assert commit in f or f"`{f}`" not in record.split("## Live evaluation")[1].split("##")[0], f"{f} was not recorded on the evaluated commit"
 
 
 @pytest.mark.skipif(shutil.which("git") is None or not (REPO / ".git").exists(), reason="needs git and a git checkout")

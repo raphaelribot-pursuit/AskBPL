@@ -10,7 +10,7 @@ at the time. "S" = recorded in the build team's sandbox rebuild; "L" = recorded 
 0022 exclude 4 tests that need the team's local SRC-13 data, which is why some sandbox rows show 4 failed or 4 fewer.
 The optional `Policies`-folder test is skipped in most runs. Web counts (`npx vitest run`) are given where they changed.
 
-The current reference baseline is `docs/BASELINE_2026-10-31.md`.
+The current reference baseline is `docs/BASELINE_2026-11-01_freeze.md` (the code freeze); `docs/BASELINE_2026-10-31.md` is the previous one.
 
 ## Inherited pilot (before 2026-10-07)
 
