@@ -188,6 +188,9 @@ class Document(Base):
     )
     # OD-11: member of the marked test index (answerable while authority is pending).
     test_index_member: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # ING-10 (patch 0060): policy / procedure / guidance / design_deck / evaluation_material, from the workbook's
+    # "Source type"; NULL until askbpl-apply-inventory has run. Shown to the model so a procedure is not called a policy.
+    document_type: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     approval_evidence: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     reviewed_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     reviewed_at: Mapped[Optional[date]] = mapped_column(Date, nullable=True)

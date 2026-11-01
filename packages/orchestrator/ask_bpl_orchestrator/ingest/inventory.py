@@ -54,6 +54,7 @@ class InventoryRow:
     note: Optional[str] = None
     extraction_validated_claim: bool = False
     approved_sha256: Optional[str] = None
+    document_type: Optional[str] = None
     warnings: List[str] = field(default_factory=list)
 
     @property
@@ -92,6 +93,31 @@ def parse_approved_hash(raw: Optional[str]) -> tuple[Optional[str], Optional[str
     if _SHA256.fullmatch(cleaned):
         return cleaned, None
     return None, f"'{APPROVED_HASH_COLUMN}' is not 64 hexadecimal characters; ignored"
+
+
+DOCUMENT_TYPES = ("policy", "procedure", "guidance", "design_deck", "evaluation_material")
+
+
+def normalize_document_type(raw: Optional[str]) -> Optional[str]:
+    """The workbook's free-text "Source type" as one of DOCUMENT_TYPES (ING-10, patch 0060); None if blank or unknown.
+
+    "Policy (governance)" and "Policy (draft indicators)" are policies; "Supporting guidance" and "Guidelines" are
+    guidance. An unknown value is never guessed: it returns None and the row carries a warning.
+    """
+    text = (raw or "").strip().lower()
+    if not text:
+        return None
+    if text.startswith("policy"):
+        return "policy"
+    if text.startswith("procedure"):
+        return "procedure"
+    if "guidance" in text or text.startswith("guideline"):
+        return "guidance"
+    if "design deck" in text:
+        return "design_deck"
+    if "evaluation" in text:
+        return "evaluation_material"
+    return None
 
 
 def derive_eligibility(
@@ -155,6 +181,10 @@ def load_inventory(path: Path) -> Dict[str, InventoryRow]:
         )
         if hash_warning:
             warnings.append(hash_warning)
+        raw_type = get(r, "Source type")
+        doc_type = normalize_document_type(raw_type)
+        if raw_type and doc_type is None:
+            warnings.append(f"'Source type' {raw_type!r} is not one of policy, procedure, guidance, design deck, evaluation material; not recorded")
         in_pilot = (get(r, "In current pilot index") or "").lower().startswith("y")
         row = InventoryRow(
             source_id=source_id,
@@ -169,6 +199,7 @@ def load_inventory(path: Path) -> Dict[str, InventoryRow]:
             note=get(r, "Notes (PRD v1.2 s19.3 / 19.4)"),
             extraction_validated_claim=(get(r, "Parse check") or "").strip().lower().startswith("validated"),
             approved_sha256=approved_hash if elig == Eligibility.eligible else None,
+            document_type=doc_type,
             warnings=warnings,
         )
         if row.key in out:
@@ -187,6 +218,7 @@ def apply_row(doc: Document, row: InventoryRow) -> None:
     doc.reviewed_by = row.reviewer
     doc.reviewed_at = row.reviewed_at
     doc.status_note = row.note
+    doc.document_type = row.document_type
     # An approval is recorded only for an Eligible row; any other disposition clears it, so a stale hash cannot linger.
     doc.approved_sha256 = row.approved_sha256 if row.eligibility == Eligibility.eligible else None
 

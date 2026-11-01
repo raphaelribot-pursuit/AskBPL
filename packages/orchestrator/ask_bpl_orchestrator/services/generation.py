@@ -17,7 +17,8 @@ from ask_bpl_orchestrator.services.routing_service import RoutingChoice
 log = logging.getLogger("ask_bpl.generation")
 
 # ---------------------------------------------------------------------------
-# SYSTEM_PROMPT — v7 (v6 with chunk labels C1, C2... cited instead of UUIDs; patch 0049, FR-01)
+# SYSTEM_PROMPT — v8 (v7 plus PROCEDURES ARE NOT POLICIES, using each excerpt's document_type; patch 0060, ING-10)
+# v7: chunk labels C1, C2... cited instead of UUIDs (patch 0049, FR-01)
 # v6: GROUPS THE EXCERPTS TREAT DIFFERENTLY, e.g. union employees (patch 0048)
 # v5: WHO THE RULE IS FOR: staff get the employee rule, never a customer rule as theirs (patch 0047)
 # v4: owning teams supplied from approved routing config, not hardcoded (patch 0010)
@@ -94,6 +95,12 @@ members of the public (for example, people using the public computers), not for 
   · If the excerpts give both a customer rule and an employee rule on the same subject, give the
     employee rule. Mention the customer rule only if the question asks about customers, and then
     say plainly that it is the rule for customers.
+
+PROCEDURES ARE NOT POLICIES
+---------------------------
+Each excerpt has a "document_type". When your answer relies on an excerpt whose document_type is "procedure" or
+"guidance", name it as that ("The Collection Maintenance Procedures say...") and never call it a policy. Treat only
+document_type "policy" as policy.
 
 GROUPS THE EXCERPTS TREAT DIFFERENTLY
 -------------------------------------
@@ -241,6 +248,7 @@ async def generate_answer(
             {
                 "chunk_id": label,
                 "document_title": c.title,
+                "document_type": getattr(c, "document_type", None) or "not recorded",
                 "version": c.version,
                 "policy_type": c.policy_type,
                 "section_heading": c.section_heading,
