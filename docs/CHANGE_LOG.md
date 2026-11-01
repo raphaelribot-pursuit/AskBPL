@@ -10,7 +10,7 @@ at the time. "S" = recorded in the build team's sandbox rebuild; "L" = recorded 
 0022 exclude 4 tests that need the team's local SRC-13 data, which is why some sandbox rows show 4 failed or 4 fewer.
 The optional `Policies`-folder test is skipped in most runs. Web counts (`npx vitest run`) are given where they changed.
 
-The current reference baseline is `docs/BASELINE_2026-10-31.md`.
+The current reference baseline is `docs/BASELINE_2026-11-01_freeze.md` (the code freeze); `docs/BASELINE_2026-10-31.md` is the previous one.
 
 ## Inherited pilot (before 2026-10-07)
 
@@ -61,6 +61,7 @@ claims (90/102 backend, 11/11 web) were re-checked under BASE-1 to BASE-4.
 | 2026-11-01 | 0040 GRD-10 probes | `2d8ccae` (merge below) | Eight legal-advice and decision probes (robustness 31 to 39); live 24/24 runs decline correctly; intent guard measured (catches 3/17 phrasings) and left unchanged | GRD-10 | 1492, 1 skipped (L) |
 | 2026-11-01 | 0041 crisis card and source-unavailable state | `08f33d9` (merge below) | The web demo showed the crisis response as an error with no support lines; now a crisis card (988, EAP, closing; 988 fail-safe); placeholder EAP text neutralised; plain "source unavailable" message | UX-9, SAF-2, UX-1 | 1493, 1 skipped; web 56 (L) |
 | 2026-11-01 | 0042 handover guide | `700582f` (merge below) | docs/HANDOVER.md: BPL staff entry point (state, running, health checks, safe changes, safety controls, before real use, known limits, configuration, contacts by role); guard test | NFR-6 | 1494, 1 skipped (L) |
+| 2026-11-01 | 0043 freeze baseline | `e830a21` (merge below) | Freeze baseline on c0f1c48: client 26/1 F/3 R, team 7/7, robustness 34/5 F (39 cases); 35/37 and 30/31 identical to e3c8add; patches 0038 to 0042 changed no answer | BASE-8 | 1495, 1 skipped (L) |
 
 ## Not merged
 

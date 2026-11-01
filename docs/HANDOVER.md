@@ -26,7 +26,7 @@ of guessing.
 |---|---|
 | Code | GitHub `raphaelribot-pursuit/AskBPL`. `packages/orchestrator` (Python API, ingest, evaluation), `packages/web-demo` (the staff widget) |
 | History of every change | `docs/CHANGE_LOG.md` (from the code); the **project archive** `AskBPL_Project_Archive/` (every patch file and the handoff that explains it, indexed in `PROJECT_ARCHIVE_INDEX.md`) |
-| Current reference point | `docs/BASELINE_2026-10-31.md` |
+| Current reference point | `docs/BASELINE_2026-11-01_freeze.md` (the earlier `docs/BASELINE_2026-10-31.md` is history) |
 | Policy files and their status | `packages/orchestrator/sample_corpus/` and the workbook `AskBPL_Source_Inventory_v0_1.xlsx` (the workbook decides what may answer) |
 | Decisions BPL still has to make | `AskBPL_BPL_Decision_Request_2026-10-31.md` (project archive, `reports/`) |
 
@@ -104,7 +104,7 @@ The team's working rules, which kept every change traceable:
   `design/grd-11-claim-grounding` (patch 0037 and Handoff 28 in the project archive; proposal, not merged, not built).
 - General discipline answers do not mention that union staff follow the Union Contract (the explicit union question does).
 - Some phrasings fail the retrieval threshold (e.g. a business-card question); some stored text has split words
-  (SRC-02, SRC-08). Details in `docs/BASELINE_2026-10-31.md`.
+  (SRC-02, SRC-08). Details in `docs/BASELINE_2026-11-01_freeze.md`.
 - The safety gates are pattern based: the crisis suite has 40 positive and 35 near-miss cases, written by the build
   team, not by clinicians. Unusual phrasings can still be missed.
 
