@@ -36,6 +36,15 @@ means you generally won't be paid for that time", ROB-UI-02) turned out to be su
 sent home "generally will not be entitled to compensation for time spent away". Plausible-looking additions can be in the
 policy, and real additions can look plausible. That is why phase 0 calibrates the check against people first.
 
+**Further evidence, 2026-11-01 (GRD-7 attempt, patch 0061, not merged).** The team tried to keep the model's own
+additions out of the answer by prompt alone: a separate, labelled "suggestion" field for anything the excerpts do
+not state, with the answer limited to what they literally say. In three prompt revisions and 45 live answers the
+model never used the field (`"suggestion": null` every time) and kept inferences in the answer, for example "Someone
+else needs to handle that transaction for you" (ROB-W1-05; the Custodianship policy says only that staff may not
+check out or check in their own materials). The model reads such steps as part of the policy. This supports option D's
+row in section 3 (a prompt rule gives no assurance) and the case for a separate check (phase 0, then native
+citations). The attempt is kept on branch `feat/grd7-suggestion-note` and in the project archive.
+
 **Not in scope:** omissions. GRD-11 asks whether what is said is supported, not whether everything relevant is said
 (for example, general discipline answers do not mention the Union Contract; probe ROB-W2-02 covers that separately).
 
