@@ -87,6 +87,7 @@ The team's working rules, which kept every change traceable:
 | Every displayed citation was retrieved | `services/citation_verifier.py`; the model cites short labels (C1, C2...) mapped back by the server, and an unknown label refuses the answer (`services/generation.py`) | live evaluation (100% verified at the baseline); `tests/test_chunk_labels.py` |
 | No invented contacts; referrals only to approved teams; every change to a team's approval logged | `config/routing_seed.yaml` (rules stored unapproved until BPL approves); approvals in the admin console; each approval, withdrawal, or re-seed that changes an approved rule (which then needs approval again) writes a line to the `ask_bpl.routing_audit` log (`services/routing_audit.py`). The admin login is shared, so it cannot show who approved | routing tests; `tests/test_routing_approval_audit.py` |
 | No document carrying staff contact details is sent to outside services | `tests/test_corpus_waves.py` (blocks any manifest document with an email or phone number) | the same test |
+| The admin console (oversight figures, ingest, routing approval) needs its own login, separate from staff sign-in; an empty admin password locks it | `api/routes_admin.py` (`guard_admin`) on every `/admin` and `/internal` route | `tests/test_admin_access.py` (walks every admin route) |
 
 ## 8. Before real staff use (not done)
 
