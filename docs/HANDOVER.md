@@ -91,7 +91,8 @@ The team's working rules, which kept every change traceable:
 - **BPL decisions** in the decision request, above all: whether policy text and questions may be processed by outside
   AI services and how long questions are kept (SAF-9, DEC-10); who may confirm a policy is current (OD-01); the
   approved crisis / EAP wording (SAF-2); approved referral teams.
-- **Spend alerts** on the OpenAI, Anthropic and Pinecone accounts (NFR-8).
+- **Spend limits and alerts** on the OpenAI, Anthropic and Pinecone accounts (NFR-8). **BPL sets the amounts.** Steps, cost
+  estimates and suggested figures: `docs/SPEND_LIMITS.md`. Limits set: ________ (record amounts here, never keys).
 - **Hosting and access**: a reviewed deployment with HTTPS and sign-in (INT-1, NFR-3). The demo access code and the
   shared demo user are for testing only.
 - **Wording kept for the developmental build**: the widget's intro says answers come from "authorized BPL policy
