@@ -198,6 +198,7 @@ Then ask one question you know the answer to, and open its citation. Only then i
 | `[FIX] ... is not set` for a key | The program cannot find it. | Check the `.env` is in `packages/orchestrator`, with no quote marks or spaces. |
 | `Cannot reach the database` | The database is not running. | Open Docker Desktop, rerun step 3, wait a minute. |
 | `The database tables are not up to date` | The code is newer than the database. | Run `alembic upgrade head`. |
+| Answers from the Collection Maintenance Procedures call it a policy, or the per-passage type shows "not recorded" | The database was loaded before patch 0060 recorded document types. | Run `alembic upgrade head`, then `askbpl-apply-inventory` once (it changes no vectors). |
 | `No policy documents can be used` | Nothing is loaded, or test mode is off. | Run step 5; check `ALLOW_TEST_INDEX=true`. |
 | `PRETEND mode` | The page shows canned answers. | Remove `VITE_MOCK_ASK` from `.env.local` and restart the page. |
 | `The service refused the key` (with `--live`) | The key is mistyped, expired or switched off. | Ask the build team for a replacement. Do not post the old one anywhere. |
