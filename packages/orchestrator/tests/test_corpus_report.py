@@ -107,7 +107,7 @@ def test_shipped_inventory_buckets_add_up_and_nothing_is_double_counted() -> Non
     assert rep.disagreements == []  # the shipped workbook agrees with itself
 
 
-def test_evaluated_is_never_given_a_number() -> None:
+def test_evaluated_is_not_tracked_without_live_results() -> None:
     rep = cr.build_report(cr.read_sources(INVENTORY), cr.CorpusFacts())
     line = next(c for c in rep.counts if c.label == "Evaluated")
     assert line.value == "not tracked" and "ING-9" in line.note
@@ -741,3 +741,76 @@ async def test_batch_ingest_refuses_blocked_excluded_and_superseded_rows(tmp_pat
     assert called == ["new.md"]
     assert any(ln.startswith("refused:old.md:superseded:S1") for ln in lines)
     assert any(ln.startswith("refused:blocked.md:blocked:S2") for ln in lines)
+
+
+# ------------------------------------------------------------------------------------------------ Evaluated stage (patch 0058)
+def _write_run(folder: Path, name: str, when: str, statuses: dict, mode: str = "live") -> None:
+    import json
+
+    folder.mkdir(parents=True, exist_ok=True)
+    data = {"meta": {"mode": mode, "run_at_utc": when}, "results": [{"test_id": k, "status": v} for k, v in statuses.items()]}
+    (folder / name).write_text(json.dumps(data), encoding="utf-8")
+
+
+def _cases(folder: Path) -> Path:
+    folder.mkdir(parents=True, exist_ok=True)
+    header = "test_id,group,source_id,cls,question,expect,must_include,must_not_include,reference_status,reference_evidence,note\n"
+    (folder / "cases.csv").write_text(
+        header
+        + "T-A1,g,SRC-10,REG,Annual leave question one?,answer,,,PENDING,,\n"
+        + "T-A2,g,SRC-10,REG,Annual leave question two?,answer,,,PENDING,,\n"
+        + "T-F1,g,SRC-14,REG,Fundraising question?,answer,,,PENDING,,\n"
+        + "T-X1,g,,REG,Unrelated?,refusal,,,PENDING,,\n",
+        encoding="utf-8",
+    )
+    return folder
+
+
+def test_evaluated_counts_sources_asked_in_a_live_run_and_the_newest_run_wins(tmp_path: Path) -> None:
+    cases = _cases(tmp_path / "cases")
+    res = tmp_path / "results"
+    _write_run(res, "eval_1.json", "2026-10-01T10:00:00+00:00", {"T-A1": "FAIL", "T-A2": "PASS"})
+    _write_run(res, "eval_2.json", "2026-10-02T10:00:00+00:00", {"T-A1": "PASS"})
+    _write_run(res, "eval_3.json", "2026-10-03T10:00:00+00:00", {"T-F1": "PASS"}, mode="replay")  # asks nothing
+    (res / "eval_broken.json").write_text("{not json", encoding="utf-8")  # skipped, never fatal
+
+    ev = cr.read_eval_coverage(res, cases)
+    assert ev is not None and ev.files == 2 and ev.latest_run.startswith("2026-10-02")
+    assert ev.summary("SRC-10") == "2 question(s) run live, latest 2/2 PASS"
+    assert ev.summary("SRC-14") == "1 question(s), never run live"
+    assert ev.summary("SRC-99") == "no evaluation question"
+
+
+def test_the_report_counts_evaluated_answerable_sources_and_notes_the_rest(tmp_path: Path) -> None:
+    cases = _cases(tmp_path / "cases")
+    res = tmp_path / "results"
+    _write_run(res, "eval_1.json", "2026-10-02T10:00:00+00:00", {"T-A1": "PASS"})
+    ev = cr.read_eval_coverage(res, cases)
+
+    rep = cr.build_report(cr.read_sources(INVENTORY), cr.CorpusFacts(), evaluation=ev)
+    line = next(c for c in rep.counts if c.label.startswith("Evaluated"))
+    members = sum(1 for ln in rep.lines if ln.expected == "eligible" or ln.expected_test_index)
+    assert line.value == f"1 of {members} the workbook allows to answer (database not checked)"
+    assert "ING-9" in line.note and "not human review" in line.note
+    not_eval = {f.subject for f in rep.findings if f.code == "not_evaluated"}
+    assert "SRC-10" not in not_eval and len(not_eval) == members - 1
+    assert all(f.severity == cr.NOTE for f in rep.findings if f.code == "not_evaluated")  # never fails --strict
+    src10 = next(ln for ln in rep.lines if ln.source_id == "SRC-10")
+    assert src10.evaluation == "1 question(s) run live, latest 1/1 PASS"
+
+
+def test_no_results_folder_or_only_replays_means_not_tracked(tmp_path: Path) -> None:
+    cases = _cases(tmp_path / "cases")
+    assert cr.read_eval_coverage(tmp_path / "missing", cases) is None
+    _write_run(tmp_path / "r", "eval_1.json", "2026-10-02T10:00:00+00:00", {"T-A1": "PASS"}, mode="replay")
+    assert cr.read_eval_coverage(tmp_path / "r", cases) is None
+
+
+def test_the_csv_carries_the_evaluation_column(tmp_path: Path) -> None:
+    cases = _cases(tmp_path / "cases")
+    _write_run(tmp_path / "r", "eval_1.json", "2026-10-02T10:00:00+00:00", {"T-A1": "PASS"})
+    rep = cr.build_report(cr.read_sources(INVENTORY), cr.CorpusFacts(), evaluation=cr.read_eval_coverage(tmp_path / "r", cases))
+    out = tmp_path / "c.csv"
+    cr.write_csv(rep, out)
+    rows = list(csv.DictReader(out.open(encoding="utf-8")))
+    assert next(r for r in rows if r["source_id"] == "SRC-10")["evaluation"].startswith("1 question(s) run live")
