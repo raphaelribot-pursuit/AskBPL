@@ -57,6 +57,7 @@ claims (90/102 backend, 11/11 web) were re-checked under BASE-1 to BASE-4.
 
 | 2026-11-01 | 0036 change log | this page | This change log (BASE-9) and its guard test | BASE-9 | 1346, 1 skipped (L) |
 | 2026-11-01 | 0038 safety gate suites | `4a7728e` (merge below) | Labelled crisis and PII suites (SAF-3); crisis gate 22/40 to 40/40 first-person statements, scheduling false alarm fixed, workplace injuries not sent to the crisis card; PII gate catches "Ave."/"Pl." addresses and driver licence numbers | SAF-3, SAF-1, SAF-2 | 1469, 1 skipped (L) |
+| 2026-11-01 | 0039 ingest quality check | `33c3f8f` (merge below) | askbpl-ingest-batch refuses scanned or image-only PDFs before embedding (thin-page / median-text rule) and warns on heavy word-splitting; calibrated on every PDF held | ING-3, GATE-04 | 1478, 1 skipped (L) |
 
 ## Not merged
 
