@@ -69,7 +69,7 @@ claims (90/102 backend, 11/11 web) were re-checked under BASE-1 to BASE-4.
 
 | Branch | What | Status |
 |---|---|---|
-| `design/grd-11-claim-grounding` (`7dd682d`), patch 0037 | GRD-11 claim-level grounding design note (proposal, no code) | Team review |
+| `design/grd-11-claim-grounding` (`7dd682d`), patch 0037 | GRD-11 design note, first version | Superseded: brought to `main` and expanded for BPL in patch 0046 (`docs/design/GRD-11_claim_level_grounding.md`); the branch is kept for history |
 
 ## How to add a row
 

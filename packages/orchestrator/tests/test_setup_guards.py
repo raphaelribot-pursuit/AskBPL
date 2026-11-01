@@ -114,3 +114,13 @@ def test_the_handover_guide_names_only_real_commands_documents_tests_and_setting
     for name in set(re.findall(r"`([A-Z][A-Z_]{3,})`", guide)) - {"P0"}:
         assert name in settings or name.startswith("VITE_"), name
     assert not re.search(r"sk-[A-Za-z0-9]{8,}|pcsk_[A-Za-z0-9]{8,}", guide)  # no key ever pasted into the guide
+
+
+def test_the_grd11_proposal_is_marked_not_built_and_names_only_real_files() -> None:
+    """Patch 0046: the proposal is handed to BPL; it must say plainly it is not built, and the files it would change must exist."""
+    note = (DOCS / "design" / "GRD-11_claim_level_grounding.md").read_text(encoding="utf-8")
+    assert "Status: proposal, not built." in note
+    for path in set(re.findall(r"`(packages/[A-Za-z0-9_./-]+\.py)`", note)) | set(re.findall(r"`(packages/[A-Za-z0-9_./-]+/)`", note)):
+        assert (REPO / path).exists(), path
+    for doc in set(re.findall(r"`(docs/[A-Za-z0-9_./-]+\.md)`", note)) | {"scripts/compare_runs.py"}:
+        assert (REPO / doc).exists(), doc

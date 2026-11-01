@@ -101,8 +101,8 @@ The team's working rules, which kept every change traceable:
 
 ## 9. Known limits (measured, not hidden)
 
-- Answers can add a small next step the policy does not state (GRD-11). A design for sentence-level citations is on branch
-  `design/grd-11-claim-grounding` (patch 0037 and Handoff 28 in the project archive; proposal, not merged, not built).
+- Answers can add a small next step the policy does not state (GRD-11). A costed proposal for sentence-level citations,
+  for BPL to consider investing in, is in `docs/design/GRD-11_claim_level_grounding.md` (not built; team decision 2026-11-01).
 - General discipline answers do not mention that union staff follow the Union Contract (the explicit union question does).
 - Asked whether their Internet use is private, staff are told the patron rule as if it applied to them ("BPL won't share your
   browsing records"), alongside the employee rule (no expectation of privacy). Probe ROB-CF-01 fails on it; fixing it is a
