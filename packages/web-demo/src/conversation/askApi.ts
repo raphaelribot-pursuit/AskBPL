@@ -222,6 +222,28 @@ export type FetchDocumentTextArgs = {
   fetchImpl?: typeof fetch
 }
 
+/** A source document could not be opened (UX-9 "source unavailable"; patch 0041). */
+export class DocumentFetchError extends Error {
+  readonly status: number
+
+  constructor(status: number) {
+    super(`Failed to fetch document: ${status}`)
+    this.name = 'DocumentFetchError'
+    this.status = status
+  }
+}
+
+/**
+ * Plain-language text for the citation viewer when a source cannot be opened. A 404 means the document is no
+ * longer retrievable (for example superseded or withdrawn); anything else is temporary.
+ */
+export function sourceUnavailableMessage(err: unknown): string {
+  if (err instanceof DocumentFetchError && (err.status === 404 || err.status === 410)) {
+    return 'This source is no longer available. It may have been replaced or withdrawn; the answer still shows which policy it came from.'
+  }
+  return 'This source could not be loaded right now. Please try again in a moment.'
+}
+
 export async function fetchDocumentText({
   apiBase,
   documentId,
@@ -240,7 +262,7 @@ export async function fetchDocumentText({
   })
   persistSessionIdFromResponse(res)
   if (!res.ok) {
-    throw new Error(`Failed to fetch document: ${res.status}`)
+    throw new DocumentFetchError(res.status)
   }
   return res.json() as Promise<DocumentText>
 }

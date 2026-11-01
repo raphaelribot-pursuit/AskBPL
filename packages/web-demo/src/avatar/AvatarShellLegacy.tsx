@@ -37,6 +37,7 @@ import type {
   ErrorGenericRow,
   PiiBannerRow,
   TranscriptRow,
+  CrisisResourceRow,
 } from '../conversation/types'
 import { rowFromAskResponse } from '../conversation/types'
 
@@ -595,7 +596,7 @@ function ShellBody({ apiBase, docsBase }: { apiBase: string; docsBase: string })
 
 function emitAvatarBeatFor(
   emit: ReturnType<typeof useAvatarEvents>,
-  row: AssistantAnswerRow | AssistantRefusalRow | PiiBannerRow | ErrorGenericRow,
+  row: AssistantAnswerRow | AssistantRefusalRow | PiiBannerRow | CrisisResourceRow | ErrorGenericRow,
 ) {
   switch (row.kind) {
     case 'assistant_answer':
@@ -605,6 +606,10 @@ function emitAvatarBeatFor(
       emit({ type: 'RESPONSE_REFUSAL_CORPUS' })
       return
     case 'pii_banner':
+      emit({ type: 'RESPONSE_REFUSAL_PII' })
+      return
+    case 'crisis_resource':
+      // Stopped by a gate before retrieval, like the privacy banner: the calm "stopped" beat, never success or error.
       emit({ type: 'RESPONSE_REFUSAL_PII' })
       return
     case 'error_generic':

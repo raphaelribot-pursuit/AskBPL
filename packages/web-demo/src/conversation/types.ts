@@ -111,6 +111,26 @@ export type AssistantRefusalRow = {
   inferredPolicy?: string | null
 }
 
+/** One support line in the crisis card (from `services/crisis_gate.py`). */
+export type CrisisResource = {
+  name: string
+  contact: string
+  description: string
+}
+
+/**
+ * `type: "crisis_resource"` (SAF-2, UX-9; patch 0041). The crisis gate stopped the question before retrieval; the
+ * card shows support resources, never a policy answer, an error label or feedback buttons.
+ */
+export type CrisisResourceRow = {
+  kind: 'crisis_resource'
+  id: string
+  requestId: string
+  message: string
+  resources: CrisisResource[]
+  closing: string
+}
+
 /** Any non-PII non-2xx (Wireframe §4.6). 401/403 also surface as this. */
 export type ErrorGenericRow = {
   kind: 'error_generic'
@@ -123,6 +143,7 @@ export type TranscriptRow =
   | PiiBannerRow
   | AssistantAnswerRow
   | AssistantRefusalRow
+  | CrisisResourceRow
   | ErrorGenericRow
 
 /**
@@ -137,6 +158,7 @@ export type TranscriptRow =
  *  - 400 + `type === 'error_pii'` → `pii_banner`
  *  - 200 + `type === 'answer'`    → `assistant_answer`
  *  - 200 + `type === 'refusal'`   → `assistant_refusal`
+ *  - 200 + `type === 'crisis_resource'` → `crisis_resource` (before patch 0041 this fell through to an error row)
  *  - anything else (incl. 401/5xx) → `error_generic`
  */
 export function rowFromAskResponse(args: {
@@ -192,6 +214,27 @@ export function rowFromAskResponse(args: {
   }
 
   if (status >= 200 && status < 300) {
+    if (responseType === 'crisis_resource') {
+      const resources = Array.isArray(payload.resources)
+        ? (payload.resources as unknown[])
+            .filter((r): r is Record<string, unknown> => typeof r === 'object' && r !== null)
+            .map((r) => ({
+              name: typeof r.name === 'string' ? r.name : '',
+              contact: typeof r.contact === 'string' ? r.contact : '',
+              description: typeof r.description === 'string' ? r.description : '',
+            }))
+            .filter((r) => r.name || r.contact)
+        : []
+      return {
+        kind: 'crisis_resource',
+        id,
+        requestId,
+        message: typeof payload.message === 'string' ? payload.message : '',
+        resources,
+        closing: typeof payload.closing === 'string' ? payload.closing : '',
+      }
+    }
+
     if (responseType === 'answer') {
       const body = typeof payload.answer === 'string' ? payload.answer : ''
       const citations = Array.isArray(payload.citations)

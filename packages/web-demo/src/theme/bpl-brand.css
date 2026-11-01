@@ -80,3 +80,42 @@
   outline: 2px solid var(--bpl-blue);
   outline-offset: -2px;
 }
+
+/* Crisis card (SAF-2, UX-9; patch 0041): calm, readable, clearly not an error. */
+.pilot-crisis-card {
+  margin: 0.5rem 0;
+  padding: 0.85rem 1rem;
+  background: var(--bpl-blue-soft);
+  border-left: 4px solid var(--bpl-blue);
+  border-radius: 4px;
+  color: var(--sp-text-primary);
+}
+
+.pilot-crisis-title {
+  margin: 0 0 0.4rem;
+  font-size: 15px;
+  color: var(--bpl-blue-dark);
+}
+
+.pilot-crisis-resources {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.pilot-crisis-resources li {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.pilot-crisis-contact {
+  font-weight: 600;
+  color: var(--bpl-blue-dark);
+}
+
+.pilot-crisis-description {
+  font-size: var(--sp-font-size-sm);
+  color: var(--sp-text-secondary);
+}

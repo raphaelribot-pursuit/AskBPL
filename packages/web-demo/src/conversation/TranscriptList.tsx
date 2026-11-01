@@ -5,6 +5,7 @@ import {
   PiiBanner,
   UserMessage,
 } from './TranscriptRows'
+import { CrisisCard } from '../components/pilot/CrisisCard'
 import type { CitationPayload, TranscriptRow } from './types'
 
 /**
@@ -44,6 +45,8 @@ export function TranscriptList({
             )
           case 'assistant_refusal':
             return <AssistantRefusal key={row.id} row={row} onFeedback={onFeedback} />
+          case 'crisis_resource':
+            return <CrisisCard key={row.id} row={row} />
           case 'error_generic':
             return <ErrorGeneric key={row.id} row={row} />
         }

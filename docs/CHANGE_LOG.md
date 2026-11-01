@@ -59,6 +59,7 @@ claims (90/102 backend, 11/11 web) were re-checked under BASE-1 to BASE-4.
 | 2026-11-01 | 0038 safety gate suites | `4a7728e` (merge below) | Labelled crisis and PII suites (SAF-3); crisis gate 22/40 to 40/40 first-person statements, scheduling false alarm fixed, workplace injuries not sent to the crisis card; PII gate catches "Ave."/"Pl." addresses and driver licence numbers | SAF-3, SAF-1, SAF-2 | 1469, 1 skipped (L) |
 | 2026-11-01 | 0039 ingest quality check | `33c3f8f` (merge below) | askbpl-ingest-batch refuses scanned or image-only PDFs before embedding (thin-page / median-text rule) and warns on heavy word-splitting; calibrated on every PDF held | ING-3, GATE-04 | 1478, 1 skipped (L) |
 | 2026-11-01 | 0040 GRD-10 probes | `2d8ccae` (merge below) | Eight legal-advice and decision probes (robustness 31 to 39); live 24/24 runs decline correctly; intent guard measured (catches 3/17 phrasings) and left unchanged | GRD-10 | 1492, 1 skipped (L) |
+| 2026-11-01 | 0041 crisis card and source-unavailable state | `08f33d9` (merge below) | The web demo showed the crisis response as an error with no support lines; now a crisis card (988, EAP, closing; 988 fail-safe); placeholder EAP text neutralised; plain "source unavailable" message | UX-9, SAF-2, UX-1 | 1493, 1 skipped; web 56 (L) |
 
 ## Not merged
 

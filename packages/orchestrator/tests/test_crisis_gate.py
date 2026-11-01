@@ -212,3 +212,11 @@ class TestCrisisWithPolicyWording:
     )
     def test_policy_and_third_person_questions_still_pass(self, text: str) -> None:
         assert detect_crisis(text) is False, f"Should not trigger on: {text!r}"
+
+
+def test_no_staff_facing_crisis_text_contains_a_placeholder_or_developer_note() -> None:
+    """Patch 0041: the crisis card once showed "TODO: Selvon to provide BPL-specific resource" to staff."""
+    payload = format_crisis_response()
+    texts = [payload["message"], payload["closing"]] + [v for r in payload["resources"] for v in r.values()]
+    for text in texts:
+        assert "TODO" not in text and "[" not in text and "]" not in text and "Selvon" not in text, text

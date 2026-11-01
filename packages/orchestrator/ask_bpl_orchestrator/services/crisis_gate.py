@@ -57,8 +57,10 @@ DEFAULT_CRISIS_CONFIG = CrisisConfig(
         ),
         CrisisResource(
             name="BPL Staff Employee Assistance Program",
-            contact="[Contact HR for EAP details]",
-            description="TODO: Selvon to provide BPL-specific resource",
+            # Final EAP wording awaits BPL (SAF-2, decision request item 3). Until then, staff-facing text stays neutral
+            # and true: no placeholder brackets or developer notes (patch 0041; the card showed "TODO: Selvon ...").
+            contact="Contact Human Resources",
+            description="Ask HR for the current program details",
         ),
     ),
     closing_message=(
