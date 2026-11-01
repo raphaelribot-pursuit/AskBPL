@@ -5,8 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import {
   fetchDocumentText,
   isMockEnabled,
-  type DocumentText,
-} from '../../conversation/askApi'
+  type DocumentText, sourceUnavailableMessage } from '../../conversation/askApi'
 import { DEFAULT_TEST_INDEX_LABEL, formatPageLabel } from '../../conversation/types'
 import { TestIndexNotice } from './TestIndexNotice'
 
@@ -64,7 +63,7 @@ export function DocumentViewer({
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load document')
+          setError(sourceUnavailableMessage(err))
         }
       })
       .finally(() => {

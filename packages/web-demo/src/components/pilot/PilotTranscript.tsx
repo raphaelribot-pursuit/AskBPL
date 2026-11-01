@@ -8,6 +8,7 @@ import type {
 import type { FeedbackRating, FeedbackSubmitResult } from '../../conversation/askApi'
 import { AnswerMarkdown } from './AnswerMarkdown'
 import { Bubble } from './Bubble'
+import { CrisisCard } from './CrisisCard'
 import { CitationCardList } from './CitationCard'
 import { RoleBadge } from './RoleBadge'
 import { TestIndexNotice } from './TestIndexNotice'
@@ -63,6 +64,8 @@ export function PilotTranscript({
             )
           case 'assistant_refusal':
             return <AssistantRefusal key={row.id} row={row} onFeedback={onFeedback} />
+          case 'crisis_resource':
+            return <CrisisCard key={row.id} row={row} />
           case 'error_generic':
             return <ErrorGeneric key={row.id} row={row} />
         }
