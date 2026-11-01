@@ -66,6 +66,7 @@ claims (90/102 backend, 11/11 web) were re-checked under BASE-1 to BASE-4.
 | 2026-11-01 | 0045 spend limits for BPL | `dd79704` (merge below) | docs/SPEND_LIMITS.md: steps and cost estimates for spend limits on the three providers; BPL sets the amounts; handover guide points to it | NFR-8 | unchanged (docs only) |
 | 2026-11-01 | 0046 GRD-11 proposal for BPL | `6dd23e8` (merge below) | docs/design/GRD-11_claim_level_grounding.md: costed proposal, not built (team decision option B); evidence, plan, effort and cost, how to start, BPL decisions | GRD-11 | 1504, 1 skipped (L) |
 | 2026-11-01 | 0047 staff get the staff rule | `8ea34b4` (merge below) | Answer prompt v5 adds WHO THE RULE IS FOR: a staff asker gets the employee rule, never a customer rule as theirs. ROB-CF-01 FAIL 0/3 to PASS 3/3; no PASS to FAIL against the freeze baseline (runs `eval_20261101T195550Z_8ea34b4`, `eval_20261101T200435Z_8ea34b4`) | GRD-1, GRD-12, PRD 19.4 | 1505, 1 skipped (L) |
+| 2026-11-01 | 0048 group exceptions named | `263ebf4`, `a56aa42` (merge below) | ROB-UI-03 must say union employees follow the Collective Bargaining Agreement (re-scored: 0/3 before); answer prompt v6 adds GROUPS THE EXCERPTS TREAT DIFFERENTLY. UI-03 FAIL 0/3 to PASS 3/3; no PASS to FAIL; BPL-VM-05 answered once in 3 (honest, no group sentence; seen before on c265fb1) (runs `eval_20261101T202658Z_a56aa42`, `eval_20261101T203545Z_a56aa42`) | GRD-1, NFR-1, PRD 19.4 | 1508, 1 skipped (L) |
 
 ## Not merged
 
