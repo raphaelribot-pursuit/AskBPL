@@ -6,6 +6,7 @@
     askbpl-corpus-report --master-list titles.csv # also say which policies on BPL's list have no answerable document
     askbpl-corpus-report --csv /tmp/corpus.csv    # also write the per-source table (the only thing this command writes)
     askbpl-corpus-report --strict                 # exit 1 when anything needs reconciling (for a pre-demo check)
+    askbpl-corpus-report --results <folder>       # where the live evaluation results are (default eval_data/results)
 
 It answers one question without flattering the team: how many documents have we received, and how many of them can
 actually answer a question today? The counts are mutually exclusive buckets that add up to the number received, so
@@ -20,7 +21,9 @@ What it cannot tell you (the report says so every time):
 
 * whether a document's vectors in Pinecone match the database (it never calls Pinecone; askbpl-vector-report does),
 * whether answers are right, whether a policy is current, or whether BPL has approved anything,
-* how many documents were evaluated: the "Evaluated" stage of ING-9 is not recorded anywhere yet.
+* whether an evaluated document's answers were right: "Evaluated" (patch 0058, ING-9) only means at least one
+  evaluation question about the document has a recorded live run in the results folder; the automated result is shown,
+  not a human judgment.
 
 Error text from the database is never printed (it can echo a connection string); the fixed sentences from
 ``doctor.py`` are used instead.
@@ -51,7 +54,9 @@ DISAGREEMENT, NOTE = "disagreement", "note"
 STAGE_ANSWERABLE_CONFIRMED = "answerable (BPL-confirmed)"
 STAGE_ANSWERABLE_TEST = "answerable (test index)"
 
-NOT_EVALUATED_NOTE = "not tracked: the Evaluated stage of ING-9 is not recorded anywhere yet"
+NOT_EVALUATED_NOTE = "not tracked: no live evaluation results were read (ING-9); give --results <folder>"
+DEFAULT_RESULTS_DIR = Path(__file__).resolve().parents[1] / "eval_data" / "results"
+CASES_DIR = Path(__file__).resolve().parents[1] / "eval_data"
 CANNOT_TELL = (
     "Pinecone was not asked, so this report cannot confirm that the stored vectors match the database. Run askbpl-vector-report for that.",
     "Nothing here shows that answers are right, that a policy is current, or that BPL has approved it.",
@@ -128,6 +133,75 @@ class SourceLine:
     stage: str
     doc: Optional[DbDoc]
     finding_codes: List[str] = field(default_factory=list)
+    evaluation: str = ""  # e.g. "4 questions, latest 4/4 PASS"; "" when no results were read
+
+
+@dataclass
+class EvalCoverage:
+    """What the recorded live evaluation runs say about each source (ING-9 "Evaluated", ING-13)."""
+
+    folder: str
+    files: int
+    latest_run: str
+    questions: Dict[str, List[str]]  # source_id -> evaluation question ids about it
+    asked: Dict[str, List[str]]  # source_id -> the ones with at least one recorded live run
+    latest_status: Dict[str, str]  # question id -> status in the newest live run that asked it
+
+    def summary(self, source_id: str) -> str:
+        qs = self.questions.get(source_id, [])
+        if not qs:
+            return "no evaluation question"
+        asked = self.asked.get(source_id, [])
+        if not asked:
+            return f"{len(qs)} question(s), never run live"
+        passed = sum(self.latest_status.get(q) == "PASS" for q in asked)
+        return f"{len(asked)} question(s) run live, latest {passed}/{len(asked)} PASS"
+
+
+def read_eval_coverage(results_dir: Path, cases_dir: Path = CASES_DIR) -> Optional[EvalCoverage]:
+    """Read-only: map evaluation questions to sources, and find which were asked in recorded LIVE runs.
+
+    Returns None when the folder is missing or holds no live run. Replays are ignored (they ask nothing). A result file
+    that cannot be read is skipped, never fatal.
+    """
+    import json
+
+    from ask_bpl_orchestrator.evals.cases import load_cases
+
+    if not results_dir.is_dir():
+        return None
+    questions: Dict[str, List[str]] = {}
+    source_of: Dict[str, str] = {}
+    for f in sorted(cases_dir.glob("*.csv")):
+        try:
+            cases = load_cases(f)
+        except Exception:  # noqa: BLE001 - a case file that will not load is reported by its own tests
+            continue
+        for c in cases:
+            if c.source_id:
+                questions.setdefault(c.source_id, []).append(c.test_id)
+                source_of[c.test_id] = c.source_id
+    runs = []
+    for f in sorted(results_dir.glob("eval_*.json")):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+            meta = data.get("meta") or {}
+            if meta.get("mode") != "live":
+                continue
+            runs.append((str(meta.get("run_at_utc") or f.name), {r["test_id"]: r.get("status", "") for r in data.get("results", [])}))
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
+            continue
+    if not runs:
+        return None
+    runs.sort(key=lambda r: r[0])
+    latest_status: Dict[str, str] = {}
+    for _, statuses in runs:  # oldest first, so the newest run wins
+        latest_status.update(statuses)
+    asked: Dict[str, List[str]] = {}
+    for qid in latest_status:
+        if qid in source_of:
+            asked.setdefault(source_of[qid], []).append(qid)
+    return EvalCoverage(str(results_dir), len(runs), runs[-1][0], questions, asked, latest_status)
 
 
 @dataclass
@@ -630,6 +704,7 @@ def build_report(
     counts_sheet: Optional[Dict[str, Any]] = None,
     files: Optional[FilesScan] = None,
     master: Optional[Sequence[MasterEntry]] = None,
+    evaluation: Optional[EvalCoverage] = None,
 ) -> CorpusReport:
     checked = facts.checked
     by_key = _group_by_key(facts.docs) if checked else {}
@@ -654,7 +729,8 @@ def build_report(
                 )
             )
         findings += row_findings
-        lines.append(SourceLine(sr.inv.source_id, sr.inv.file_name, sr.source_type, exp.value, member, stage, doc, [f.code for f in row_findings]))
+        lines.append(SourceLine(sr.inv.source_id, sr.inv.file_name, sr.source_type, exp.value, member, stage, doc, [f.code for f in row_findings],
+                                evaluation.summary(sr.inv.source_id) if evaluation else ""))
 
     inventory_keys = {sr.inv.key for sr in rows}
     if checked:
@@ -729,8 +805,28 @@ def build_report(
         CountLine("Superseded", str(n_superseded)),
         CountLine("   those five lines add up to received", str(n_eligible + n_pending + n_blocked + n_excluded + n_superseded)),
         CountLine("Marked as test-index members by the workbook", str(n_member), "answerable only while ALLOW_TEST_INDEX is on"),
-        CountLine("Evaluated", "not tracked", NOT_EVALUATED_NOTE),
     ]
+    if evaluation is None:
+        counts.append(CountLine("Evaluated", "not tracked", NOT_EVALUATED_NOTE))
+    else:
+        if checked:
+            can_answer = [ln for ln in lines if ln.stage in (STAGE_ANSWERABLE_CONFIRMED, STAGE_ANSWERABLE_TEST)]
+            basis = "answerable now"
+        else:
+            can_answer = [ln for ln in lines if ln.expected == Eligibility.eligible.value or ln.expected_test_index]
+            basis = "the workbook allows to answer (database not checked)"
+        done = [ln for ln in can_answer if evaluation.asked.get(ln.source_id)]
+        counts.append(CountLine(
+            "Evaluated (a live run asked about it)", f"{len(done)} of {len(can_answer)} {basis}",
+            f"ING-9; {evaluation.files} live result files, latest {evaluation.latest_run[:16]}; automated checks, not human review",
+        ))
+        for ln in can_answer:
+            if not evaluation.asked.get(ln.source_id):
+                findings.append(Finding(
+                    "not_evaluated", NOTE, ln.source_id,
+                    "Can answer, but " + ("no evaluation question is about it." if not evaluation.questions.get(ln.source_id) else "its evaluation questions have never been run live."),
+                    "Add an evaluation question for it (eval_data) and run askbpl-eval live.",
+                ))
     answerable_now: Optional[int] = None
     if checked:
         docs = facts.docs
@@ -836,7 +932,8 @@ def render(report: CorpusReport, *, summary_only: bool = False) -> str:
         w(f"  {'source':8} {'file':48} {'workbook says':23} {'stage':36} flags")
         for ln in report.lines:
             flags = ",".join(ln.finding_codes)
-            w(f"  {ln.source_id:8} {_short(ln.file_name, 48):48} {ln.expected + ('+test' if ln.expected_test_index else ''):23} {ln.stage:36} {flags}")
+            evaluated = f"  [{ln.evaluation}]" if ln.evaluation and ln.evaluation != "no evaluation question" else ""
+            w(f"  {ln.source_id:8} {_short(ln.file_name, 48):48} {ln.expected + ('+test' if ln.expected_test_index else ''):23} {ln.stage:36} {flags}{evaluated}")
         stored = [ln for ln in report.lines if ln.doc is not None]
         if stored:
             w("")
@@ -890,12 +987,13 @@ def _csv_safe(value: Any) -> str:
 def write_csv(report: CorpusReport, path: Path) -> None:
     with path.open("w", newline="", encoding="utf-8") as fh:
         wr = csv.writer(fh)
-        wr.writerow(["source_id", "file_name", "source_type", "workbook_eligibility", "workbook_test_index", "stage", "document_id", "ingest_status", "chunks", "answerable_now", "flags"])
+        wr.writerow(["source_id", "file_name", "source_type", "workbook_eligibility", "workbook_test_index", "stage", "document_id", "ingest_status", "chunks", "answerable_now", "flags", "evaluation"])
         for ln in report.lines:
             d = ln.doc
             wr.writerow([
                 _csv_safe(ln.source_id), _csv_safe(ln.file_name), _csv_safe(ln.source_type), ln.expected, ln.expected_test_index, ln.stage,
                 d.document_id if d else "", d.ingest_status if d else "", d.chunks if d else "", d.answerable if d else "", ";".join(ln.finding_codes),
+                _csv_safe(ln.evaluation),
             ])
 
 
@@ -917,6 +1015,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap.add_argument("--master-list", metavar="FILE", help="BPL's list of policies (.csv with a 'title' column, or .txt): says which have no answerable document")
     ap.add_argument("--csv", metavar="FILE", help="also write the per-source table here (the only file this command writes)")
     ap.add_argument("--summary-only", action="store_true", help="skip the per-source table")
+    ap.add_argument("--results", metavar="FOLDER", default=str(DEFAULT_RESULTS_DIR), help="live evaluation result files, for the Evaluated count (ING-9); default eval_data/results")
     ap.add_argument("--strict", action="store_true", help="exit 1 if anything needs reconciling, or the database was asked for and could not be read")
     args = ap.parse_args(argv)
 
@@ -939,7 +1038,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 2
 
     facts = CorpusFacts() if args.no_db else asyncio.run(gather_corpus_facts(settings, alembic_head()))
-    report = build_report(rows, facts, inventory_name=inv_path.name, counts_sheet=counts_sheet, files=files, master=master)
+    evaluation = read_eval_coverage(Path(args.results))
+    report = build_report(rows, facts, inventory_name=inv_path.name, counts_sheet=counts_sheet, files=files, master=master, evaluation=evaluation)
     print(render(report, summary_only=args.summary_only), end="")  # noqa: T201
     if args.csv:
         write_csv(report, Path(args.csv))

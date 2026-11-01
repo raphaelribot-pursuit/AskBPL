@@ -55,7 +55,7 @@ Run these read-only checks after any change and before any demonstration (each s
 | Command | What it checks |
 |---|---|
 | `askbpl-doctor` (add `--live` to test the keys; costs a fraction of a cent) | Settings, database, migrations, keys |
-| `askbpl-corpus-report --strict` | What can answer, and whether the workbook and the database agree |
+| `askbpl-corpus-report --strict` | What can answer, whether the workbook and the database agree, and which answerable documents have been evaluated (asked about in a recorded live run) |
 | `askbpl-vector-report --strict` | Whether every stored passage has its vector in Pinecone |
 
 Changing the documents (add, replace, supersede, retire, re-ingest, validate a scan, approve a reviewed file) is
