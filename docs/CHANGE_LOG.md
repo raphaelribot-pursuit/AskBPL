@@ -62,6 +62,7 @@ claims (90/102 backend, 11/11 web) were re-checked under BASE-1 to BASE-4.
 | 2026-11-01 | 0041 crisis card and source-unavailable state | `08f33d9` (merge below) | The web demo showed the crisis response as an error with no support lines; now a crisis card (988, EAP, closing; 988 fail-safe); placeholder EAP text neutralised; plain "source unavailable" message | UX-9, SAF-2, UX-1 | 1493, 1 skipped; web 56 (L) |
 | 2026-11-01 | 0042 handover guide | `700582f` (merge below) | docs/HANDOVER.md: BPL staff entry point (state, running, health checks, safe changes, safety controls, before real use, known limits, configuration, contacts by role); guard test | NFR-6 | 1494, 1 skipped (L) |
 | 2026-11-01 | 0043 freeze baseline | `e830a21` (merge below) | Freeze baseline on c0f1c48: client 26/1 F/3 R, team 7/7, robustness 34/5 F (39 cases); 35/37 and 30/31 identical to e3c8add; patches 0038 to 0042 changed no answer | BASE-8 | 1495, 1 skipped (L) |
+| 2026-11-01 | 0044 staff-audience probes | `accaa0c` (merge below) | ROB-MD-01 and ROB-CF-01 settled (team decision: staff get the staff rule); MD-01 passes; CF-01 fails on the patron rule told to staff (known defect) | GRD-12, GRD-1 | 1503, 1 skipped (L) |
 
 ## Not merged
 
