@@ -104,9 +104,10 @@ The team's working rules, which kept every change traceable:
 - Answers can add a small next step the policy does not state (GRD-11). A costed proposal for sentence-level citations,
   for BPL to consider investing in, is in `docs/design/GRD-11_claim_level_grounding.md` (not built; team decision 2026-11-01).
 - General discipline answers do not mention that union staff follow the Union Contract (the explicit union question does).
-- Asked whether their Internet use is private, staff are told the patron rule as if it applied to them ("BPL won't share your
-  browsing records"), alongside the employee rule (no expectation of privacy). Probe ROB-CF-01 fails on it; fixing it is a
-  prompt change to evaluate on its own. Team decision 2026-11-01: staff answers give the staff rule.
+- Fixed after the freeze baseline (patch 0047): staff asking whether their Internet use is private were told the
+  customer confidentiality rule as if it applied to them. The answer prompt now says staff get the employee rule (team
+  decision 2026-11-01); probe ROB-CF-01 passes 3/3. Other customer/employee overlaps are covered by the same rule but
+  only this one is probed.
 - Some phrasings fail the retrieval threshold (e.g. a business-card question); some stored text has split words
   (SRC-02, SRC-08). Details in `docs/BASELINE_2026-11-01_freeze.md`.
 - The safety gates are pattern based: the crisis suite has 40 positive and 35 near-miss cases, written by the build
