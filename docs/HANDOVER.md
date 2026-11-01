@@ -2,8 +2,8 @@
 
 **Start here.** This page is for the BPL staff who look after Ask BPL once the capstone team's work ends. It says what
 the system is, what state it is in, how to run and maintain it, how to change it safely, and what is still undecided.
-Each section points to the detailed document; nothing here replaces them. Prepared 2026-11-01 at the code freeze;
-`main` at the time of writing is `520e7fd` plus this page.
+Each section points to the detailed document; nothing here replaces them. Prepared 2026-11-01 at the code freeze
+(`520e7fd`) and kept up to date with later changes; `docs/CHANGE_LOG.md` lists every change and its commit.
 
 ## 1. What Ask BPL is, and is not (at the freeze)
 
@@ -18,7 +18,7 @@ of guessing.
 | Documents held back | 11 (emergency procedures, a 1995 rate, a 1974 manual, a design deck, the Public Behavior draft and its guidance, a superseded policy, two documents with staff contact details) |
 | Users | A developmental build: the build team, testers and BPL IT. **Not approved for real staff use** (section 8) |
 | Hosting | Runs locally. `render.yaml` describes a possible deployment; nothing is deployed |
-| P0 requirements in place | About 64% (43.0 of 67), `AskBPL_P0_Progress_Report_v3` in the project archive |
+| P0 requirements in place | About 69% (46.0 of 67, after patch 0052), `AskBPL_P0_Progress_Report_v4_2026-11-01.xlsx` in the project archive (`reports/`) |
 
 ## 2. Where everything is
 
@@ -28,7 +28,7 @@ of guessing.
 | History of every change | `docs/CHANGE_LOG.md` (from the code); the **project archive** `AskBPL_Project_Archive/` (every patch file and the handoff that explains it, indexed in `PROJECT_ARCHIVE_INDEX.md`) |
 | Current reference point | `docs/BASELINE_2026-11-01_freeze.md` (the earlier `docs/BASELINE_2026-10-31.md` is history) |
 | Policy files and their status | `packages/orchestrator/sample_corpus/` and the workbook `AskBPL_Source_Inventory_v0_1.xlsx` (the workbook decides what may answer) |
-| Decisions BPL still has to make | `AskBPL_BPL_Decision_Request_2026-10-31.md` (project archive, `reports/`) |
+| Decisions BPL still has to make | `AskBPL_BPL_Decision_Request_2026-11-01.md` (project archive, `reports/`) |
 | Checking this guide works | `docs/HANDOVER_WALKTHROUGH.md`: a 30-60 minute walkthrough for someone new to Ask BPL (ING-7) |
 
 ## 3. How it works (one paragraph)
