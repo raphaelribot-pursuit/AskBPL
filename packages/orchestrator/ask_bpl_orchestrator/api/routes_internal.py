@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 from ask_bpl_orchestrator.api.routes_admin import aggregate_summary, guard_admin
 from ask_bpl_orchestrator.api.session_dep import DbSessionDep
 from ask_bpl_orchestrator.config import get_settings
+from ask_bpl_orchestrator.services import routing_audit
 from ask_bpl_orchestrator.db.models import Chunk, Document, FeedbackRating, Question, RoutingRule, Session
 from ask_bpl_orchestrator.db.models import Feedback as FeedbackORM
 from ask_bpl_orchestrator.ingest.batch import ingest_manifest
@@ -270,7 +271,20 @@ async def set_routing_approval(rule_id: str, body: RoutingApprovalBody, db: DbSe
     if rule is None:
         raise HTTPException(status_code=404, detail="rule not found")
 
+    before, before_at = rule.selvon_approved, rule.approved_at
     rule.selvon_approved = body.selvon_approved
     rule.approved_at = datetime.now(timezone.utc) if body.selvon_approved else None
     await db.commit()
+    # RTG-5 (patch 0056): every approval or withdrawal leaves a log line, including the approval time it replaced.
+    routing_audit.record(
+        "routing_approval_changed",
+        source="admin_console",
+        rule_id=rule.rule_id,
+        policy_type=rule.policy_type,
+        team_id=rule.team_id,
+        priority=rule.priority,
+        approved_before=bool(before),
+        approved_after=rule.selvon_approved,
+        previous_approved_at=before_at.isoformat() if before_at else None,
+    )
     return {"rule_id": rule_id, "selvon_approved": rule.selvon_approved}
