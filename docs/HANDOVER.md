@@ -29,6 +29,7 @@ of guessing.
 | Current reference point | `docs/BASELINE_2026-11-01_freeze.md` (the earlier `docs/BASELINE_2026-10-31.md` is history) |
 | Policy files and their status | `packages/orchestrator/sample_corpus/` and the workbook `AskBPL_Source_Inventory_v0_1.xlsx` (the workbook decides what may answer) |
 | Decisions BPL still has to make | `AskBPL_BPL_Decision_Request_2026-10-31.md` (project archive, `reports/`) |
+| Checking this guide works | `docs/HANDOVER_WALKTHROUGH.md`: a 30-60 minute walkthrough for someone new to Ask BPL (ING-7) |
 
 ## 3. How it works (one paragraph)
 

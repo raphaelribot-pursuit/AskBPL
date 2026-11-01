@@ -116,6 +116,22 @@ def test_the_handover_guide_names_only_real_commands_documents_tests_and_setting
     assert not re.search(r"sk-[A-Za-z0-9]{8,}|pcsk_[A-Za-z0-9]{8,}", guide)  # no key ever pasted into the guide
 
 
+def test_the_handover_walkthrough_names_only_real_commands_and_documents_and_stays_read_only() -> None:
+    """Patch 0051 (ING-7): the newcomer walkthrough is linked from the handover guide, names only real commands and
+    documents, and never asks the walker to ingest or run a live evaluation."""
+    import tomllib
+
+    walk = (DOCS / "HANDOVER_WALKTHROUGH.md").read_text(encoding="utf-8")
+    assert "`docs/HANDOVER_WALKTHROUGH.md`" in (DOCS / "HANDOVER.md").read_text(encoding="utf-8")
+    scripts = set(tomllib.loads((ORCH / "pyproject.toml").read_text())["project"]["scripts"])
+    named = set(re.findall(r"\b(askbpl-[a-z-]+)\b", walk))
+    assert named and named <= scripts, named - scripts
+    assert not named & {"askbpl-ingest-batch", "askbpl-eval", "askbpl-apply-inventory"}, "the walkthrough must stay read-only"
+    for doc in set(re.findall(r"`(docs/[A-Za-z0-9_./-]+\.md)`", walk)) | {"scripts/compare_runs.py"}:
+        assert (REPO / doc).exists(), doc
+    assert "**Do not run an ingest.**" in walk
+
+
 def test_the_grd11_proposal_is_marked_not_built_and_names_only_real_files() -> None:
     """Patch 0046: the proposal is handed to BPL; it must say plainly it is not built, and the files it would change must exist."""
     note = (DOCS / "design" / "GRD-11_claim_level_grounding.md").read_text(encoding="utf-8")
