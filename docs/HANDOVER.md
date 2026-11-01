@@ -82,6 +82,7 @@ The team's working rules, which kept every change traceable:
 | Crisis statements get support resources, before anything else | `services/crisis_gate.py`; the web demo's crisis card | `tests/test_gate_suites.py`, `test_crisis_gate.py`, `CrisisCard.test.tsx` |
 | Personal details rejected before retrieval | `services/pii_gate.py` | `tests/test_gate_suites.py`, `test_pii_gate.py` |
 | Legal advice, decisions and other people's personnel history refused | `services/intent_guard.py` and the answer prompt | `tests/test_intent_guard.py`; live probes ROB-GR-01 to 08 |
+| Security details (codes, shared passwords, ways round alarms or cameras) and the library's live state (open today, on duty, system down) refused with a supervisor referral | `services/intent_guard.py` (patch 0052; wording is a draft for BPL) | `tests/test_rtg6_detectors.py`; live probes ROB-RC-01 to 05 |
 | Only allowed documents can answer; a changed file loses its approval | `services/eligibility.py`; the workbook via `askbpl-apply-inventory` | `tests/test_eligibility.py`, `test_approval_bound_to_file.py` |
 | Every displayed citation was retrieved | `services/citation_verifier.py`; the model cites short labels (C1, C2...) mapped back by the server, and an unknown label refuses the answer (`services/generation.py`) | live evaluation (100% verified at the baseline); `tests/test_chunk_labels.py` |
 | No invented contacts; referrals only to approved teams | `config/routing_seed.yaml` (rules stored unapproved until BPL approves) | routing tests |
