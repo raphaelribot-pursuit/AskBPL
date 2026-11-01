@@ -88,3 +88,25 @@ def test_every_commit_in_the_change_log_exists_and_the_rows_run_oldest_first() -
     # One known out-of-order pair: 0028 was committed 2026-10-29 but merged before the 2026-10-28 lock-file commit.
     out_of_order = [(a, b) for a, b in zip(dates, dates[1:]) if b < a]
     assert out_of_order == [("2026-10-29", "2026-10-28")], out_of_order
+
+
+def test_the_handover_guide_names_only_real_commands_documents_tests_and_settings() -> None:
+    """docs/HANDOVER.md is BPL's entry point (NFR-6, patch 0042); everything it names must exist."""
+    import tomllib
+
+    guide = (DOCS / "HANDOVER.md").read_text(encoding="utf-8")
+    scripts = set(tomllib.loads((ORCH / "pyproject.toml").read_text())["project"]["scripts"])
+    named_commands = set(re.findall(r"\b(askbpl-[a-z-]+)\b", guide))
+    assert named_commands and named_commands <= scripts, named_commands - scripts
+    for doc in set(re.findall(r"`(docs/[A-Za-z0-9_./-]+\.md)`", guide)):
+        assert (REPO / doc).exists(), doc
+    for test in set(re.findall(r"`?(test_[a-z0-9_]+\.py)`?", guide)) | set(re.findall(r"`tests/(test_[a-z0-9_]+\.py)`", guide)):
+        assert (ORCH / "tests" / test).exists(), test
+    for web_test in set(re.findall(r"`([A-Za-z]+\.test\.tsx)`", guide)):
+        assert list((REPO / "packages" / "web-demo" / "src").rglob(web_test)), web_test
+    settings = set(re.findall(r"^([A-Z_]+)=", (REPO / ".env.example").read_text(), flags=re.M))
+    from ask_bpl_orchestrator.config import Settings
+    settings |= {name.upper() for name in Settings.model_fields}
+    for name in set(re.findall(r"`([A-Z][A-Z_]{3,})`", guide)) - {"P0"}:
+        assert name in settings or name.startswith("VITE_"), name
+    assert not re.search(r"sk-[A-Za-z0-9]{8,}|pcsk_[A-Za-z0-9]{8,}", guide)  # no key ever pasted into the guide
