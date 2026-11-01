@@ -48,6 +48,12 @@ UC-05, AL-05 awaiting a BPL decision; BPL-FR-01 intermittent; union omission in 
 unsupported next steps (GRD-11); split words in SRC-02 and SRC-08. Fixed since the previous baseline: the crisis gate's
 coverage and the web demo's crisis card (patches 0038, 0041).
 
+## Probe definitions changed after this run (patch 0044)
+
+ROB-MD-01 and ROB-CF-01 were narrowed to the staff audience (team decision 2026-11-01). Scored with the new definitions,
+ROB-MD-01 passes and ROB-CF-01 fails because it gives staff the patron confidentiality rule. A comparison with the robustness
+file above will therefore show ROB-MD-01 moving from FAIL to PASS; that is the definition change, not a change in answers.
+
 ## How to compare
 
 ```
