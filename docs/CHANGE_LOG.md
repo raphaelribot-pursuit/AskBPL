@@ -56,6 +56,7 @@ claims (90/102 backend, 11/11 web) were re-checked under BASE-1 to BASE-4.
 | 2026-11-01 | 0035 placeholder and baseline | merge `f122f51` (`92ec577`) | Plain-language question placeholder; `docs/BASELINE_2026-10-31.md`; `scripts/compare_runs.py` | UX-1, BASE-8 | 1345, 1 skipped; web 49 (L) |
 
 | 2026-11-01 | 0036 change log | this page | This change log (BASE-9) and its guard test | BASE-9 | 1346, 1 skipped (L) |
+| 2026-11-01 | 0038 safety gate suites | `4a7728e` (merge below) | Labelled crisis and PII suites (SAF-3); crisis gate 22/40 to 40/40 first-person statements, scheduling false alarm fixed, workplace injuries not sent to the crisis card; PII gate catches "Ave."/"Pl." addresses and driver licence numbers | SAF-3, SAF-1, SAF-2 | 1469, 1 skipped (L) |
 
 ## Not merged
 
