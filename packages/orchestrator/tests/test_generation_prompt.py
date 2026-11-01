@@ -18,3 +18,19 @@ def test_system_prompt_includes_policy_calculation_section():
 
 def test_system_prompt_asks_for_details_before_calculating():
     assert "need more information before calculating" in SYSTEM_PROMPT
+
+
+def test_system_prompt_gives_staff_the_employee_rule_not_a_customer_rule():
+    """Patch 0047 (ROB-CF-01; team decision 2026-11-01, option B): a staff asker gets the staff rule.
+
+    The public Technology Use Policy says BPL "will release library records only as required by law" for customers;
+    the staff Technology Usage Policy says employees have no expectation of privacy. Answers blended the two.
+    """
+    flat = " ".join(SYSTEM_PROMPT.split())
+    assert "WHO THE RULE IS FOR" in SYSTEM_PROMPT
+    assert "The person asking is a BPL staff member." in flat
+    assert (
+        "Never present a protection, right or duty written for customers or the public as if it applied to the "
+        "staff member."
+    ) in flat
+    assert "give the employee rule" in flat

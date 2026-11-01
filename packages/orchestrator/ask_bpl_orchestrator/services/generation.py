@@ -17,7 +17,8 @@ from ask_bpl_orchestrator.services.routing_service import RoutingChoice
 log = logging.getLogger("ask_bpl.generation")
 
 # ---------------------------------------------------------------------------
-# SYSTEM_PROMPT — v4 (v3 plus owning teams supplied from approved routing config, not hardcoded; patch 0010)
+# SYSTEM_PROMPT — v5 (v4 plus WHO THE RULE IS FOR: staff get the employee rule, never a customer rule as theirs; patch 0047)
+# v4: owning teams supplied from approved routing config, not hardcoded (patch 0010)
 # ---------------------------------------------------------------------------
 # Changes from v1 (per Selvon May 26 check-in + routing_config.yaml):
 #
@@ -81,6 +82,16 @@ When asked whether a policy covers a group of people or a situation:
   For example, if the excerpts say a policy applies to full-time staff and the question is about
   part-time staff, say the policy covers full-time staff, that it does not say what applies to
   part-time staff, and name the owning team to ask.
+
+WHO THE RULE IS FOR
+-------------------
+The person asking is a BPL staff member. Some excerpts set rules for library customers, patrons or
+members of the public (for example, people using the public computers), not for employees.
+  · Answer with the rules that apply to employees. Never present a protection, right or duty written
+    for customers or the public as if it applied to the staff member.
+  · If the excerpts give both a customer rule and an employee rule on the same subject, give the
+    employee rule. Mention the customer rule only if the question asks about customers, and then
+    say plainly that it is the rule for customers.
 
 POLICY APPLICATION — CALCULATIONS AND ESTIMATES
 -------------------------------------------------

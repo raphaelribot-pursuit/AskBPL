@@ -28,8 +28,10 @@ from ask_bpl_orchestrator.services.roles import (
     render_role_block,
 )
 
-# sha256 of build_system_prompt() before patch 0024 (no routing, no role), first 8 hex characters.
-PRE_0024_PROMPT_PREFIX = "c5c5fa3d"
+# sha256 of build_system_prompt() (no routing, no role), first 8 hex characters: the base prompt every role lens is
+# added to. "c5c5fa3d" from before patch 0024 through 0046; "29f1a19a" from patch 0047 (WHO THE RULE IS FOR, a
+# deliberate base-prompt change). Re-pin only for a deliberate, evaluated prompt change, never to make a role change pass.
+PRE_0024_PROMPT_PREFIX = "29f1a19a"
 
 
 def _data() -> dict:
