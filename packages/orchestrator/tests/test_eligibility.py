@@ -245,7 +245,7 @@ def test_end_to_end_only_answerable_chunks_reach_model_and_citations() -> None:
         flags = {c["chunk_id"]: c["test_index"] for c in body["citations"]}
         assert flags[str(ids[Eligibility.authority_pending][1])] is True
         assert flags[str(ids[Eligibility.eligible][1])] is False
-        assert "Test index" in body["index_label"]
+        assert body["index_label"].startswith("Not yet confirmed by BPL")
     finally:
         asyncio.run(_cleanup([d for d, _ in ids.values()], [uuid.UUID(body["request_id"])] if "body" in dir() else []))
 

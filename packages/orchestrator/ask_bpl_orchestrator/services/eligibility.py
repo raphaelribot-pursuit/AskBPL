@@ -25,7 +25,8 @@ from sqlalchemy.sql.elements import ColumnElement
 from ask_bpl_orchestrator.config import Settings, get_settings
 from ask_bpl_orchestrator.db.models import Document, Eligibility, ExtractionStatus, IngestStatus
 
-TEST_INDEX_LABEL = "Test index: sources not yet confirmed current by BPL"
+# Plain-words DRAFT (patch 0055, UX-1): was "Test index: sources not yet confirmed current by BPL". Wording awaits BPL (SAF-6; decision request item 15).
+TEST_INDEX_LABEL = "Not yet confirmed by BPL: these policies may not be the current versions"
 
 
 def retrievable_clause(settings: Optional[Settings] = None) -> ColumnElement[bool]:

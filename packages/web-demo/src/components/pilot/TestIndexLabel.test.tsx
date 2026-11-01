@@ -6,7 +6,7 @@ import { CitationCardList } from './CitationCard'
 import { PilotTranscript } from './PilotTranscript'
 import { DocumentViewer } from './DocumentViewer'
 
-const LABEL = 'Test index: sources not yet confirmed current by BPL'
+const LABEL = 'Not yet confirmed by BPL: these policies may not be the current versions'
 
 const baseRow: AssistantAnswerRow = {
   kind: 'assistant_answer',
@@ -54,9 +54,9 @@ describe('CitationCardList test-index tag', () => {
         ]}
       />,
     )
-    expect(screen.getAllByText('Test index')).toHaveLength(1)
+    expect(screen.getAllByText('Not yet confirmed')).toHaveLength(1)
     expect(
-      screen.getByRole('button', { name: /Annual Leave Policy.*test index, not yet confirmed current/i }),
+      screen.getByRole('button', { name: /Annual Leave Policy.*not yet confirmed current by BPL/i }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^Show evidence: Fundraising Policy$/ })).toBeInTheDocument()
   })
@@ -71,7 +71,7 @@ describe('CitationCardList test-index tag', () => {
         ]}
       />,
     )
-    expect(screen.getAllByText('Test index')).toHaveLength(1)
+    expect(screen.getAllByText('Not yet confirmed')).toHaveLength(1)
   })
 })
 

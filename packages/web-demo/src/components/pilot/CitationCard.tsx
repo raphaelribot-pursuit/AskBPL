@@ -71,7 +71,7 @@ export function CitationCardList({ citations, onOpen }: CitationCardListProps) {
   if (citations.length === 0) {
     return (
       <p className="pilot-citation-empty">
-        No citations were returned for this turn.
+        No sources are shown for this answer.
       </p>
     )
   }
@@ -109,12 +109,12 @@ function GroupedCitationList({
                 doc.sections.length > 0 ? ` — ${doc.sections.join(', ')}` : ''
               }${doc.pages.length > 0 ? ` — ${doc.pages.join(', ')}` : ''}${
                 doc.count > 1 ? ` — ${doc.count} sections referenced` : ''}${
-                doc.testIndex ? ' — test index, not yet confirmed current' : ''
+                doc.testIndex ? ' — not yet confirmed current by BPL' : ''
               }`}
             >
               <strong>{doc.title}</strong>
               {doc.testIndex ? (
-                <span className="pilot-citation-tag">Test index</span>
+                <span className="pilot-citation-tag">Not yet confirmed</span>
               ) : null}
               {doc.sections.length > 0 ? (
                 <small>{doc.sections.join(' · ')}</small>
