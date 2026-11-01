@@ -12,6 +12,7 @@ import yaml
 from passlib.hash import bcrypt
 from sqlalchemy import select
 
+from ask_bpl_orchestrator.services import routing_audit
 from ask_bpl_orchestrator.db.models import OwningTeam, PolicyType, RoutingRule, Tester, TesterGroup
 from ask_bpl_orchestrator.db.session import async_session_factory
 
@@ -114,10 +115,34 @@ async def seed_rules(rows: list[dict]) -> None:
             )
 
             merged = legacy or rule
+            new_priority = int(rule_payload.get("priority", 0))
+
+            # RTG-5 (patch 0056): a re-seed that changes an approved rule needs approval again, and is logged.
+            if legacy is not None and legacy.selvon_approved and legacy.priority != new_priority and not auto_approve:
+                routing_audit.record(
+                    "routing_approval_changed",
+                    source="seed",
+                    reason="priority changed by re-seed; needs approval again",
+                    rule_id=legacy.rule_id,
+                    policy_type=policy_slug,
+                    team_id=team_id_value,
+                    priority_before=legacy.priority,
+                    priority=new_priority,
+                    approved_before=True,
+                    approved_after=False,
+                    previous_approved_at=legacy.approved_at.isoformat() if legacy.approved_at else None,
+                )
+                merged.selvon_approved = False
+                merged.approved_at = None
+            elif legacy is None:
+                routing_audit.record(
+                    "routing_rule_added", source="seed", rule_id=rule.rule_id, policy_type=policy_slug,
+                    team_id=team_id_value, priority=new_priority, approved_after=bool(auto_approve),
+                )
 
             merged.policy_type = policy_slug
             merged.team_id = team_id_value
-            merged.priority = int(rule_payload.get("priority", 0))
+            merged.priority = new_priority
             if auto_approve:
                 merged.selvon_approved = True
                 merged.approved_at = datetime.now(timezone.utc)
