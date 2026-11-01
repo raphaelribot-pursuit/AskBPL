@@ -75,3 +75,16 @@ def test_the_baseline_record_points_at_a_real_commit_and_a_comparison_script() -
     assert (REPO / "scripts" / "compare_runs.py").exists()
     for f in re.findall(r"eval_\d{8}T\d{6}Z_[0-9a-f]+_live_default-staff\.json", record):
         assert commit in f, f"{f} was not recorded on the evaluated commit"
+
+
+@pytest.mark.skipif(shutil.which("git") is None or not (REPO / ".git").exists(), reason="needs git and a git checkout")
+def test_every_commit_in_the_change_log_exists_and_the_rows_run_oldest_first() -> None:
+    log = (DOCS / "CHANGE_LOG.md").read_text(encoding="utf-8")
+    hashes = set(re.findall(r"`([0-9a-f]{7})`", log))
+    assert len(hashes) > 40
+    for h in sorted(hashes):
+        subprocess.run(["git", "cat-file", "-e", f"{h}^{{commit}}"], cwd=REPO, check=True)
+    dates = re.findall(r"^\| (2026-\d\d-\d\d) \|", log, flags=re.M)
+    # One known out-of-order pair: 0028 was committed 2026-10-29 but merged before the 2026-10-28 lock-file commit.
+    out_of_order = [(a, b) for a, b in zip(dates, dates[1:]) if b < a]
+    assert out_of_order == [("2026-10-29", "2026-10-28")], out_of_order
