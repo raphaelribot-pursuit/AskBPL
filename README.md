@@ -21,7 +21,7 @@ Internal AI assistant for Brooklyn Public Library policy Q&A. Scope and requirem
 5. `alembic upgrade head`
 6. `askbpl-seed` *(loads `config/routing_seed.yaml` + demo tester)*
 7. API: `uvicorn ask_bpl_orchestrator.main:app --reload --host 0.0.0.0 --port 8000`
-8. Web demo: copy [`packages/web-demo/.env.example`](packages/web-demo/.env.example) → `.env.local`, then `npm install && npm run dev`
+8. Web demo: copy [`packages/web-demo/.env.example`](packages/web-demo/.env.example) → `.env.local`, then `npm ci && npm run dev` (`npm ci` installs exactly the locked versions; see docs/TESTER_SETUP.md step 7)
 9. Optional smoke corpus: `askbpl-ingest --path ./sample_corpus/readme/fundraising_overview.md --corpus-root ./sample_corpus --policy fundraising_policy` — full runbook in [**docs/PINECONE_CORPUS_INGEST.md**](docs/PINECONE_CORPUS_INGEST.md).
 
 **New version supersedes old (PRD §8.5):** ingest the replacement file, then pass `--supersedes <old_document_uuid>` (from `/admin/documents`). That marks the old row, removes its vectors from Pinecone, and hides its chunks from retrieval.

@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -56,3 +57,11 @@ def test_tester_setup_explains_both_errors_and_the_safe_refresh() -> None:
     assert "validated text was changed after the review was finalized" in text
     assert "git checkout -- packages/orchestrator/extraction_reviews" in text
     assert "git config core.autocrlf false" not in text  # changing the setting floods git status on an existing checkout
+
+
+@pytest.mark.parametrize("doc", ["README.md", "docs/TESTER_SETUP.md", "docs/demo_acceptance.md"])
+def test_web_setup_installs_the_locked_versions(doc: str) -> None:
+    # `npm install` (or `npm audit fix --force`) can rewrite package.json and the lock file; `npm ci` cannot.
+    text = (REPO / doc).read_text(encoding="utf-8")
+    assert "npm ci" in text
+    assert not re.search(r"npm install(?! *-)", text.replace("not `npm install`", "")), f"{doc} still says npm install"

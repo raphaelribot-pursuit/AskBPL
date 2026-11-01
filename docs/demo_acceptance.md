@@ -31,7 +31,7 @@ Healthy output prints medians for `/healthz`, `/auth/sign-in`, and `/questions/a
 
 ```
 askbpl-ingest --path ./sample_corpus --corpus-root . --policy generic_policy --version demo-1
-cd ../web-demo && npm install && npm run dev
+cd ../web-demo && npm ci && npm run dev
 ```
 
 Pilot credentials (seeded): **pilot-demo@bklynlibrary.org / DEMO2026**.
