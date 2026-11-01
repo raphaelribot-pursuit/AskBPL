@@ -17,7 +17,8 @@ from ask_bpl_orchestrator.services.routing_service import RoutingChoice
 log = logging.getLogger("ask_bpl.generation")
 
 # ---------------------------------------------------------------------------
-# SYSTEM_PROMPT — v6 (v5 plus GROUPS THE EXCERPTS TREAT DIFFERENTLY, e.g. union employees; patch 0048)
+# SYSTEM_PROMPT — v7 (v6 with chunk labels C1, C2... cited instead of UUIDs; patch 0049, FR-01)
+# v6: GROUPS THE EXCERPTS TREAT DIFFERENTLY, e.g. union employees (patch 0048)
 # v5: WHO THE RULE IS FOR: staff get the employee rule, never a customer rule as theirs (patch 0047)
 # v4: owning teams supplied from approved routing config, not hardcoded (patch 0010)
 # ---------------------------------------------------------------------------
@@ -137,7 +138,7 @@ the question, taken ONLY from the approved list below. NEVER route to or mention
 Respond as a single JSON object with keys:
   "answer": string (plain-language answer 2-4 sentences, or empty string if refusing)
   "refuse": boolean (true when you cannot answer strictly from retrieval)
-  "cited_chunk_ids": array of UUID strings you relied on (subset of provided chunk ids); empty if refusing
+  "cited_chunk_ids": array of the chunk labels you relied on, exactly as given in RETRIEVAL_BLOCK (for example ["C1", "C3"]); empty if refusing
   "routing_team": string (owning team name when refuse is true, from the approved list above; null when refuse is false or the list names no team)
 Do not include markdown fences. Do not cite chunks you did not use.
 Output ONLY that JSON object, with no text before or after it. If an EARLIER_CONVERSATION block is present it is
@@ -233,11 +234,12 @@ async def generate_answer(
     settings = get_settings()
     client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key or None)
 
+    labels = chunk_labels(chunks)
     pack = []
-    for c in chunks:
+    for label, c in zip(labels, chunks):
         pack.append(
             {
-                "chunk_id": str(c.chunk_id),
+                "chunk_id": label,
                 "document_title": c.title,
                 "version": c.version,
                 "policy_type": c.policy_type,
@@ -268,14 +270,46 @@ async def generate_answer(
     answer = str(data.get("answer") or "").strip()
     refuse = bool(data.get("refuse"))
     cited_raw = data.get("cited_chunk_ids") or []
-    cited_ids: List[uuid.UUID] = []
-    for cid in cited_raw:
-        try:
-            cited_ids.append(uuid.UUID(str(cid)))
-        except ValueError:
-            continue
+    if not isinstance(cited_raw, list):
+        cited_raw = [cited_raw]
+    cited_ids, unknown = resolve_cited_labels(cited_raw, labels, chunks)
+    log.info(
+        json.dumps({"event": "citation_labels", "cited": len(cited_raw), "unknown": unknown, "offered": len(chunks)})
+    )
 
     return answer, refuse, cited_ids, raw_text
+
+
+def chunk_labels(chunks: Sequence[RetrievedChunk]) -> List[str]:
+    """Short labels C1, C2, ... shown to the model instead of chunk UUIDs (patch 0049, FR-01).
+
+    The model sometimes miscopied a 36-character UUID, so a correct answer was refused as citing a passage that was not
+    retrieved. Labels are per request; the server maps them back, so the citation gate itself is unchanged.
+    """
+    return [f"C{i}" for i in range(1, len(chunks) + 1)]
+
+
+def resolve_cited_labels(
+    cited_raw: Sequence[object], labels: Sequence[str], chunks: Sequence[RetrievedChunk]
+) -> tuple[List[uuid.UUID], int]:
+    """Map what the model cited back to chunk ids. Returns (ids, number of unknown citations).
+
+    A label (any case, surrounding spaces ignored) or the exact UUID of an offered chunk resolves to that chunk. Anything
+    else fails closed: it becomes a fresh random UUID that cannot be among the retrieved ids, so the citation gate refuses
+    the answer instead of silently dropping the bad citation.
+    """
+    by_label = {lab.upper(): c.chunk_id for lab, c in zip(labels, chunks)}
+    by_uuid = {str(c.chunk_id).lower(): c.chunk_id for c in chunks}
+    ids: List[uuid.UUID] = []
+    unknown = 0
+    for item in cited_raw:
+        key = str(item).strip()
+        hit = by_label.get(key.upper()) or by_uuid.get(key.lower())
+        if hit is None:
+            unknown += 1
+            hit = uuid.uuid4()
+        ids.append(hit)
+    return ids, unknown
 
 
 def model_output_usable(raw: str) -> bool:
