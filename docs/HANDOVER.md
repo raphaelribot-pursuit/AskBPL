@@ -82,7 +82,7 @@ The team's working rules, which kept every change traceable:
 | Personal details rejected before retrieval | `services/pii_gate.py` | `tests/test_gate_suites.py`, `test_pii_gate.py` |
 | Legal advice, decisions and other people's personnel history refused | `services/intent_guard.py` and the answer prompt | `tests/test_intent_guard.py`; live probes ROB-GR-01 to 08 |
 | Only allowed documents can answer; a changed file loses its approval | `services/eligibility.py`; the workbook via `askbpl-apply-inventory` | `tests/test_eligibility.py`, `test_approval_bound_to_file.py` |
-| Every displayed citation was retrieved | `services/citation_verifier.py` | live evaluation (100% verified at the baseline) |
+| Every displayed citation was retrieved | `services/citation_verifier.py`; the model cites short labels (C1, C2...) mapped back by the server, and an unknown label refuses the answer (`services/generation.py`) | live evaluation (100% verified at the baseline); `tests/test_chunk_labels.py` |
 | No invented contacts; referrals only to approved teams | `config/routing_seed.yaml` (rules stored unapproved until BPL approves) | routing tests |
 | No document carrying staff contact details is sent to outside services | `tests/test_corpus_waves.py` (blocks any manifest document with an email or phone number) | the same test |
 
@@ -106,6 +106,11 @@ The team's working rules, which kept every change traceable:
 - Fixed after the freeze baseline (patch 0048): general discipline answers did not mention that union staff follow the
   Collective Bargaining Agreement. The answer prompt now adds one sentence when the passages say a group of staff
   follows different rules (for example, Annual Leave answers now say the policy covers full-time non-union employees).
+- Fixed after the freeze baseline (patch 0049): a correct answer was occasionally refused because the model miscopied a
+  long passage ID in its citation (BPL-FR-01, about 3% of asks). The model now cites short labels. The log line
+  `citation_labels` counts unknown citations; it should stay at 0.
+- Some questions the policies do not answer (e.g. BPL-VM-05, volunteer to paid job) sometimes get an honest "the policy
+  does not say" answer instead of a refusal (1 in 3 since patch 0048). Which is preferred is BPL decision request item 14.
 - Fixed after the freeze baseline (patch 0047): staff asking whether their Internet use is private were told the
   customer confidentiality rule as if it applied to them. The answer prompt now says staff get the employee rule (team
   decision 2026-11-01); probe ROB-CF-01 passes 3/3. Other customer/employee overlaps are covered by the same rule but
