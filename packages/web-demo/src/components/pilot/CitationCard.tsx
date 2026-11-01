@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { formatPageLabel, type CitationPayload } from '../../conversation/types'
 
 /**
@@ -6,6 +8,9 @@ import { formatPageLabel, type CitationPayload } from '../../conversation/types'
  * same document render as one card with section headings and a count.
  *
  * Clicking a card opens the in-app document viewer (parent supplies handler).
+ *
+ * Patch 0054 (GRD-6): each card says "Show evidence" (visible and to screen readers), and the `+N more sources`
+ * footer is a button that reveals the rest, so every cited source's evidence can be reached.
  */
 
 const VISIBLE_LIMIT = 3
@@ -71,9 +76,19 @@ export function CitationCardList({ citations, onOpen }: CitationCardListProps) {
     )
   }
 
-  const grouped = groupCitations(citations)
-  const visible = grouped.slice(0, VISIBLE_LIMIT)
-  const overflow = grouped.length - visible.length
+  return <GroupedCitationList grouped={groupCitations(citations)} onOpen={onOpen} />
+}
+
+function GroupedCitationList({
+  grouped,
+  onOpen,
+}: {
+  grouped: GroupedCitation[]
+  onOpen: (documentId: string, chunkIds: string[]) => void
+}) {
+  const [showAll, setShowAll] = useState(false)
+  const visible = showAll ? grouped : grouped.slice(0, VISIBLE_LIMIT)
+  const overflow = grouped.length - Math.min(grouped.length, VISIBLE_LIMIT)
 
   return (
     <>
@@ -90,7 +105,7 @@ export function CitationCardList({ citations, onOpen }: CitationCardListProps) {
                   onOpen(doc.documentId, doc.chunkIds)
                 }
               }}
-              aria-label={`View source: ${doc.title}${
+              aria-label={`Show evidence: ${doc.title}${
                 doc.sections.length > 0 ? ` — ${doc.sections.join(', ')}` : ''
               }${doc.pages.length > 0 ? ` — ${doc.pages.join(', ')}` : ''}${
                 doc.count > 1 ? ` — ${doc.count} sections referenced` : ''}${
@@ -112,14 +127,24 @@ export function CitationCardList({ citations, onOpen }: CitationCardListProps) {
                   {doc.count} sections referenced
                 </span>
               ) : null}
+              <span className="pilot-citation-action" aria-hidden="true">
+                Show evidence
+              </span>
             </button>
           </li>
         ))}
       </ul>
       {overflow > 0 ? (
-        <p className="pilot-citation-overflow">
-          +{overflow} more {overflow === 1 ? 'source' : 'sources'}
-        </p>
+        <button
+          type="button"
+          className="pilot-citation-overflow"
+          aria-expanded={showAll}
+          onClick={() => setShowAll((v) => !v)}
+        >
+          {showAll
+            ? 'Show fewer sources'
+            : `+${overflow} more ${overflow === 1 ? 'source' : 'sources'}`}
+        </button>
       ) : null}
     </>
   )

@@ -91,7 +91,7 @@ export function DocumentViewer({
           type="button"
           onClick={onClose}
           className="doc-viewer-close"
-          aria-label="Close viewer"
+          aria-label="Hide evidence"
         >
           ×
         </button>
@@ -120,6 +120,10 @@ export function DocumentViewer({
                   }
                   className={`doc-chunk${isHighlighted ? ' doc-chunk-highlighted' : ''}`}
                 >
+                  {isHighlighted ? (
+                    // Patch 0054 (GRD-6; WCAG 1.4.1): say which passage supports the answer, not only by colour.
+                    <p className="doc-chunk-cited">Cited in the answer</p>
+                  ) : null}
                   {chunk.section_heading ? (
                     <h4 className="doc-chunk-heading">{chunk.section_heading}</h4>
                   ) : null}
