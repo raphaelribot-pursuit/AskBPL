@@ -74,7 +74,8 @@ _CRISIS_PATTERNS = [
     # Direct expressions of suicidal ideation
     re.compile(r"\b(i('?m| am)|i('?ve| have))\b.{0,30}\b(thinking (about|of)|considering|planning|going to)\b.{0,30}\b(end(ing)? (my|it|everything)|kill(ing)? (myself|me)|suicide|taking my (own )?life|dying)\b", re.I),
     re.compile(r"\bi\b.{0,15}\bwant(s)? to\b.{0,20}\b(die|end it( all)?|kill myself|not (be here|exist|live))\b", re.I),
-    re.compile(r"\bi\b.{0,15}\bdon('?t| not)\b.{0,20}\bwant to\b.{0,20}\b(live|be (here|alive)|exist)\b", re.I),
+    # "be here" followed by a time or place is a scheduling question ("I don't want to be here on Saturday"), not ideation.
+    re.compile(r"\bi\b.{0,15}\bdon('?t| not)\b.{0,20}\bwant to\b.{0,20}\b(live|be alive|exist|be here(?!\s+(on|at|for|this|next|tomorrow|today|tonight|until|when|during|in|every|after|before|by|from|over)\b))\b", re.I),
     re.compile(r"\bi('?m| am)\b.{0,20}\b(suicidal|going to (kill myself|end it|commit suicide))\b", re.I),
 
     # Self-harm intent
@@ -87,6 +88,29 @@ _CRISIS_PATTERNS = [
     # Hopelessness + no reason to live
     re.compile(r"\bi\b.{0,20}\b(have|see)\b.{0,10}\bno (reason|point)\b.{0,15}\b(to live|living|in living)\b", re.I),
     re.compile(r"\b(no one|nobody)\b.{0,20}\b(would (miss|care|notice)|cares if)\b.{0,20}\b(i|me)\b.{0,15}\b(was gone|died|wasn't here)\b", re.I),
+
+    # Added in patch 0038 (SAF-3 suites, tests/test_gate_suites.py). Each phrase is first person by construction
+    # ("myself", "my life", "I", "me"), so questions about helping someone else still reach policy answers.
+    # "kill myself" anywhere, including informal spellings ("im gonna kill myself"); hyperbole is an accepted false alarm.
+    re.compile(r"\bkill(ing)? myself\b", re.I),
+    re.compile(r"\b(i|i'?m|im|i'?ll|me)\b.{0,25}\bcommit(ting)? suicide\b", re.I),
+    re.compile(r"\b(decided|plan(ning)?|going|gonna|about|ready|want(ing)?) to\b.{0,10}\b(end (my|my own) life|take my (own )?life)\b", re.I),
+    re.compile(r"\b(i|i'?m|im)\b.{0,10}\b(feel(ing)? like|thinking (about|of)|ready to)\b.{0,5}\bend(ing)? it( all)?\b", re.I),
+    re.compile(r"\b(i|i'?m|my|me)\b.{0,20}\b(thinking|thoughts|think) (about|of)\b.{0,5}\b(suicide|ending my life|taking my (own )?life|dying)\b", re.I),
+    # wishing to be dead; being a burden
+    re.compile(r"\bi\b.{0,10}\bwish\b.{0,10}\b(i|i'?d)\b.{0,10}\b(were|was|had been|could be|could just)\b.{0,10}\b(dead|die|gone|never born)\b", re.I),
+    re.compile(r"\b(i'?m|i am|i'?d be|i would be)\b.{0,10}\bbetter off dead\b", re.I),
+    re.compile(r"\b(everyone|everybody|they|my family|the world|people)\b.{0,20}\bbetter off without me\b", re.I),
+    # hopelessness
+    re.compile(r"\bi\b.{0,10}\bcan'?t go on\b(?!\s+(vacation|leave|break|lunch|a |an |the |my (lunch|break|vacation|trip)|holiday|trips?)\b)", re.I),
+    re.compile(r"\b(don'?t|do not|can'?t) see (the|any) point\b.{0,15}\b(going on|living|in life|anymore)\b", re.I),
+    re.compile(r"\blife (isn'?t|is not|ain'?t) worth living\b", re.I),
+    re.compile(r"\b(i'?m|i am)\b.{0,10}\b(done with life|done living|tired of living|tired of being alive)\b", re.I),
+    # means
+    re.compile(r"\bi\b.{0,20}\b(plan(ning)?|going|gonna|want|about|decided) to\b.{0,10}\b(overdose|take (all|a bottle of) (of )?(my|the|these)? ?pills|swallow (all|a bottle))\b", re.I),
+    # ongoing self-harm (not "I cut myself on the paper cutter", which is a workplace injury)
+    re.compile(r"\b(been|keep|started|start|still) (cutting|hurting|harming|burning) myself\b", re.I),
+    re.compile(r"\b(hurt|cut|harm)(ing)? myself on purpose\b", re.I),
 ]
 
 

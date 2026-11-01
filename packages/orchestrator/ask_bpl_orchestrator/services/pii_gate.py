@@ -18,7 +18,16 @@ _FINANCIAL = re.compile(
     re.I,
 )
 
-_STREET = re.compile(r"\b\d+\s+[A-Za-z0-9 .'-]{4,}(?:Street|St\.|Road|Rd\.|Avenue|Ave\.|Lane|Ln\.|Drive|Dr\.)\b")
+# The suffix is followed by a non-letter or the end, not \b: after "Ave." the next character is a space, and \b there
+# never matched (found by the SAF-3 suite, patch 0038). Parkway and Boulevard added (Eastern Pkwy., Ocean Pkwy.).
+_STREET = re.compile(
+    r"\b\d+\s+[A-Za-z0-9 .'-]{3,}?(?:Street|St\.?|Road|Rd\.?|Avenue|Ave\.?|Lane|Ln\.?|Drive|Dr\.?|Parkway|Pkwy\.?|Boulevard|Blvd\.?|Place|Pl\.)(?![A-Za-z])"
+)
+
+# A driver licence number: the phrase followed closely by a letter-and-digit or 6+ digit identifier.
+_DRIVER_LICENSE = re.compile(
+    r"\bdriver'?s?\s+licen[cs]e\b(?:\s+(?:no\.?|number|#))?\W{0,6}(?:is\s+)?(?=[A-Z0-9]*\d)[A-Z0-9]{6,12}\b", re.I
+)
 
 
 def scan_pii(text: str) -> List[str]:
@@ -31,7 +40,7 @@ def scan_pii(text: str) -> List[str]:
     if _PHONE.search(text):
         findings.append("phone_number")
 
-    if _SSN_LIKE.search(text):
+    if _SSN_LIKE.search(text) or _DRIVER_LICENSE.search(text):
         findings.append("government_id_ssn_like")
 
     if _CC_LIKE.search(text) or _FINANCIAL.search(text):
