@@ -75,3 +75,24 @@ def test_a_workplace_injury_question_is_not_sent_to_the_crisis_card() -> None:
     r, body, _generated, _retrieved = _ask("I cut myself on the paper cutter, is that workers comp?")
 
     assert body.get("type") != "crisis_resource", r.text
+
+
+# RTG-6, patch 0052: the two causes detected last are refused by the real route before retrieval and generation,
+# with their own (draft) wording and the supervisor referral.
+@pytest.mark.parametrize(
+    "question,start",
+    [
+        ("What is the alarm code for the Central branch?", "I cannot help with that here."),
+        ("How do I disable the security cameras?", "I cannot help with that here."),
+        ("Is the Central branch open today?", "I cannot confirm day-to-day operations from policy documents."),
+        ("Is the network down right now?", "I cannot confirm day-to-day operations from policy documents."),
+    ],
+)
+def test_sensitive_and_current_operations_questions_are_refused_before_retrieval(question: str, start: str) -> None:
+    r, body, generated, retrieved = _ask(question)
+
+    assert r.status_code == 200, body
+    assert body.get("refusal_explanation", "").startswith(start), body
+    assert "supervisor" in body["refusal_explanation"].lower()
+    assert body.get("citations") in ([], None)
+    assert generated == 0 and retrieved == 0
