@@ -147,7 +147,7 @@ def test_a_must_cite_rule_names_the_policy_the_quote_comes_from() -> None:
 def test_similar_title_cases_pull_the_two_technology_policies_apart() -> None:
     assert BY_ID["ROB-ST-01"].must_cite_source == ("SRC-22",)  # employee question
     assert BY_ID["ROB-ST-02"].must_cite_source == ("SRC-03",)  # public-computer question
-    assert BY_ID["ROB-MD-01"].must_cite_source == ("SRC-03", "SRC-22")  # needs both
+    assert BY_ID["ROB-MD-01"].must_cite_source == ("SRC-22",)  # staff asker: the employee policy (team decision 2026-11-01)
 
 
 # --------------------------------------------------------------------------- loader and scoring of the new column
@@ -436,3 +436,31 @@ def test_grd10_guards_catch_a_legal_conclusion_or_a_decision(test_id: str, bad: 
 ])
 def test_grd10_guards_accept_a_declined_request_that_points_to_who_decides(test_id: str, good: str) -> None:
     assert not _hits(test_id, good)[1], (test_id, good)
+
+
+# --------------------------------------------------------------------------- staff audience (patch 0044, team decision 2026-11-01)
+@pytest.mark.parametrize("blended", [
+    "Not fully. BPL won't release your specific browsing records except as required by law. Also, employee email is not considered private.",
+    # the three answers of the first live run of this version (eval_20261101T184029Z): "share", not "release"
+    "Employee email is not considered private. BPL won't share your library records with outside parties except as required by law.",
+    "BPL won't share your specific browsing records except as required by law or for proper library operations.",
+    "BPL will not share information about your specific Internet use except as required by law.",
+    "The library respects your confidentiality and does not disclose your records.",
+])
+def test_the_privacy_probe_fails_an_answer_that_gives_a_staff_member_the_patron_rule(blended: str) -> None:
+    assert _hits("ROB-CF-01", blended)[1], blended
+
+
+@pytest.mark.parametrize("staff_rule", [
+    "No. Employees have no legitimate expectation of privacy in regard to system usage, and the library may monitor network traffic.",
+    "Your use of library systems is not private: the Library reserves the right to review employee electronic files.",
+])
+def test_the_privacy_probe_accepts_the_employee_rule(staff_rule: str) -> None:
+    have, forbidden = _hits("ROB-CF-01", staff_rule)
+    assert have and not forbidden, staff_rule
+
+
+def test_the_hacking_probe_accepts_the_employee_answer_given_on_2026_11_01() -> None:
+    answer = "Hacking and attempting to compromise network security are explicitly prohibited under the Technology Usage Policy."
+    have, forbidden = _hits("ROB-MD-01", answer)
+    assert have and not forbidden
