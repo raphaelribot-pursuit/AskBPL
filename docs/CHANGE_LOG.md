@@ -80,6 +80,7 @@ claims (90/102 backend, 11/11 web) were re-checked under BASE-1 to BASE-4.
 | 2026-11-01 | 0059 handover P0 figure | `642a788` (merge below) | docs/HANDOVER.md: P0 figure 49.0 of 67 (about 73%) after the team rescored GRD-6, UX-1, RTG-5, ADM-1, ING-9 and ING-13 | NFR-6 | unchanged (docs only) |
 | 2026-11-01 | 0060 procedures kept distinct | `a16f99b` (merge below) | Migration 009 `documents.document_type` from the workbook's Source type; carried on each passage to the model; prompt v8: a procedure or guidance is named as such, never called a policy. ROB-W1-02 now requires it: 0/3 to 3/3 (and 5/5 targeted); no PASS to FAIL; policy answers unaffected (runs `eval_20261101T223911Z`, `eval_20261101T223949Z`, `eval_20261101T224741Z`, `eval_20261101T225438Z`, all `a16f99b`). Existing databases: `alembic upgrade head` then `askbpl-apply-inventory` | ING-10 | 1682, 1 skipped (L) |
 | 2026-11-01 | 0062 GRD-11 evidence from the GRD-7 attempt | `715831c` (merge below) | docs/design/GRD-11_claim_level_grounding.md: records patch 0061 (GRD-7 'suggestion' field, **not merged**): in 3 prompt revisions and 45 live answers the model never separated its inferences from policy text; branch kept | GRD-7, GRD-11 | unchanged (docs only) |
+| 2026-11-01 | 0063 handover P0 figure | `ebf4c37` (merge below) | docs/HANDOVER.md: 49.5 of 67 (about 74%) after the team rescored ING-10 | NFR-6 | unchanged (docs only) |
 
 ## Not merged
 

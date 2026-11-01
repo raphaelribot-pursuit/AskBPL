@@ -18,7 +18,7 @@ of guessing.
 | Documents held back | 11 (emergency procedures, a 1995 rate, a 1974 manual, a design deck, the Public Behavior draft and its guidance, a superseded policy, two documents with staff contact details) |
 | Users | A developmental build: the build team, testers and BPL IT. **Not approved for real staff use** (section 8) |
 | Hosting | Runs locally. `render.yaml` describes a possible deployment; nothing is deployed |
-| P0 requirements in place | About 73% (49.0 of 67, after patch 0058), `AskBPL_P0_Progress_Report_v4_2026-11-01.xlsx` in the project archive (`reports/`) |
+| P0 requirements in place | About 74% (49.5 of 67, after patch 0062), `AskBPL_P0_Progress_Report_v4_2026-11-01.xlsx` in the project archive (`reports/`) |
 
 ## 2. Where everything is
 
