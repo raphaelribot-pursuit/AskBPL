@@ -11,6 +11,7 @@ import yaml
 from ask_bpl_orchestrator.config import get_settings
 from ask_bpl_orchestrator.db.models import Eligibility
 from ask_bpl_orchestrator.ingest.extraction_review import ExtractionValidationError, verify_record
+from ask_bpl_orchestrator.ingest.quality import assess_pdf
 from ask_bpl_orchestrator.ingest.inventory import load_inventory, normalize_name
 from ask_bpl_orchestrator.ingest.service import ingest_file
 
@@ -70,6 +71,17 @@ async def ingest_manifest(manifest_path: Path, inventory_path: Path | None = Non
             )
             continue
         review_required = validated is None and str(entry.get("extraction_review", "")).strip().lower() == "required"
+        # ING-3 (patch 0039): check the text a PDF would yield before anything is embedded. A scanned or image-only
+        # PDF is refused (its text must come from a validated extraction); heavy word-splitting is a warning only.
+        if validated is None and not review_required and target.suffix.lower() == ".pdf":
+            quality = assess_pdf(target)
+            if quality.unreadable:
+                lines.append(
+                    f"refused:{rel}:text_quality:{quality.reason}; validate the text first (docs/EXTRACTION_REVIEW.md)"
+                )
+                continue
+            if quality.split_warning:
+                lines.append(f"warning:{rel}:split_words:{quality.split_words}; check the text in the citation viewer")
         policy = entry.get("policy") or entry.get("policy_type") or "generic_policy"
         title = entry.get("title") or target.stem.replace("_", " ").title()
         version = entry.get("version") or raw.get("default_version") or "pilot-draft"
