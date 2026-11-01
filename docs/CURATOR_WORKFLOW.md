@@ -88,6 +88,10 @@ change log (BASE-8, BASE-9). If `askbpl-doctor` shows a **[FIX]** line, solve th
    ```
    Read every output line. `indexed:` is good. `refused:` means the workbook says blocked, excluded or superseded. `failed:` names
    the reason.
+   `refused:<file>:text_quality:...` (patch 0039) means the PDF looks scanned or image-only: half or more of its pages
+   are nearly empty, or the median page has very little text. Nothing was sent to OpenAI or Pinecone. Validate the text
+   first (section 5). `warning:<file>:split_words:...` means the text has many split words: it was ingested, but open it
+   in the citation viewer and consider a reader change or a validated extraction.
 7. **Tell the database what the workbook says.** This writes to the database.
    ```
    askbpl-apply-inventory
@@ -243,6 +247,8 @@ example and is blocked.
 | report: `approved_file_differs` | An `Eligible` document is stored, but the stored file is not the file that was approved (or no hash is stored, or none was approved). It cannot answer: an approval covers only the file that was reviewed. | If the stored file is the reviewed one, put its hash in `Approved SHA-256` and run `askbpl-apply-inventory`. If the file changed, ingest the approved file again or have the new file reviewed (recipe G). |
 | `warning: marked Eligible without an approved file hash` | The row has a reviewer and date but no `Approved SHA-256`, so it was treated as Authority pending. | Recipe G. |
 | `warning: 'Approved SHA-256' is not 64 hexadecimal characters` | The hash cell was mistyped or cut off; it was ignored. | Paste all 64 characters (spaces and an `sha256:` prefix are tolerated). |
+| ingest: `refused:<file>:text_quality:...` | The PDF looks scanned or image-only (half or more thin pages, or a median page under 200 characters). Not embedded, not stored. | Section 5: prepare, review and finalize a validated extraction, then add `validated_extraction:` to the manifest entry. |
+| ingest: `warning:<file>:split_words:...` | Many words are split in the extracted text (as in Collection Maintenance). The file was ingested. | Open it in the citation viewer. If answers are affected, try `PDF_READER=pdfium` (recipe E) or a validated extraction. |
 | vector report: `answerable_missing_vectors` (URGENT) | A document that can answer today has stored passages with no vector in Pinecone. Those passages can never be found. A failed ingest can leave this behind: the database is saved before the vectors are. | Run `askbpl-ingest-batch` again for that document, then `askbpl-vector-report`. If it repeats, run `askbpl-doctor --live`. |
 | vector report: `stale_vectors_for_stored_document` (WARN) | Pinecone holds vectors for a document this database has, but their ids no longer exist here (the text changed, or the database was restored). Each can use up one of the 6 retrieval slots. | Ingest that document again, then re-run the report. This report never deletes anything. |
 | vector report: `metadata_mismatch` (WARN) | A vector exists under a stored chunk's id but records a different document (or none). The id matches; the label does not. | Ingest that document again, then re-run the report. This is a label check only; it does not prove the vector encodes the chunk's text. |
