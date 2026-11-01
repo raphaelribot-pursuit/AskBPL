@@ -56,6 +56,7 @@ class RetrievedChunk:
     section_heading: Optional[str]
     text: str
     test_index: bool = False
+    document_type: Optional[str] = None  # ING-10 (patch 0060)
 
 
 class VectorRetriever:
@@ -147,6 +148,7 @@ class VectorRetriever:
                     section_heading=chunk_row.section_heading,
                     text=chunk_row.text,
                     test_index=is_test_index_source(doc_row),
+                    document_type=getattr(doc_row, "document_type", None),
                 )
             )
         return hydrated
