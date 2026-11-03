@@ -518,8 +518,11 @@ async def _handle_ask(
             }
         )
     best = max_score(retrieved)
+    # The policy area (and so the referral team) comes only from passages that reach the similarity floor (patch 0068).
+    # Before, the nearest passage counted however weak: "What is the best pizza in Brooklyn?" was referred to the
+    # Materials Review Committee. With nothing relevant, the general supervisor referral is used.
     inferred_policy = await routing_service.infer_policy_from_chunks(
-        db, [c.policy_type for c in retrieved if c.policy_type]
+        db, [c.policy_type for c in retrieved if c.policy_type and c.score >= settings.grounding_threshold]
     )
     route_targets = await _teams(db, inferred_policy)
 
