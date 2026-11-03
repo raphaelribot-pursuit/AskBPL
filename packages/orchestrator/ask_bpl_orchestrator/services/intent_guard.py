@@ -12,6 +12,14 @@ _LEGAL_HINTS = [
     r"\binterpret (?:the )?law\b",
     r"\battorney\b",
     r"\blawsuit\b",
+    # Patch 0069 (Max's run-through, 2026-11-02): asking for one's legal position. Specific on purpose: "legal guardian",
+    # "legal holiday", "legal name" and "what are my rights under FMLA?" are policy questions and stay answerable.
+    r"\blegal\s+(?:rights?|case|action|options?|claims?|recourse|standing|protections?)\b",
+    r"\b(?:can|could|should|do|would)\s+i\s+(?:be\s+able\s+to\s+)?sue\b",
+    r"\bsu(?:e|ing)\s+(?:the\s+library|bpl|brooklyn public library|my\s+\w+|the\s+city|them|him|her)\b",
+    r"\bwrongful(?:ly)?\s+(?:termination|terminated|dismissal|dismissed|fired|discharge)\b",
+    r"\b(?:is|was)\s+(?:it|this|that)\s+(?:even\s+)?(?:legal|illegal|lawful|unlawful)\b",
+    r"\b(?:a\s+)?lawyer\b",
 ]
 _BYPASS = [
     r"\bbypass\b.*\b(HR|IT|Finance|Legal)\b",

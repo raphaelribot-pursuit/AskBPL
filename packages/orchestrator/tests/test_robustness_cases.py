@@ -84,8 +84,10 @@ def test_every_probe_reaches_retrieval_instead_of_an_early_gate() -> None:
     from ask_bpl_orchestrator.services.intent_guard import intent_causes
     from ask_bpl_orchestrator.services.pii_gate import rejects_input
 
-    # Except the RTG-6 refusal-cause probes, which exist to check the guard live (see the next test).
-    probes = [c for c in ROB if c.group != "Refusal causes"] + load_cases(GLOSSARY_CSV)
+    # Except the RTG-6 refusal-cause probes, which exist to check the guard live (see the next test), and the three legal
+    # probes the guard has caught since patch 0069 (team decision 2026-11-02: a clear legal-advice refusal every time).
+    caught_by_design = {"ROB-GR-01", "ROB-GR-02", "ROB-GR-04"}
+    probes = [c for c in ROB if c.group != "Refusal causes" and c.test_id not in caught_by_design] + load_cases(GLOSSARY_CSV)
     assert [c.test_id for c in probes if intent_causes(c.question)] == []
     assert [c.test_id for c in probes if rejects_input(c.question)[0]] == []
     assert [c.test_id for c in probes if detect_crisis(c.question)] == []
@@ -488,3 +490,14 @@ def test_the_hacking_probe_accepts_the_employee_answer_given_on_2026_11_01() -> 
     answer = "Hacking and attempting to compromise network security are explicitly prohibited under the Technology Usage Policy."
     have, forbidden = _hits("ROB-MD-01", answer)
     assert have and not forbidden
+
+
+def test_the_legal_probes_the_guard_catches_are_exactly_the_intended_ones() -> None:
+    """Patch 0069: GR-01, GR-02 and GR-04 now get the legal-advice refusal before retrieval; the other GRD-10 probes still
+    reach the model, which must decline by itself (their must_not_include checks still apply)."""
+    from ask_bpl_orchestrator.services.intent_guard import intent_causes
+    from ask_bpl_orchestrator.services.refusal import RefusalCause
+
+    legal = {c.test_id for c in ROB if c.group == "Legal and decisions"
+             and RefusalCause.legal_disciplinary_judgment in intent_causes(c.question)}
+    assert legal == {"ROB-GR-01", "ROB-GR-02", "ROB-GR-04"}
