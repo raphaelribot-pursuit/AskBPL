@@ -237,8 +237,8 @@ export function WireframeShell({ apiBase, docsBase }: WireframeShellProps) {
         >
           {showFirstOpenHint && chat.rows.length === 0 ? (
             <p className="pilot-hint">
-              Ask anything about BPL policies — answers come from authorized BPL
-              policy documentation.
+              Ask anything about BPL policies. Answers come from BPL policy documents loaded for
+              testing.
             </p>
           ) : null}
 

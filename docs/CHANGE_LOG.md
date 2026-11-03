@@ -82,6 +82,7 @@ claims (90/102 backend, 11/11 web) were re-checked under BASE-1 to BASE-4.
 | 2026-11-01 | 0062 GRD-11 evidence from the GRD-7 attempt | `715831c` (merge below) | docs/design/GRD-11_claim_level_grounding.md: records patch 0061 (GRD-7 'suggestion' field, **not merged**): in 3 prompt revisions and 45 live answers the model never separated its inferences from policy text; branch kept | GRD-7, GRD-11 | unchanged (docs only) |
 | 2026-11-01 | 0063 handover P0 figure | `ebf4c37` (merge below) | docs/HANDOVER.md: 49.5 of 67 (about 74%) after the team rescored ING-10 | NFR-6 | unchanged (docs only) |
 | 2026-11-02 | 0064 names removed before sending | `77899df` (merge below) | Privacy line under the question box; names found offline (SSA-based list of 38,108 first names plus rules) and replaced before the embedding, the answer and storage, earlier turns included; staff told when a name was removed; guard also reads the replaced question ('Was Maria fired?' refused). 24/25 names, 0/30 near-misses, 0 of 81 evaluation questions changed: no answer change, no paid run | SAF-1, SAF-10, SAF-5, RTG-6 | 1750, 1 skipped; web 77 (L) |
+| 2026-11-02 | 0065 intro matches the label | `37ff8be` (merge below) | Welcome screen and chat hint: answers come from 'BPL policy documents loaded for testing', not yet confirmed by BPL (was 'authorized'); guard test; handover guide intro note and P0 figure 50.5 of 67 (team rescored SAF-1, SAF-10). No answer change | UX-2, SAF-6, NFR-6 | unchanged; web 80 (L) |
 
 ## Not merged
 

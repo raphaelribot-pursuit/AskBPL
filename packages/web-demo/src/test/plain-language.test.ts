@@ -8,6 +8,7 @@ import legacyShell from '../avatar/AvatarShellLegacy.tsx?raw'
 import citationCard from '../components/pilot/CitationCard.tsx?raw'
 import documentViewer from '../components/pilot/DocumentViewer.tsx?raw'
 import shell from '../components/pilot/WireframeShell.tsx?raw'
+import welcome from '../components/pilot/WelcomeOverlay.tsx?raw'
 import askChat from '../conversation/useAskChat.ts?raw'
 import types from '../conversation/types.ts?raw'
 
@@ -66,5 +67,20 @@ describe('default staff screen: no technical jargon (UX-1)', () => {
 
   it('announces the crisis card to screen readers', () => {
     expect(askChat).toMatch(/case 'crisis_resource':\s*\n(?:\s*\/\/.*\n)*\s*return 'Support resources are shown\.'/)
+  })
+})
+
+/** Patch 0065 (UX-2, SAF-6; team decision 2026-11-02): the intro must not claim more than the trust label does. */
+describe('intro wording matches the trust label', () => {
+  it.each([
+    ['WelcomeOverlay', welcome],
+    ['WireframeShell hint', shell],
+  ])('%s says the documents are loaded for testing and never "authorized"', (_name, source) => {
+    expect(source).not.toMatch(/authori[sz]ed/i)
+    expect(source.replace(/\s+/g, ' ')).toMatch(/BPL policy documents loaded for testing/)
+  })
+
+  it('the welcome screen says BPL has not yet confirmed the documents are current', () => {
+    expect(welcome.replace(/\s+/g, ' ')).toMatch(/BPL has not yet confirmed they are current/)
   })
 })
