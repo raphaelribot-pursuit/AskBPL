@@ -1,11 +1,10 @@
 import type { CrisisResource, CrisisResourceRow } from '../../conversation/types'
 
-/** Shown even if the server sends no resource list: a crisis card must never be empty (SAF-2). */
-const FALLBACK_RESOURCE: CrisisResource = {
-  name: '988 Suicide & Crisis Lifeline',
-  contact: 'Call or text 988',
-  description: 'Free, confidential support available 24/7',
-}
+/** Shown even if the server sends no resource list: a crisis card must never be empty (SAF-2). 911 first (SAF-8, patch 0067). */
+const FALLBACK_RESOURCES: CrisisResource[] = [
+  { name: 'Emergency: 911', contact: 'Call 911', description: 'If you or someone else is in immediate danger' },
+  { name: '988 Suicide & Crisis Lifeline', contact: 'Call or text 988', description: 'Free, confidential support available 24/7' },
+]
 
 /**
  * Crisis response (SAF-2, UX-9; patch 0041). Rendered when the crisis gate stops a question before retrieval.
@@ -13,7 +12,7 @@ const FALLBACK_RESOURCE: CrisisResource = {
  * (`services/crisis_gate.py`; final EAP text awaits BPL).
  */
 export function CrisisCard({ row }: { row: CrisisResourceRow }) {
-  const resources = row.resources.length > 0 ? row.resources : [FALLBACK_RESOURCE]
+  const resources = row.resources.length > 0 ? row.resources : FALLBACK_RESOURCES
   const headingId = `crisis-heading-${row.id}`
   return (
     <section className="pilot-crisis-card" aria-labelledby={headingId} data-row-kind="crisis_resource">

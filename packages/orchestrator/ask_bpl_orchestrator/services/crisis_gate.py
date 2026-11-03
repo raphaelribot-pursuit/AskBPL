@@ -50,6 +50,13 @@ DEFAULT_CRISIS_CONFIG = CrisisConfig(
         "and there are people ready to help right now."
     ),
     resources=(
+        # SAF-8 (patch 0067): the emergency-safe line for immediate danger comes first. 911 never goes out of date; the
+        # wording is a draft with the rest of this card, pending BPL (SAF-2, decision request item 3).
+        CrisisResource(
+            name="Emergency: 911",
+            contact="Call 911",
+            description="If you or someone else is in immediate danger",
+        ),
         CrisisResource(
             name="988 Suicide & Crisis Lifeline",
             contact="Call or text 988",
