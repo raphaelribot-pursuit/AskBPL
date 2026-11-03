@@ -397,3 +397,55 @@ def test_out_of_scope_answer_with_invented_figure_fails_but_honest_limitation_is
     assert score_run(oos, answer_rec(_MS05_LIMITATION)).status == "REVIEW"  # a human still looks (Document 06 s.5)
     invented = score_run(oos, answer_rec("The committee usually decides within 30 days."))
     assert invented.status == "FAIL" and "must_not_include" in invented.failed
+
+
+# ------------------------------------------------------------------------------------------------ GRD-13 (patch 0066)
+@pytest.mark.parametrize(
+    "text",
+    [
+        "The current policy says you get 15 days.",
+        "This policy is still in effect.",
+        "Per the BPL-approved Dress Code, no jeans.",
+        "The latest version of the handbook says staff may not.",
+        "These rules are up to date as of this year.",
+        "The policy is valid and was confirmed by BPL.",
+    ],
+)
+def test_an_answer_presenting_an_unconfirmed_source_as_current_is_caught(text: str) -> None:
+    from ask_bpl_orchestrator.evals.scoring import currency_claim
+
+    assert currency_claim(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [  # real sentences from the 2026-11-01 runs (a16f99b): policy content, not claims about the document
+        "It aims to meet the Brooklyn community's current needs while anticipating future ones.",
+        "The Conflicts of Interest and Disclosure Policy defines a conflict as any current or proposed transaction.",
+        "It also considers whether the item reflects diverse or current points of view.",
+        "Volunteer Resources handles this process, so no volunteer should start until they're officially approved.",
+        "You can carry over up to 7 days of annual leave to the next plan year.",
+    ],
+)
+def test_policy_content_that_uses_the_word_current_is_not_a_claim(text: str) -> None:
+    from ask_bpl_orchestrator.evals.scoring import currency_claim
+
+    assert currency_claim(text) is None
+
+
+def test_the_check_runs_only_when_an_unconfirmed_source_is_cited() -> None:
+    from types import SimpleNamespace
+
+    from ask_bpl_orchestrator.evals import scoring
+
+    case = SimpleNamespace(test_id="T", expect="answer", must_include=(), must_not_include=(), must_cite_source=(),
+                           source_id="", reference_status="PENDING", cls="REG")
+    cite = {"chunk_id": "c", "document_title": "Dress Code Policy", "retrievable": True, "eligibility": "authority_pending"}
+    # The runner records each cited document's state in citation_states (what the scoring reads), as in a live run.
+    rec = {"http_status": 200, "citation_states": [cite],
+           "payload": {"type": "answer", "answer": "The current policy bans jeans.", "citations": [cite], "index_label": "x"}}
+    run = scoring.score_run(case, rec)
+    assert run.checks["no_currency_claim"] is False and any("GRD-13" in w for w in run.warnings)
+    confirmed = {**cite, "eligibility": "eligible"}
+    rec["citation_states"] = [confirmed]
+    assert scoring.score_run(case, rec).checks["no_currency_claim"] is None  # a BPL-confirmed source may be called current

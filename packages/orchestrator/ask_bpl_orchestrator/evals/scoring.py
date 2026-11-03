@@ -49,6 +49,24 @@ def outcome_of(http_status: int, payload: Dict[str, Any]) -> str:
     return "error"
 
 
+# Phrases that claim a POLICY or document is current or approved (GRD-13). Deliberately narrow: "current needs",
+# "current or proposed transaction" and "officially approved" (said of a volunteer) are policy content, not claims.
+_CURRENCY_CLAIM = re.compile(
+    r"\b(?:the|this|that|bpl'?s|our|its)\s+(?:current|latest|up[- ]to[- ]date|newest|most recent)\s+"
+    r"(?:version|edition|policy|policies|rules?|handbook|manual|procedures?)\b"
+    r"|\b(?:policy|policies|rules?|version|document|handbook|manual|procedures?)\s+(?:is|are)\s+(?:still\s+|currently\s+)?"
+    r"(?:in effect|in force|current|up[- ]to[- ]date|valid|the latest)\b"
+    r"|\b(?:bpl[- ]approved|approved by bpl|confirmed by bpl|officially approved polic\w*)\b",
+    re.I,
+)
+
+
+def currency_claim(text: str) -> Optional[str]:
+    """The first phrase in an answer that presents a policy as current or BPL-approved, or None (GRD-13)."""
+    m = _CURRENCY_CLAIM.search(text or "")
+    return m.group(0) if m else None
+
+
 def response_text(payload: Dict[str, Any]) -> str:
     parts = [payload.get("answer"), payload.get("refusal_explanation"), payload.get("message")]
     return " ".join(str(p) for p in parts if p)
@@ -96,6 +114,11 @@ def score_run(case: Case, rec: Dict[str, Any]) -> RunScore:
         checks["citation_integrity"] = all(c.get("retrievable") for c in cites) if cites else False
         non_eligible = any(c.get("eligibility") != "eligible" for c in cites)
         checks["test_index_label"] = bool(payload.get("index_label")) if non_eligible else None
+        # GRD-13 (patch 0066): an answer citing a source BPL has not confirmed must not present it as current.
+        claim = currency_claim(response_text(payload)) if non_eligible else None
+        checks["no_currency_claim"] = (claim is None) if non_eligible else None
+        if claim:
+            warnings.append(f"answer presents an unconfirmed source as current (GRD-13): {claim!r}")
     else:
         checks["citations_present"] = checks["citation_integrity"] = checks["test_index_label"] = None
         checks["no_citations_on_refusal"] = not payload.get("citations")
