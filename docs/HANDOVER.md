@@ -79,7 +79,7 @@ The team's working rules, which kept every change traceable:
 
 | Control | Enforced in | Tested by |
 |---|---|---|
-| Crisis statements get support resources, before anything else | `services/crisis_gate.py`; the web demo's crisis card | `tests/test_gate_suites.py`, `test_crisis_gate.py`, `CrisisCard.test.tsx` |
+| Crisis statements get support resources (911 first for immediate danger, then 988 and the EAP), before anything else; no number that can go out of date | `services/crisis_gate.py`; the web demo's crisis card | `tests/test_gate_suites.py`, `test_crisis_gate.py`, `CrisisCard.test.tsx` |
 | Personal details rejected before retrieval | `services/pii_gate.py` | `tests/test_gate_suites.py`, `test_pii_gate.py` |
 | People's names replaced before a question is stored or sent to an outside service; staff asked not to type names and told when one was removed | `services/name_redaction.py` with `config/person_names.txt` (SSA public data; see `config/person_names_SOURCE.md`); the question box's privacy line | `tests/test_name_redaction.py`, `test_name_redaction_end_to_end.py`, `NamesRemoved.test.tsx` |
 | Legal advice, decisions and other people's personnel history refused | `services/intent_guard.py` and the answer prompt | `tests/test_intent_guard.py`; live probes ROB-GR-01 to 08 |

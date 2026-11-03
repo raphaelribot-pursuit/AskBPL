@@ -220,3 +220,25 @@ def test_no_staff_facing_crisis_text_contains_a_placeholder_or_developer_note() 
     texts = [payload["message"], payload["closing"]] + [v for r in payload["resources"] for v in r.values()]
     for text in texts:
         assert "TODO" not in text and "[" not in text and "]" not in text and "Selvon" not in text, text
+
+
+
+class TestImmediateDanger:
+    """SAF-8, patch 0067: the crisis card names 911 first for immediate danger, then 988; no other phone number."""
+
+    def test_911_comes_first_and_says_when_to_use_it(self) -> None:
+        from ask_bpl_orchestrator.services.crisis_gate import format_crisis_response
+
+        resources = format_crisis_response()["resources"]
+        assert resources[0]["contact"] == "Call 911"
+        assert "immediate danger" in resources[0]["description"]
+        assert any(r["contact"] == "Call or text 988" for r in resources[1:])
+
+    def test_the_card_carries_no_number_that_can_go_out_of_date(self) -> None:
+        import re
+
+        from ask_bpl_orchestrator.services.crisis_gate import format_crisis_response
+
+        text = " ".join(" ".join(str(v) for v in r.values()) for r in format_crisis_response()["resources"])
+        numbers = set(re.findall(r"\d{3,}", text))
+        assert numbers <= {"911", "988"}, numbers

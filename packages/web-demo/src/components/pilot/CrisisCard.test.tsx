@@ -46,6 +46,7 @@ describe('crisis response (SAF-2, UX-9)', () => {
     render(<CrisisCard row={row} />)
 
     expect(screen.getByText('Call or text 988')).toBeInTheDocument()
+    expect(screen.getByText('Call 911')).toBeInTheDocument()  // SAF-8, patch 0067: immediate danger first
   })
 
   it('renders in the transcript as a crisis card with no error label and no feedback buttons', () => {
