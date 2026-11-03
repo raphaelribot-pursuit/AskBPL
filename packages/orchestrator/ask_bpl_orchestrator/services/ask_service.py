@@ -27,7 +27,7 @@ from ask_bpl_orchestrator.db.models import (
     RoutingDecision,
     Session,
 )
-from ask_bpl_orchestrator.services import generation, routing_service
+from ask_bpl_orchestrator.services import generation, name_redaction, routing_service
 from ask_bpl_orchestrator.services.routing_service import public_contact_hint
 from ask_bpl_orchestrator.services.citation_verifier import verify_citations
 from ask_bpl_orchestrator.services.crisis_gate import detect_crisis, format_crisis_response
@@ -292,6 +292,32 @@ async def handle_ask(
     conversation_context: Optional[List[Dict[str, str]]] = None,
     user_role: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], int]:
+    """Answer one staff question. Patch 0064: answers and refusals say how many names were removed (`names_removed`)."""
+    removed: List[int] = [0]
+    payload, status_code = await _handle_ask(
+        db,
+        jwt_session_id=jwt_session_id,
+        jwt_attribution=jwt_attribution,
+        question_text=question_text,
+        conversation_context=conversation_context,
+        user_role=user_role,
+        names_removed=removed,
+    )
+    if isinstance(payload, dict) and "request_id" in payload and payload.get("type") not in ("crisis_resource", None):
+        payload["names_removed"] = removed[0]
+    return payload, status_code
+
+
+async def _handle_ask(
+    db: AsyncSession,
+    *,
+    jwt_session_id: uuid.UUID,
+    jwt_attribution: str,
+    question_text: str,
+    conversation_context: Optional[List[Dict[str, str]]],
+    user_role: Optional[str],
+    names_removed: List[int],
+) -> Tuple[Dict[str, Any], int]:
     settings = get_settings()
     started = time.perf_counter()
     # Role lens (patch 0024, ROLE-2/8/11). Resolved once: anything unrecognised is the default role. The role is
@@ -392,6 +418,20 @@ async def handle_ask(
         crisis_payload["request_id"] = str(request_id)
         return crisis_payload, 200
 
+    # People's names (patch 0064; SAF-1, SAF-10; team decision 2026-11-02). The gates above and the intent guard below
+    # read the question as typed. From here on, everything stored or sent to an outside service (the search's
+    # embedding, the follow-up rewrite, the answer) uses the question, and the earlier turns, with names replaced.
+    original_question = question_text
+    named = name_redaction.redact(question_text)
+    question_text = named.text
+    conversation_context, context_names = name_redaction.redact_context(conversation_context)
+    names_removed[0] = named.removed
+    if named.removed or context_names:
+        # Counts only: never the names (SAF-5, NFR-4).
+        _emit_structured_ask_log(
+            {"event": "names_removed", "request_id": str(request_id), "question": named.removed, "earlier_turns": context_names}
+        )
+
     question_row = Question(
         request_id=request_id,
         session_id=sess.session_id,
@@ -408,7 +448,9 @@ async def handle_ask(
         started=started, question_row=question_row, request_id=request_id, session_marker=session_marker
     )
 
-    guard_causes = intent_causes(question_text)
+    # The guard reads both versions: as typed, and with names replaced, so "Was Maria fired?" is read as "Was a colleague
+    # fired?" and refused as a question about another person's personnel history (patch 0064).
+    guard_causes = intent_causes(original_question) or intent_causes(question_text)
     if guard_causes:
         return await _refuse(
             db,

@@ -40,6 +40,9 @@ _PRIVATE_PERSONNEL = [
     # "Has anyone ever been disciplined for ...", "Was any employee fired for ..."
     rf"\b(?:has|have|had|was|were|did)\s+(?:anyone|anybody|someone|somebody|any\s+{_PEOPLE})\b"
     rf"[^?.!]{{0,50}}\b{_ACTION}\b",
+    # "Was my coworker fired ...", and after patch 0064 replaces a name, "Was a colleague fired ..." (past tense only;
+    # "can an employee be fired for ...?" is a policy question)
+    rf"\b(?:has|have|had|was|were|did)\s+(?:a|my|our)\s+{_PEOPLE}\b[^?.!]{{0,50}}\b{_ACTION}\b",
     # "How many staff have been fired ..." (past/perfect only; "how many staff can be fired" is a policy question)
     rf"\bhow\s+many\s+{_PEOPLE}\s+(?:have|has|were|had|got|been|ever)\b[^?.!]{{0,30}}\b{_ACTION}\b",
     # "Who was fired for ..." at the start of a question or sentence ("staff who were suspended" is not matched)

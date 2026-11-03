@@ -54,6 +54,18 @@ export function testIndexLabelFor(
   return citations.some((c) => c.test_index === true) ? DEFAULT_TEST_INDEX_LABEL : null
 }
 
+/** Patch 0064: tell the staff member a name was taken out of their question before it was searched. */
+export function namesRemovedText(count: number): string {
+  return count === 1
+    ? 'We removed a name from your question before searching the policies.'
+    : `We removed ${count} names from your question before searching the policies.`
+}
+
+/** Patch 0064: a whole number of names removed; anything else counts as none. */
+export function namesRemovedFromPayload(value: unknown): number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 ? value : 0
+}
+
 /** The label the server says it used. Anything malformed is ignored, so a bad field can never hide an answer. */
 export function roleLabelFromPayload(role: unknown): string | null {
   if (typeof role !== 'object' || role === null) return null
@@ -99,6 +111,8 @@ export type AssistantAnswerRow = {
   indexLabel?: string | null
   /** Role lens that framed this answer (ROLE-9). Absent on answers from a server that predates patch 0024. */
   roleLabel?: string | null
+  /** Patch 0064: how many names the server replaced before searching (0 or absent: none). */
+  namesRemoved?: number
 }
 
 /** `type: "refusal"` (Wireframe §5.4–5.5). */
@@ -109,6 +123,8 @@ export type AssistantRefusalRow = {
   explanation: string
   routing: RoutingPayload[]
   inferredPolicy?: string | null
+  /** Patch 0064: how many names the server replaced before searching (0 or absent: none). */
+  namesRemoved?: number
 }
 
 /** One support line in the crisis card (from `services/crisis_gate.py`). */
@@ -256,6 +272,7 @@ export function rowFromAskResponse(args: {
             : null,
         indexLabel: testIndexLabelFor(payload.index_label, citations),
         roleLabel: roleLabelFromPayload(payload.role),
+        namesRemoved: namesRemovedFromPayload(payload.names_removed),
       }
     }
 
@@ -283,6 +300,7 @@ export function rowFromAskResponse(args: {
           typeof payload.inferred_policy_type === 'string'
             ? payload.inferred_policy_type
             : null,
+        namesRemoved: namesRemovedFromPayload(payload.names_removed),
       }
     }
   }
