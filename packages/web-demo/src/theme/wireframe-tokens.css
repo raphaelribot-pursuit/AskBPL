@@ -1368,3 +1368,17 @@
   font-size: 0.75rem;
   color: var(--wf-ink-faint);
 }
+
+/* Patch 0064: privacy line under the question box, and the note when a name was removed. */
+.pilot-input-privacy {
+  margin: 0.25rem 0 0;
+  font-size: 0.74rem;
+  color: var(--wf-ink-muted);
+}
+
+.pilot-names-removed {
+  margin: 0;
+  font-size: 0.76rem;
+  font-style: italic;
+  color: var(--wf-ink-muted);
+}

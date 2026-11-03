@@ -25,6 +25,8 @@ type InputFieldProps = {
 
 const MAX_HEIGHT_PX = 120
 
+
+export const PRIVACY_HINT = "Please don't include anyone's name or personal details."
 export function InputField({
   value,
   onChange,
@@ -65,6 +67,7 @@ export function InputField({
           placeholder={placeholder}
           disabled={disabled}
           aria-label="Ask BPL — your question"
+          aria-describedby="pilot-input-privacy"
           rows={1}
         />
         <button
@@ -77,6 +80,10 @@ export function InputField({
           {disabled ? 'Sending…' : 'Ask'}
         </button>
       </div>
+      {/* Patch 0064 (SAF-1): ask first; names typed anyway are replaced on the server before anything is sent out. */}
+      <p className="pilot-input-privacy" id="pilot-input-privacy">
+        {PRIVACY_HINT}
+      </p>
       {metaSlot ? <div className="pilot-input-meta">{metaSlot}</div> : null}
     </>
   )

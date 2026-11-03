@@ -81,6 +81,7 @@ The team's working rules, which kept every change traceable:
 |---|---|---|
 | Crisis statements get support resources, before anything else | `services/crisis_gate.py`; the web demo's crisis card | `tests/test_gate_suites.py`, `test_crisis_gate.py`, `CrisisCard.test.tsx` |
 | Personal details rejected before retrieval | `services/pii_gate.py` | `tests/test_gate_suites.py`, `test_pii_gate.py` |
+| People's names replaced before a question is stored or sent to an outside service; staff asked not to type names and told when one was removed | `services/name_redaction.py` with `config/person_names.txt` (SSA public data; see `config/person_names_SOURCE.md`); the question box's privacy line | `tests/test_name_redaction.py`, `test_name_redaction_end_to_end.py`, `NamesRemoved.test.tsx` |
 | Legal advice, decisions and other people's personnel history refused | `services/intent_guard.py` and the answer prompt | `tests/test_intent_guard.py`; live probes ROB-GR-01 to 08 |
 | Security details (codes, shared passwords, ways round alarms or cameras) and the library's live state (open today, on duty, system down) refused with a supervisor referral | `services/intent_guard.py` (patch 0052; wording is a draft for BPL) | `tests/test_rtg6_detectors.py`; live probes ROB-RC-01 to 05 |
 | Only allowed documents can answer; a changed file loses its approval | `services/eligibility.py`; the workbook via `askbpl-apply-inventory` | `tests/test_eligibility.py`, `test_approval_bound_to_file.py` |
@@ -120,6 +121,9 @@ The team's working rules, which kept every change traceable:
   only this one is probed.
 - Some phrasings fail the retrieval threshold (e.g. a business-card question); some stored text has split words
   (SRC-02, SRC-08). Details in `docs/BASELINE_2026-11-01_freeze.md`.
+- Names are found from a list of 38,108 first names plus a few rules (patch 0064). Rare names not in the list (for
+  example "Selvon") and names typed in lower case without a word like "my coworker" are missed; public figures (an
+  author's name) are replaced too. Staff are asked not to type names, which covers what the list misses.
 - The safety gates are pattern based: the crisis suite has 40 positive and 35 near-miss cases, written by the build
   team, not by clinicians. Unusual phrasings can still be missed.
 

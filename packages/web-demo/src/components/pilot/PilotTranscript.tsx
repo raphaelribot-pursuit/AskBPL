@@ -6,6 +6,7 @@ import type {
   UserMessageRow,
 } from '../../conversation/types'
 import type { FeedbackRating, FeedbackSubmitResult } from '../../conversation/askApi'
+import { namesRemovedText } from '../../conversation/types'
 import { AnswerMarkdown } from './AnswerMarkdown'
 import { Bubble } from './Bubble'
 import { CrisisCard } from './CrisisCard'
@@ -98,6 +99,7 @@ function AssistantAnswer({
       <Bubble.Stack>
         {row.indexLabel ? <TestIndexNotice label={row.indexLabel} /> : null}
         {row.roleLabel ? <RoleBadge label={row.roleLabel} /> : null}
+        {row.namesRemoved ? <NamesRemovedNote count={row.namesRemoved} /> : null}
         <AnswerMarkdown>{row.body}</AnswerMarkdown>
         <CitationCardList citations={row.citations} onOpen={onOpenCitation} />
         {row.routing.length > 0 ? (
@@ -106,6 +108,14 @@ function AssistantAnswer({
         <FeedbackControl requestId={row.requestId} onSubmit={onFeedback} />
       </Bubble.Stack>
     </Bubble>
+  )
+}
+
+function NamesRemovedNote({ count }: { count: number }) {
+  return (
+    <p className="pilot-names-removed" role="note">
+      {namesRemovedText(count)}
+    </p>
   )
 }
 
@@ -119,6 +129,7 @@ function AssistantRefusal({
   return (
     <Bubble variant="bot">
       <Bubble.Stack>
+        {row.namesRemoved ? <NamesRemovedNote count={row.namesRemoved} /> : null}
         <AnswerMarkdown>{row.explanation}</AnswerMarkdown>
         <RoutingCard routing={row.routing} variant="refusal" />
         <FeedbackControl requestId={row.requestId} onSubmit={onFeedback} />
