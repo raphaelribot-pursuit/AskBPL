@@ -8,8 +8,10 @@ API_PORT="${ASKBPL_API_PORT:-8000}"; WEB_PORT="${ASKBPL_WEB_PORT:-4173}"  # over
 stop_here() { printf '\nNOT STARTED: %s\nPress Return to close this window.' "$*"; read -r _; exit 1; }
 
 echo "Starting Ask BPL..."
-PG_BIN="$(brew --prefix postgresql@16 2>/dev/null)/bin"; export PATH="$PG_BIN:$PATH"
-brew services start postgresql@16 >/dev/null 2>&1
+. "$REPO/scripts/demo/_tools.sh"
+PG_BIN="$(find_pg_bin)" || stop_here "Postgres 16 is not installed. Run scripts/demo/setup_demo_mac.sh first."
+export PATH="$PG_BIN:$PATH"
+start_postgres
 for _ in $(seq 1 30); do pg_isready -q -h localhost -p 5432 && break; sleep 1; done
 pg_isready -q -h localhost -p 5432 || stop_here "The database did not start."
 

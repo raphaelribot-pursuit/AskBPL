@@ -15,8 +15,9 @@ OUT="${1:-$HOME/Downloads/askbpl_demo_db_$(date +%Y%m%d).dump}"
 URL="$(grep -E '^DATABASE_URL=' "$ENV_FILE" | head -1 | cut -d= -f2- | sed 's/+asyncpg//')"
 [ -n "$URL" ] || { echo "DATABASE_URL is not set in $ENV_FILE."; exit 1; }
 
-PG_BIN="$(brew --prefix postgresql@16 2>/dev/null)/bin"
-PG_DUMP="$PG_BIN/pg_dump"; [ -x "$PG_DUMP" ] || PG_DUMP="$(command -v pg_dump)"
+. "$REPO/scripts/demo/_tools.sh"
+PG_BIN="$(find_pg_bin)" || PG_BIN="$(dirname "$(command -v pg_dump)")"
+PG_DUMP="$PG_BIN/pg_dump"
 
 echo "Exporting the Ask BPL database (no questions, answers, sessions or feedback)..."
 "$PG_DUMP" --format=custom --no-owner --no-privileges \
