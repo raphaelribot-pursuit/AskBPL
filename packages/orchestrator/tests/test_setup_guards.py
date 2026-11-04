@@ -172,3 +172,6 @@ def test_the_demo_setup_does_not_need_homebrew_and_handles_intel_macs() -> None:
     assert "/Applications/Postgres.app" in tools and "Python.framework/Versions/3.13" in tools
     assert "--only-binary=:all: -r" in setup and "requirements.lock.txt" in setup
     assert 's/^cryptography==.*/cryptography==48.0.1/' in setup and '"$(uname -m)" = "x86_64"' in setup
+    # Patch 0072: Python 3.14 preferred; on Intel macOS 11-12 pypdfium2 is left out and PDF_READER=pypdf configured.
+    assert tools.index("Versions/3.14") < tools.index("Versions/3.13")
+    assert "/^pypdfium2==/d" in setup and 'PDF_READER="pypdf"' in setup and '"PDF_READER": os.environ["PDF_READER"]' in setup

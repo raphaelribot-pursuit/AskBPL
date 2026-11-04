@@ -13,16 +13,17 @@ say() { printf '\n== %s\n' "$*"; }
 fail() { printf '\nSTOPPED: %s\n' "$*"; exit 1; }
 
 [ "$(uname)" = "Darwin" ] || fail "This script is for macOS."
-[ -n "$DUMP" ] && [ -f "$DUMP" ] || fail "Give the database copy as the first argument, e.g. scripts/demo/setup_demo_mac.sh ~/Downloads/askbpl_demo_db_20261103.dump"
 . "$REPO/scripts/demo/_tools.sh"
-
+MACOS="$(macos_major)"
+[ -n "$MACOS" ] && [ "$MACOS" -ge 11 ] || fail "This Mac runs macOS $(sw_vers -productVersion 2>/dev/null); Ask BPL needs macOS 11 or later."
+[ -n "$DUMP" ] && [ -f "$DUMP" ] || fail "Give the database copy as the first argument, e.g. scripts/demo/setup_demo_mac.sh ~/Downloads/askbpl_demo_db_20261103.dump"
 say "1/7 Checking for Postgres 16, Python and Node (nothing is installed or changed yet)"
 missing=""
 PG_BIN="$(find_pg_bin)" || missing="$missing
   - PostgreSQL 16: download Postgres.app (the version with PostgreSQL 16) from https://postgresapp.com , move it to
     Applications, open it and click Initialize."
 PY="$(find_python)" || missing="$missing
-  - Python 3.13: the macOS installer from https://www.python.org/downloads/macos/ (it runs on Intel and Apple Silicon)."
+  - Python 3.14 (or 3.13): the macOS installer from https://www.python.org/downloads/macos/ (Intel and Apple Silicon)."
 node_ok || missing="$missing
   - Node.js 22 (LTS): the macOS installer from https://nodejs.org (choose the .pkg)."
 [ -z "$missing" ] || fail "Install these first, then run this script again:$missing"
@@ -52,6 +53,9 @@ say "3/7 Settings (keys are typed here once, kept only in packages/orchestrator/
 if [ -f "$ORCH/.env" ] && [ "${ASKBPL_RESET:-}" != "1" ]; then
   fail "$ORCH/.env already exists. Remove it or run with ASKBPL_RESET=1 to write a new one."
 fi
+# The pdfium PDF reader's Intel Mac build needs macOS 13. It is only used when policies are loaded, never by the demo,
+# so on macOS 11 and 12 it is left out and the default reader is configured instead.
+PDF_READER="pdfium"; [ "$(uname -m)" = "x86_64" ] && [ "$MACOS" -lt 13 ] && PDF_READER="pypdf"
 read -rsp "OpenAI API key: " OPENAI_KEY; echo
 read -rsp "Anthropic API key: " ANTHROPIC_KEY; echo
 read -rsp "Pinecone API key: " PINECONE_KEY; echo
@@ -59,7 +63,7 @@ read -rp  "Pinecone index name [askbpl-pilot]: " PINECONE_INDEX; PINECONE_INDEX=
 [ -n "$OPENAI_KEY" ] && [ -n "$ANTHROPIC_KEY" ] && [ -n "$PINECONE_KEY" ] || fail "All three keys are needed."
 ACCESS_CODE="$("$PY" -c 'import secrets; print(secrets.token_urlsafe(9))')"
 OPENAI_KEY="$OPENAI_KEY" ANTHROPIC_KEY="$ANTHROPIC_KEY" PINECONE_KEY="$PINECONE_KEY" PINECONE_INDEX="$PINECONE_INDEX" \
-DB_URL="postgresql+asyncpg://askbpl:$DB_PW@localhost:5432/askbpl" ACCESS_CODE="$ACCESS_CODE" \
+DB_URL="postgresql+asyncpg://askbpl:$DB_PW@localhost:5432/askbpl" ACCESS_CODE="$ACCESS_CODE" PDF_READER="$PDF_READER" \
 "$PY" - "$REPO/.env.example" "$ORCH/.env" <<'PY'
 import os, re, secrets, sys
 src, dst = sys.argv[1], sys.argv[2]
@@ -73,7 +77,7 @@ values = {
     "PINECONE_API_KEY": os.environ["PINECONE_KEY"],
     "PINECONE_INDEX_NAME": os.environ["PINECONE_INDEX"],
     "ALLOW_TEST_INDEX": "true",
-    "PDF_READER": "pdfium",
+    "PDF_READER": os.environ["PDF_READER"],
 }
 out, seen = [], set()
 for line in open(src, encoding="utf-8").read().splitlines():
@@ -100,9 +104,12 @@ pip install -q --upgrade pip
 LOCK="$ORCH/requirements.lock.txt"
 if [ "$(uname -m)" = "x86_64" ]; then
   LOCK="$(mktemp)"; sed -E 's/^cryptography==.*/cryptography==48.0.1/' "$ORCH/requirements.lock.txt" > "$LOCK"
+  # macOS 11-12 on Intel: no pypdfium2 build (needs 13); not used by the demo (PDF_READER=pypdf above).
+  if [ "$MACOS" -lt 13 ]; then sed -i '' -E '/^pypdfium2==/d' "$LOCK"; fi
 fi
 pip install -q --only-binary=:all: -r "$LOCK" || fail "A Python package could not be installed from a ready-made build (see above)."
 pip install -q --no-deps -e .
+[ "$PDF_READER" = "pypdf" ] && echo "Note: macOS $MACOS on Intel: the optional pdfium PDF reader was left out (not used by the demo)."
 alembic upgrade head
 askbpl-seed >/dev/null   # this Mac's own demo sign-in code; routing rules as on the team Mac
 

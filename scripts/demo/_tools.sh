@@ -18,14 +18,19 @@ start_postgres() {
 }
 
 find_python() {
-  # Python 3.13 first (every pinned package has an Intel Mac wheel for it), then 3.12, then any python3 >= 3.10.
+  # Python 3.14 first (the team Mac's version), then 3.13: every pinned package has an Intel Mac wheel for both
+  # (checked 2026-11-03). Then 3.12, then any python3 >= 3.10.
   local p
-  for p in /Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13 /Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12 \
-           "$(command -v python3.13 2>/dev/null)" "$(command -v python3.12 2>/dev/null)" "$(command -v python3 2>/dev/null)"; do
+  for p in /Library/Frameworks/Python.framework/Versions/3.14/bin/python3.14 /Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13 \
+           /Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12 \
+           "$(command -v python3.14 2>/dev/null)" "$(command -v python3.13 2>/dev/null)" "$(command -v python3.12 2>/dev/null)" \
+           "$(command -v python3 2>/dev/null)"; do
     [ -n "$p" ] && [ -x "$p" ] && "$p" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null && { echo "$p"; return 0; }
   done
   return 1
 }
+
+macos_major() { sw_vers -productVersion 2>/dev/null | cut -d. -f1; }
 
 node_ok() {
   # Vite 8 needs Node ^20.19 or >= 22.12.

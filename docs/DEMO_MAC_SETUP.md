@@ -27,7 +27,7 @@ whenever the policies change.
 1. Install these three, from their official sites (each is a normal Mac installer):
    - **Postgres.app** with PostgreSQL 16: https://postgresapp.com . Move it to Applications, open it, click
      **Initialize**. (In its settings, tick "Automatically start server" if offered.)
-   - **Python 3.13**: https://www.python.org/downloads/macos/ (the macOS 64-bit universal installer).
+   - **Python 3.14** (3.13 also works): https://www.python.org/downloads/macos/ (the macOS 64-bit universal installer).
    - **Node.js 22 LTS**: https://nodejs.org (the macOS .pkg).
 2. In the project folder:
 
@@ -67,4 +67,7 @@ Ask BPL Demo** on the Desktop. It stops with a plain message at the first proble
 Every Python package is installed at the exact version tested on the team Mac (`requirements.lock.txt`), from ready-made
 builds only. One exception: `cryptography` stopped publishing Intel Mac builds after 48.0.1, so on Intel the setup uses
 48.0.1 instead of the locked version (it only backs the login-token library). The full test suite (1783 tests) passes
-with that version.
+with that version. Every package has an Intel Mac build for Python 3.13 and 3.14 (checked 2026-11-03).
+
+On **Intel Macs running macOS 11 or 12**, the optional pdfium PDF reader is left out (its Intel build needs macOS 13).
+It is only used when policies are loaded, never during a demo; the setup configures the default reader instead.
