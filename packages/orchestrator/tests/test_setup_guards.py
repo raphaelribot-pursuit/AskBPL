@@ -150,6 +150,7 @@ def test_the_demo_mac_scripts_exist_parse_and_never_carry_questions_or_keys() ->
 
     demo = REPO / "scripts" / "demo"
     names = ["export_demo_db.sh", "setup_demo_mac.sh", "start_demo.sh", "stop_demo.sh"]
+    assert subprocess.run(["bash", "-n", str(demo / "_tools.sh")]).returncode == 0  # patch 0071: shared tool finder
     for n in names:
         path = demo / n
         assert path.exists() and os.access(path, os.X_OK), n
@@ -160,3 +161,14 @@ def test_the_demo_mac_scripts_exist_parse_and_never_carry_questions_or_keys() ->
     for table in ("questions", "responses", "citations", "feedback", "routing_decisions", "sessions"):
         assert f"--exclude-table-data={table}" in export, table
     assert "`docs/DEMO_MAC_SETUP.md`" in (DOCS / "HANDOVER.md").read_text(encoding="utf-8")
+
+
+def test_the_demo_setup_does_not_need_homebrew_and_handles_intel_macs() -> None:
+    """Patch 0071: Homebrew no longer supports Intel Macs. The setup finds Postgres.app / python.org / nodejs.org installs,
+    installs the locked versions from ready-made builds only, and lowers only the cryptography pin on Intel."""
+    setup = (REPO / "scripts" / "demo" / "setup_demo_mac.sh").read_text(encoding="utf-8")
+    tools = (REPO / "scripts" / "demo" / "_tools.sh").read_text(encoding="utf-8")
+    assert "command -v brew >/dev/null || fail" not in setup and "brew install" not in setup
+    assert "/Applications/Postgres.app" in tools and "Python.framework/Versions/3.13" in tools
+    assert "--only-binary=:all: -r" in setup and "requirements.lock.txt" in setup
+    assert 's/^cryptography==.*/cryptography==48.0.1/' in setup and '"$(uname -m)" = "x86_64"' in setup

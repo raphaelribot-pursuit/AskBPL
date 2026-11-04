@@ -1,8 +1,9 @@
 # Running Ask BPL on a demo Mac
 
 For demo day on a Mac that has never run Ask BPL (patch 0070). About 20 minutes the first time; after that, one
-double-click. The demo needs **internet** (the search index and the AI services are online) and **admin rights** on the
-Mac (Homebrew asks for the password once).
+double-click. The demo needs **internet** (the search index and the AI services are online), **macOS 11 or later**, and
+**admin rights** on the Mac to install three programs. It works on **Intel and Apple Silicon** Macs. Homebrew is not
+needed (it no longer supports Intel Macs since September 2026); the official installers are used instead.
 
 ## What you need
 
@@ -23,14 +24,19 @@ whenever the policies change.
 
 ## Step 2: on the demo Mac (once)
 
-1. Install Homebrew if it is not there: https://brew.sh
+1. Install these three, from their official sites (each is a normal Mac installer):
+   - **Postgres.app** with PostgreSQL 16: https://postgresapp.com . Move it to Applications, open it, click
+     **Initialize**. (In its settings, tick "Automatically start server" if offered.)
+   - **Python 3.13**: https://www.python.org/downloads/macos/ (the macOS 64-bit universal installer).
+   - **Node.js 22 LTS**: https://nodejs.org (the macOS .pkg).
 2. In the project folder:
 
 ```
 scripts/demo/setup_demo_mac.sh ~/Downloads/askbpl_demo_db_YYYYMMDD.dump
 ```
 
-It installs Postgres 16, Python and Node; loads the copy into a new `askbpl` database; asks for the three keys; writes the
+It first checks for Postgres 16, Python and Node and lists anything missing with its download link, changing nothing
+until all three are there. Then it loads the copy into a new `askbpl` database; asks for the three keys; writes the
 settings with fresh local secrets; installs and builds everything; runs the health check, the corpus report and the
 vector check (and, if you say yes, a key test costing a fraction of a cent); and puts **Start Ask BPL Demo** and **Stop
 Ask BPL Demo** on the Desktop. It stops with a plain message at the first problem. To start over on the same Mac:
@@ -49,7 +55,16 @@ Ask BPL Demo** on the Desktop. It stops with a plain message at the first proble
 
 | Message | What to do |
 |---|---|
+| "Install these first..." | Install the programs it lists (links above), then run the setup again. |
+| "Postgres did not start on port 5432" | Open Postgres.app and click Start (Initialize the first time). |
 | "Port 8000 is already in use" | Ask BPL (or something else) is already running: double-click Stop, then Start again. |
 | "The health check found something to fix" | Read the [FIX] lines in the window; each says what to do. |
 | "The vectors in Pinecone do not match this database" | The Pinecone key or index name is wrong, or the copy is older than the index: make a new copy (step 1). |
 | No answers, "temporarily unavailable" | Check the internet connection; then `askbpl-doctor --live` in `packages/orchestrator`. |
+
+## Intel Macs: one package version differs
+
+Every Python package is installed at the exact version tested on the team Mac (`requirements.lock.txt`), from ready-made
+builds only. One exception: `cryptography` stopped publishing Intel Mac builds after 48.0.1, so on Intel the setup uses
+48.0.1 instead of the locked version (it only backs the login-token library). The full test suite (1783 tests) passes
+with that version.
