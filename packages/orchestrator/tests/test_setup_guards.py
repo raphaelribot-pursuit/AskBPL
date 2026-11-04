@@ -140,3 +140,23 @@ def test_the_grd11_proposal_is_marked_not_built_and_names_only_real_files() -> N
         assert (REPO / path).exists(), path
     for doc in set(re.findall(r"`(docs/[A-Za-z0-9_./-]+\.md)`", note)) | {"scripts/compare_runs.py"}:
         assert (REPO / doc).exists(), doc
+
+
+def test_the_demo_mac_scripts_exist_parse_and_never_carry_questions_or_keys() -> None:
+    """Patch 0070: the demo-Mac scripts are present and executable, pass `bash -n`, the export leaves out every table of
+    questions, answers, sessions and feedback, and no script contains a key."""
+    import os
+    import subprocess
+
+    demo = REPO / "scripts" / "demo"
+    names = ["export_demo_db.sh", "setup_demo_mac.sh", "start_demo.sh", "stop_demo.sh"]
+    for n in names:
+        path = demo / n
+        assert path.exists() and os.access(path, os.X_OK), n
+        assert subprocess.run(["bash", "-n", str(path)]).returncode == 0, n
+        text = path.read_text(encoding="utf-8")
+        assert not re.search(r"sk-[A-Za-z0-9]{8,}|pcsk_[A-Za-z0-9]{8,}|sk-ant-", text), n
+    export = (demo / "export_demo_db.sh").read_text(encoding="utf-8")
+    for table in ("questions", "responses", "citations", "feedback", "routing_decisions", "sessions"):
+        assert f"--exclude-table-data={table}" in export, table
+    assert "`docs/DEMO_MAC_SETUP.md`" in (DOCS / "HANDOVER.md").read_text(encoding="utf-8")
