@@ -46,7 +46,7 @@ documents, passages, questions (hashed) and settings.
 Follow `docs/TESTER_SETUP.md` (step by step, including Windows). In short, from `packages/orchestrator` with the
 virtual environment active: `alembic upgrade head`, `askbpl-seed`, then load the documents with `askbpl-ingest-batch`
 for each manifest (`docs/CORPUS_WAVES.md`), then start the API; in `packages/web-demo`, `npm ci` and `npm run dev`.
-The Pinecone index must be a plain dense index (`docs/PINECONE_CORPUS_INGEST.md`).
+The Pinecone index must be a plain dense index (`docs/PINECONE_CORPUS_INGEST.md`). To run a demo on another Mac, see `docs/DEMO_MAC_SETUP.md` (a database copy, a one-time setup script, Start and Stop icons).
 
 ## 5. Keeping it healthy
 

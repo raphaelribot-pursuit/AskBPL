@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+# Ask BPL demo, step 2 (once, on the demo Mac): install what Ask BPL needs, load the database copy, ask for the keys,
+# build the widget, check everything, and put Start / Stop icons on the Desktop (patch 0070). See docs/DEMO_MAC_SETUP.md.
+#
+# Usage: scripts/demo/setup_demo_mac.sh /path/to/askbpl_demo_db_YYYYMMDD.dump
+# Needs: macOS, internet, Homebrew (https://brew.sh), the three keys from the build team. Never prints a key.
+set -euo pipefail
+REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+ORCH="$REPO/packages/orchestrator"; WEB="$REPO/packages/web-demo"
+DUMP="${1:-}"
+say() { printf '\n== %s\n' "$*"; }
+fail() { printf '\nSTOPPED: %s\n' "$*"; exit 1; }
+
+[ "$(uname)" = "Darwin" ] || fail "This script is for macOS."
+[ -n "$DUMP" ] && [ -f "$DUMP" ] || fail "Give the database copy as the first argument, e.g. scripts/demo/setup_demo_mac.sh ~/Downloads/askbpl_demo_db_20261103.dump"
+command -v brew >/dev/null || fail "Homebrew is not installed. Install it from https://brew.sh (it asks for this Mac's password), then run this script again."
+
+say "1/7 Installing Postgres 16, Python and Node with Homebrew (skips what is already there)"
+for pkg in postgresql@16 python node; do brew list --versions "$pkg" >/dev/null 2>&1 || brew install "$pkg"; done
+PG_BIN="$(brew --prefix postgresql@16)/bin"; export PATH="$PG_BIN:$(brew --prefix)/bin:$PATH"  # Homebrew's python3, not Apple's
+brew services start postgresql@16 >/dev/null
+for _ in $(seq 1 30); do pg_isready -q -h localhost -p 5432 && break; sleep 1; done
+pg_isready -q -h localhost -p 5432 || fail "Postgres did not start on port 5432. Is another database using that port?"
+
+say "2/7 Creating the askbpl database and loading the copy"
+if psql -h localhost -d postgres -Atc "select 1 from pg_database where datname='askbpl'" | grep -q 1; then
+  if [ "${ASKBPL_RESET:-}" = "1" ]; then dropdb -h localhost askbpl; else
+    fail "A database named askbpl already exists on this Mac. To replace it with the copy, run: ASKBPL_RESET=1 $0 $DUMP"; fi
+fi
+DB_PW="$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')"
+if psql -h localhost -d postgres -Atc "select 1 from pg_roles where rolname='askbpl'" | grep -q 1; then
+  psql -h localhost -d postgres -qc "ALTER ROLE askbpl WITH LOGIN PASSWORD '$DB_PW'"
+else
+  psql -h localhost -d postgres -qc "CREATE ROLE askbpl WITH LOGIN PASSWORD '$DB_PW'"
+fi
+createdb -h localhost -O askbpl askbpl
+DB_URL="postgresql://askbpl:$DB_PW@localhost:5432/askbpl"
+pg_restore --no-owner --no-privileges --exit-on-error -d "$DB_URL" "$DUMP"
+echo "Loaded: $(psql "$DB_URL" -Atc 'select count(*) from documents') documents, $(psql "$DB_URL" -Atc 'select count(*) from chunks') passages."
+
+say "3/7 Settings (keys are typed here once, kept only in packages/orchestrator/.env on this Mac, never shown)"
+if [ -f "$ORCH/.env" ] && [ "${ASKBPL_RESET:-}" != "1" ]; then
+  fail "$ORCH/.env already exists. Remove it or run with ASKBPL_RESET=1 to write a new one."
+fi
+read -rsp "OpenAI API key: " OPENAI_KEY; echo
+read -rsp "Anthropic API key: " ANTHROPIC_KEY; echo
+read -rsp "Pinecone API key: " PINECONE_KEY; echo
+read -rp  "Pinecone index name [askbpl-pilot]: " PINECONE_INDEX; PINECONE_INDEX="${PINECONE_INDEX:-askbpl-pilot}"
+[ -n "$OPENAI_KEY" ] && [ -n "$ANTHROPIC_KEY" ] && [ -n "$PINECONE_KEY" ] || fail "All three keys are needed."
+ACCESS_CODE="$(python3 -c 'import secrets; print(secrets.token_urlsafe(9))')"
+OPENAI_KEY="$OPENAI_KEY" ANTHROPIC_KEY="$ANTHROPIC_KEY" PINECONE_KEY="$PINECONE_KEY" PINECONE_INDEX="$PINECONE_INDEX" \
+DB_URL="postgresql+asyncpg://askbpl:$DB_PW@localhost:5432/askbpl" ACCESS_CODE="$ACCESS_CODE" \
+python3 - "$REPO/.env.example" "$ORCH/.env" <<'PY'
+import os, re, secrets, sys
+src, dst = sys.argv[1], sys.argv[2]
+values = {
+    "DATABASE_URL": os.environ["DB_URL"],
+    "JWT_SECRET_KEY": secrets.token_urlsafe(48),
+    "PILOT_DEMO_ACCESS_CODE": os.environ["ACCESS_CODE"],
+    "ADMIN_BASIC_PASSWORD": secrets.token_urlsafe(18),
+    "OPENAI_API_KEY": os.environ["OPENAI_KEY"],
+    "ANTHROPIC_API_KEY": os.environ["ANTHROPIC_KEY"],
+    "PINECONE_API_KEY": os.environ["PINECONE_KEY"],
+    "PINECONE_INDEX_NAME": os.environ["PINECONE_INDEX"],
+    "ALLOW_TEST_INDEX": "true",
+    "PDF_READER": "pdfium",
+}
+out, seen = [], set()
+for line in open(src, encoding="utf-8").read().splitlines():
+    m = re.match(r"^([A-Z_]+)=", line)
+    if m and m.group(1) in values:
+        out.append(f"{m.group(1)}={values[m.group(1)]}"); seen.add(m.group(1))
+    else:
+        out.append(line)
+out += [f"{k}={v}" for k, v in values.items() if k not in seen]
+fd = os.open(dst, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+with os.fdopen(fd, "w", encoding="utf-8") as f:
+    f.write("\n".join(out) + "\n")
+PY
+unset OPENAI_KEY ANTHROPIC_KEY PINECONE_KEY
+echo "Wrote $ORCH/.env (readable only by you)."
+
+say "4/7 Python environment and database check"
+cd "$ORCH"
+[ -d .venv ] || python3 -m venv .venv
+. .venv/bin/activate
+pip install -q --upgrade pip
+pip install -q -e ".[dev]"
+alembic upgrade head
+askbpl-seed >/dev/null   # this Mac's own demo sign-in code; routing rules as on the team Mac
+
+say "5/7 Building the widget"
+cd "$WEB"
+printf 'VITE_API_BASE_URL=http://localhost:8000\n' > .env.local
+npm ci --no-audit --no-fund
+npm run build
+
+say "6/7 Checking everything (read-only)"
+cd "$ORCH"
+askbpl-doctor || true
+askbpl-corpus-report --strict --summary-only || fail "The corpus report found something to reconcile (see above)."
+askbpl-vector-report --strict || fail "The vectors in Pinecone do not match this database (see above). Check the Pinecone key and index name."
+read -rp "Test the three keys now? Costs a fraction of a cent. [Y/n] " LIVE
+if [ "${LIVE:-Y}" != "n" ] && [ "${LIVE:-Y}" != "N" ]; then askbpl-doctor --live || fail "A key did not work (see above)."; fi
+
+say "7/7 Start and Stop icons on the Desktop"
+chmod +x "$REPO/scripts/demo/"*.sh
+for name in "Start Ask BPL Demo" "Stop Ask BPL Demo"; do
+  target="$REPO/scripts/demo/$( [ "$name" = "Start Ask BPL Demo" ] && echo start_demo.sh || echo stop_demo.sh )"
+  printf '#!/usr/bin/env bash\nexec "%s"\n' "$target" > "$HOME/Desktop/$name.command"
+  chmod +x "$HOME/Desktop/$name.command"
+done
+echo
+echo "All set. Double-click 'Start Ask BPL Demo' on the Desktop. The widget opens at http://localhost:4173."
