@@ -175,3 +175,6 @@ def test_the_demo_setup_does_not_need_homebrew_and_handles_intel_macs() -> None:
     # Patch 0072: Python 3.14 preferred; on Intel macOS 11-12 pypdfium2 is left out and PDF_READER=pypdf configured.
     assert tools.index("Versions/3.14") < tools.index("Versions/3.13")
     assert "/^pypdfium2==/d" in setup and 'PDF_READER="pypdf"' in setup and '"PDF_READER": os.environ["PDF_READER"]' in setup
+    # Patch 0073: only checked Python versions (3.12-3.14) are used; a .venv made with another version is rebuilt.
+    assert "(3, 12) <= sys.version_info[:2] <= (3, 14)" in tools
+    assert "Rebuilding the Python environment" in setup

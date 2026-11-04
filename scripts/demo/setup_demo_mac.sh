@@ -23,7 +23,8 @@ PG_BIN="$(find_pg_bin)" || missing="$missing
   - PostgreSQL 16: download Postgres.app (the version with PostgreSQL 16) from https://postgresapp.com , move it to
     Applications, open it and click Initialize."
 PY="$(find_python)" || missing="$missing
-  - Python 3.14 (or 3.13): the macOS installer from https://www.python.org/downloads/macos/ (Intel and Apple Silicon)."
+  - Python 3.14 (or 3.13): the macOS installer from https://www.python.org/downloads/macos/ (Intel and Apple Silicon).
+    Newer versions (3.15 and later) are not yet supported; 3.14 installs alongside them."
 node_ok || missing="$missing
   - Node.js 22 (LTS): the macOS installer from https://nodejs.org (choose the .pkg)."
 [ -z "$missing" ] || fail "Install these first, then run this script again:$missing"
@@ -96,6 +97,11 @@ echo "Wrote $ORCH/.env (readable only by you)."
 
 say "4/7 Python environment and database check"
 cd "$ORCH"
+# Rebuild the environment if it was made with a different Python (e.g. a first run picked up an unsupported version).
+if [ -x .venv/bin/python ] && [ "$(.venv/bin/python -c 'import sys; print(sys.version_info[:2])')" != "$("$PY" -c 'import sys; print(sys.version_info[:2])')" ]; then
+  echo "Rebuilding the Python environment with $("$PY" -V 2>&1) (it was made with $(.venv/bin/python -V 2>&1))."
+  rm -rf .venv
+fi
 [ -d .venv ] || "$PY" -m venv .venv
 . .venv/bin/activate
 pip install -q --upgrade pip
